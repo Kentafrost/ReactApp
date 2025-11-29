@@ -8,48 +8,68 @@ function TaskSchedulerCreate() {
     const [date, setDate] = useState("");
     const [time, setTime] = useState("");
     const [timespan, setTimespan] = useState("");
-    const [fileName, setFileName] = useState("");
+    const [filePath, setFilePath] = useState("");
+    const [command, setCommand] = useState("");
 
-    const fileInputRef = useRef(null);
+    const [data, setData] = useState({ status: "", message: "" });
 
     const handleSubmit = async () => {
-        const formData = new FormData();
-        formData.append("name", name);
-        formData.append("date", date);
-        formData.append("time", time);
-        formData.append("timespan", timespan);
 
-        if (fileInputRef.current.files[0]) {
-            formData.append("file", fileInputRef.current.files[0]);
+        if (!name.trim()) {
+            alert("Task name is required.");
+            return;
+        }
+        if (!date) {
+            alert("Task date is required.");
+            return;
+        }
+        if (!time) {
+            alert("Task time is required.");
+            return;
+        }
+        if (!filePath && !command) {
+            alert("Please provide either a file path or a command.");
+            return;
+        }
+
+        let payload = {
+            name: name,
+            date: date,
+            time: time,
+            timespan: timespan,
+            command: command,
+            file_path: filePath
+        };
+
+        if (filePath) {
+            payload.file_path = filePath;
+        }
+        if (command) {
+            payload.command = command;
         }
 
         const res = await fetch("http://localhost:5000/task-scheduler/create", {
             method: "POST",
-            body: JSON.stringify({
-                name: name,
-                date: date,
-                time: time,
-                file_path: fileName
-            }),
+            body: JSON.stringify(payload),
             headers: {
                 "Content-Type": "application/json"
             }
         });
         const data = await res.json();
-        alert(data.message);
+        setData(data);
     };
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            setFileName(file.name);
+            setFilePath(file.name);
         }
     };
 
     return (
         <div>
             <h2>Create Task</h2>
-            <p>Selected File: {fileName}</p>
+            <p>Selected File Path: {filePath}</p>
 
             <input
                 type="text"
@@ -77,14 +97,27 @@ function TaskSchedulerCreate() {
                 onChange={(e) => setTimespan(e.target.value)}
             />
 
+            <input
+                type="text"
+                placeholder="Command"
+                value={command}
+                onChange={(e) => setCommand(e.target.value)}
+            />
+
+            <p> Command: {command} </p>
+
             <h2> File Path </h2>
             <input type="file" accept=".py,.js,.exe,.bat" onChange={handleFileChange} />
             <p> Choose a file to upload</p>
             <p> File Types: .py, .js, .exe, .bat </p>
             <br />
-            <p> Selected File: {fileName} </p> 
-
+            <p> Selected File Path: {filePath} </p> 
+           
             <button onClick={handleSubmit}> Create</button>
+
+
+            <p> Status: {data.status} </p>
+            <p> Message: {data.message} </p>
         </div>
     );
 }

@@ -1,10 +1,12 @@
+""" local api """
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import sys
 
 sys.path.append("..")
-from script.task_scheduler.task_scheduler_set import task_scheduler_create, task_enable_disable, task_scheduler_shutdown, task_listup
+from script.task_scheduler.task_scheduler_set import task_create, task_enable_disable, task_shutdown, task_listup
 
 app = FastAPI()
 
@@ -21,15 +23,15 @@ class Task(BaseModel):
     date: str | None = None
     time: str | None = None
     timespan: str | None = None
+    
+    task_name: str | None = None
+    
+    check: str | None = None
+    command: str | None = None
     file_path: str | None = None
 
-    task_name: str | None = None
-    check: str | None = None
-
-
-""" local """
 @app.get("/task-scheduler/list")
-async def task_scheduler_list():
+async def task_list_endpoint():
 
     result = task_listup()
     if not result:
@@ -48,20 +50,22 @@ async def task_switch(req: Task):
 
 # handle task scheduling requests
 @app.post("/task-scheduler/create")
-async def task_scheduler_create(req: Task):
+async def task_create_endpoint(req: Task):
     print(f"Received request: {req}")
 
-    result = task_scheduler_create(req.name, req.date, req.time, req.file_path)
+    result = task_create(req.name, req.date, req.time, req.timespan, req.command, req.file_path)
 
     if not result:
         return result
     else:
         return result
 
-@app.post("/task-scheduler/shutdown")
-async def task_scheduler_shutdown(req: Task):
 
-    result = task_scheduler_shutdown(req.timespan)
+@app.post("/task-scheduler/shutdown")
+async def task_shutdown_endpoint(req: Task):
+    
+    print(f"Received request: {req}")
+    result = task_shutdown(req.timespan)
     
     if not result:
         return result

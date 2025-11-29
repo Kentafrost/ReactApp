@@ -1,5 +1,8 @@
 import os, logging, time
 
+import boto3
+import botocore
+
 def import_log(script_name):
 
     current_time = time.strftime("%Y%m%d_%H%M%S")
@@ -63,3 +66,16 @@ def send_mail(ssm_client, script_title, msg_list):
         logging.error('メール送信処理でエラーが発生しました。{}'.format(e))
         print(f"メール送信処理でエラーが発生しました: {e}")
         
+def authorize_ssm():
+    session = boto3.Session()
+
+    config = botocore.config.Config(
+        region_name='ap-southeast-2',
+        retries={'max_attempts': 10, 'mode': 'adaptive'},
+        read_timeout=300,
+        connect_timeout=120,
+        max_pool_connections=50
+    )
+
+    ssm_client = session.client('ssm', config=config)
+    return ssm_client

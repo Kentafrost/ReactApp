@@ -7,19 +7,21 @@ import re
 import pandas as pd
 import matplotlib.pyplot as plt
 import boto3
-import send_mail
 import logging
 import os, sys
 import json
 
+import send_mail
+
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
 import common
+import google_authorization
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
+common.import_log("Specific_Gmail_Summary")
 
-common.import_log("Retrieve_gmail")
-gmail_service = common.authorize_gmail()
+gmail_service = google_authorization.authorize_gmail()
 
 results = {
     "cost_list": [],
@@ -192,6 +194,12 @@ def cost_summary_gmail():
         write_results_to_sheet(results)
     except Exception as e:
         logging.error(f"Error writing results to sheet: {e}")
-        return {"status": "failed", "message": "Error writing results to sheet."}
+        return {
+            "status": "failed",
+            "message": "Error writing results to sheet."
+        }
     
-    return {"status": "success", "message": summary_msg}
+    return {
+        "status": "success", 
+        "message": summary_msg
+    }

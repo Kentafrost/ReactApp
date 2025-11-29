@@ -24,18 +24,33 @@ current_tasks_status = {task.Enabled for task in tasks}
 def enable_disable_task_scheduler(tasks_name, check):
     
     try:
-        if check == 'enable':
+        task = root_folder.GetTask(tasks_name)
+        logging.info(f"Target Task: {task}")
 
-            task = root_folder.GetTask(tasks_name)
+        if check == 'enable':
             task.Enabled = True
-            root_folder.RegisterTaskDefinition(tasks_name, task.Definition, 6, None, None, 3, None)
+            root_folder.RegisterTaskDefinition(
+                tasks_name, 
+                task.Definition, 
+                6, 
+                None, 
+                None, 
+                3, 
+                None
+            )
             logging.info(f"Enabled Task: '{tasks_name}'")
 
-        elif check == 'disable':
-
-            task = root_folder.GetTask(tasks_name)
+        elif check == 'disable':            
             task.Enabled = False
-            root_folder.RegisterTaskDefinition(tasks_name, task.Definition, 6, None, None, 3, None)
+            root_folder.RegisterTaskDefinition(
+                tasks_name, 
+                task.Definition, 
+                6, 
+                None, 
+                None, 
+                3, 
+                None
+            )
             logging.info(f"Disabled Task: '{tasks_name}'")
 
         return {
@@ -51,48 +66,6 @@ def enable_disable_task_scheduler(tasks_name, check):
         }
 
 current_day = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime())
-
-
-# create task scheduler for selected script file
-def create_task_scheduler_selected_script(task_name, date, time, file_path):
-    
-    file_name = os.path.basename(file_path)
-    task_create_name = f"ScriptScheduler_{file_name}"
-
-    # Create task scheduler if not exist
-    if task_create_name not in current_tasks_names:
-        task_def = scheduler.NewTask(0)
-        task_def.RegistrationInfo.Description = f"Task scheduler to run a script file [{file_name}]"
-        
-        script_path = file_path
-
-        task_def.Actions.Create(0).Path = script_path
-        task_def.Settings.Enabled = True
-        task_def.Settings.StopIfGoingOnBatteries = False
-
-        # Task def
-        trigger = task_def.Triggers.Create(2)  # 2: daily trigger
-        trigger.StartBoundary = current_day
-        trigger.DaysInterval = 1  # 毎日
-
-        root_folder.RegisterTaskDefinition(
-            task_create_name,
-            task_def,
-            6,  # create or update
-            "", "",  # run as current user
-            3  # logon type: interactive
-        )
-
-        print("Task Schedules creation completed")
-        os.system("taskschd.msc")
-        return {"status": "success", "message": "Task Schedules creation completed."}
-    else:
-        print(f"This task schedule already exists. Script name: {task_create_name}")
-        return {
-            "status": "failed", 
-            "message": f"This task schedule already exists. Script name: {task_create_name}"
-        }
-
 
 # select enable or disable task scheduler from selected task path on GUI
 def task_enable_disable(task_name, check):
@@ -123,26 +96,8 @@ def task_listup():
     return [{"name": task.Name, "enabled": task.Enabled} for task in tasks]
 
 
-# create task scheduler with invoking other function
-def task_scheduler_create(task_name, date, time, file_path):
-
-    if not file_path:
-        print("No file selected. Exiting.")
-        return {"No file selected. Exiting."}
-
-    elif not file_path.endswith('.py'):
-        print("Selected file is not a Python script. Exiting.")
-        return {"status": "failed", "message": "Selected file is not a Python script. Exiting."}
-        
-    create_task_scheduler_selected_script(task_name, date, time, file_path)
-    return {
-        "status": "success", 
-        "message": "Task scheduler creation operation completed."
-    }
-
-
 # create shutdown task scheduler if not exist
-def task_scheduler_shutdown(timespan):
+def task_shutdown(timespan):
 
     action_path = rf"C:\\Windows\\System32\\shutdown.exe -s -t {timespan}"
     weekdays_task = "PCShutdownTaskWeekdays"
@@ -173,6 +128,8 @@ def task_scheduler_shutdown(timespan):
             "", "",  # run as current user
             3  # logon type: interactive
         )
+        logging.info(f"Shutdown task scheduler({weekdays_task}) creation operation completed.")
+
         
     # Create task scheduler(weekends) if not exist
     if not weekends_task in current_tasks_names:
@@ -198,8 +155,57 @@ def task_scheduler_shutdown(timespan):
             "", "",  # run as current user
             3  # logon type: interactive
         )
-    logging.info("Shutdown task scheduler creation operation completed.")
+        logging.info("Shutdown task scheduler creation operation completed.")
+    else:
+        return {"status": "failed", "message": f"Task '{weekends_task}' already exists."}
+
     return {
         "status": "success", 
-        "message": "Shutdown task scheduler creation operation completed."
+        "message": f"Shutdown task scheduler({weekends_task} & {weekdays_task}) creation operation completed."
     }
+
+
+# create task scheduler for selected script file
+def task_create(task_name, date, time, timespan, command, file_path):
+    file_name = os.path.basename(file_path)
+
+    # Create task scheduler if not exist
+    if task_name not in current_tasks_names:
+        task_def = scheduler.NewTask(0)
+        task_def.RegistrationInfo.Description = f"Task scheduler to run a script file [{file_name}]"
+        
+        script_path = file_path
+
+        task_def.Actions.Create(0).Path = script_path
+        task_def.Settings.Enabled = True
+        task_def.Settings.StopIfGoingOnBatteries = False
+
+        # Task def
+        trigger = task_def.Triggers.Create(2)  # 2: daily trigger
+        trigger.StartBoundary = current_day
+        trigger.DaysInterval = 1  # 毎日
+
+        root_folder.RegisterTaskDefinition(
+            task_name,
+            task_def,
+            6,  # create or update
+            "", 
+            "",
+            3  # logon type: interactive
+        )
+
+        logging.info("Task Schedules creation completed")
+        
+        os.system("taskschd.msc")
+        return {
+            "status": "success", 
+            "message": "Task Schedules creation completed."
+        }
+    
+    else:
+        logging.info(f"This task schedule already exists. Script name: {file_name}")
+        
+        return {
+            "status": "failed", 
+            "message": f"This task schedule already exists. Script name: {file_name}"
+        }

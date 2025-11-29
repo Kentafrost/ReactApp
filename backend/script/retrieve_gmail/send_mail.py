@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 """ for personal use only """
-
 import os
 import logging
 import smtplib
@@ -12,13 +11,15 @@ from email.mime.image import MIMEImage
 
 
 # send email with attachment
-def send_mail(client, attachment_path):
+def sending(ssm_client, attachment_path):
     logging.info('Starting email send process.')
     try:
-        from_address = client.get_parameter(Name='my_main_gmail_address', 
-                                            WithDecryption=True)['Parameter']['Value']
-        from_pw = client.get_parameter(Name='my_main_gmail_password', 
-                                       WithDecryption=True)['Parameter']['Value']  
+        from_address = ssm_client.get_parameter(
+            Name='my_main_gmail_address', 
+            WithDecryption=True)['Parameter']['Value']
+        from_pw = ssm_client.get_parameter(
+            Name='my_main_gmail_password',
+            WithDecryption=True)['Parameter']['Value']  
         to_address = from_address
 
         # Create MIME message
@@ -39,6 +40,10 @@ def send_mail(client, attachment_path):
 
     except Exception as e:
         logging.error('Failed to retrieve email content from SSM. {}'.format(e))
+        return {
+            "status": "failed",
+            "message": f"Failed to retrieve email content from SSM. {e}"
+        }
     
     try:
         # message = f"Subject: {subject}\nTo: {to_address}\nFrom: {from_address}\n\n{bodyText}".encode('utf-8') # メールの内容をUTF-8でエンコード
@@ -59,11 +64,15 @@ def send_mail(client, attachment_path):
                 smtp_server.send_mail(from_address, to_address, msg)
         
         logging.info(f'{mail_type} email sent successfully to {to_address}.')
+        return {
+            "status": "success", 
+            "message": f"Email sent successfully to {to_address}."
+        }
         
             
     except Exception as e:
         logging.error('Error occurred during email sending process. {}'.format(e))
-    else:
-        logging.info('Email sending process completed successfully.')
-        return None
-    
+        return {
+            "status": "failed",
+            "message": f"Error occurred during email sending process. {e}"
+        }    

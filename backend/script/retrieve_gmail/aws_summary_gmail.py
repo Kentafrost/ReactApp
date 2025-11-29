@@ -9,14 +9,17 @@ import base64
 from bs4 import BeautifulSoup
 import gspread
 
+import send_mail
+
 # parent directory
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
 
 import common
+import google_authorization
 
-common.import_log("Retrieve_gmail")
-gmail_service = common.authorize_gmail()
+common.import_log("AWS_Related_Gmail_Summary")
+gmail_service = google_authorization.authorize_gmail()
 
 
 """Recursively extract body content from email parts."""
@@ -155,7 +158,10 @@ def aws_mail_summary():
     
     except Exception as e:
         logging.error(f"Error accessing Gmail labels: {e}")
-        return {"status": "failed", "message": "Error accessing Gmail labels."}
+        return {
+            "status": "failed",
+            "message": "Error accessing Gmail labels."
+        }
     
 
     # if aws emails found, csv update initiated
@@ -189,8 +195,25 @@ def aws_mail_summary():
                 
         except Exception as e:
             logging.error(f"Error writing to Google Sheets: {e}")
+            return {
+                "status": "failed",
+                "message": f"Error writing to Google Sheets: {e}"
+            }
     else:
         logging.info("No AWS emails found to write to Google Sheets")
-        return {"status": "failed", "message": "No AWS emails found. So skipping sheet update."}
+        return {
+            "status": "success", 
+            "message": "No AWS emails found."
+        }
+    
+    ssm_client = common.authorize_ssm()
 
-    return {"status": "success", "message": f"Successfully wrote {len(aws_emails)} AWS emails to Google Sheets"}
+    send_mail.sending(
+        ssm_client, 
+        attachment_path="aws_gmail_summary.png"
+    )
+
+    return {
+        "status": "success", 
+        "message": f"Successfully wrote {len(aws_emails)} AWS emails to Google Sheets"
+    }
