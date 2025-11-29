@@ -9,14 +9,17 @@ import base64
 from bs4 import BeautifulSoup
 import gspread
 
-import send_mail
-
 # parent directory
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
 
+# Add current directory to path for local imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, current_dir)
+
 import common
 import google_authorization
+import send_mail
 
 common.import_log("AWS_Related_Gmail_Summary")
 gmail_service = google_authorization.authorize_gmail()

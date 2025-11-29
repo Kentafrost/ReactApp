@@ -30,7 +30,10 @@ def patched_request(self, *args, **kwargs):
     return original_request(self, *args, **kwargs)
 requests.Session.request = patched_request
 
-with open("google_auth_credential.json", "r") as f:
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+with open(os.path.join(current_dir, "google_auth_credential.json"), "r") as f:
     secret_path = json.load(f)
 
 base_path = secret_path[0]["gdrive_credentials"]
@@ -87,7 +90,7 @@ def authorize_gmail():
     gmail_cred = os.path.join(base_path, "OAuth_credentials.json")
 
     try:
-        scope = secret_path[0]["mail_scope"]
+        scope = secret_path[1]["mail_scope"]
 
         creds = None
         token_file = os.path.join(base_path, "token.pickle")

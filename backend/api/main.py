@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
 from task_api import task_router
-from cost_api import router as cost_router
+from cost_api import cost_router
 
 
 app = FastAPI()

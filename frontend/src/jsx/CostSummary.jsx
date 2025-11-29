@@ -11,8 +11,7 @@ function AWSCostSummaryComponent() {
         try {
             const res = await fetch(`http://localhost:5000/mail/summary/aws-gmail`, {
                 method: "GET",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({}),
+                headers: {"Content-Type": "application/json"}
             });
 
             const data = await res.json();
@@ -21,6 +20,7 @@ function AWSCostSummaryComponent() {
             
         } catch (error) {
             console.error("Error:", error);
+            setResult({error: error.message});
         }
     };
 
@@ -29,7 +29,7 @@ function AWSCostSummaryComponent() {
             <h2> AWS Cost Summary </h2>
             <div>
                 <button onClick={GetAWSSummary}>Submit</button>
-                <p> Result {JSON.stringify(Result)}</p>
+                <p> Result: {JSON.stringify(Result)}</p>
 
             </div>
         </div>
@@ -41,21 +41,29 @@ function AWSCostSummaryComponent() {
 function CostSummaryComponent() {
 
     const [Result, setResult] = useState();
+    const [DownloadLink, setDownloadLink] = useState(null);
+    const [Loading, setLoading] = useState(false);
 
     const GetCostSummary = async () => {
 
+        setLoading(true);
         try {
             const res = await fetch(`http://localhost:5000/mail/summary/cost-gmail`, {
                 method: "GET",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({}),
+                headers: {"Content-Type": "application/json"}
             });
 
             const data = await res.json();
             console.log("Response:", data);
             setResult(data);
+            setDownloadLink("http://localhost:5000/mail/summary/cost-gmail/download");
+            setLoading(false);
+
         } catch (error) {
             console.error("Error:", error);
+            setResult({error: error.message});
+            setDownloadLink(null);
+            setLoading(false);
         }
     };
 
@@ -64,9 +72,24 @@ function CostSummaryComponent() {
             <h2> Cost Summary </h2>
             <div>
                 <button onClick={GetCostSummary} className="btn btn-primary">Submit</button>
-                
+
                 <div className="mt-3">
-                    <p> Result {JSON.stringify(Result)}</p>
+                    {Loading ?
+                        <p> Loading... </p>
+                        : (
+                            <></>
+                        )
+                    }
+                    
+                    <p> Result: {JSON.stringify({status: Result?.status, message: Result?.message})}</p>
+
+                    {DownloadLink && (
+                        <p>
+                            <a href={DownloadLink} download className="btn btn-success">
+                                Download Cost Summary CSV
+                            </a>
+                        </p>
+                    )}
                 </div>
             </div>
         </div>

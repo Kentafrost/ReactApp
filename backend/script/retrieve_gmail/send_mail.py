@@ -53,7 +53,7 @@ def sending(ssm_client, attachment_path):
             mail_type = 'gmail'
             with smtplib.SMTP_SSL('smtp.gmail.com', port) as smtp_server:
                 smtp_server.login(from_address, from_pw)
-                smtp_server.send_mail(from_address, to_address, msg)
+                smtp_server.sendmail(from_address, to_address, msg.as_string())
 
         elif "outlook.com" in to_address:
             port = 587
@@ -61,7 +61,7 @@ def sending(ssm_client, attachment_path):
             with smtplib.SMTP('smtp.office365.com', port) as smtp_server:
                 smtp_server.starttls()  # Enable security FIRST            
                 smtp_server.login(from_address, from_pw)
-                smtp_server.send_mail(from_address, to_address, msg)
+                smtp_server.sendmail(from_address, to_address, msg.as_string())
         
         logging.info(f'{mail_type} email sent successfully to {to_address}.')
         return {
