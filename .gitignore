@@ -1,118 +1,67 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# Dependencies
 **/node_modules/
 .pnp
 .pnp.js
 
-# testing
+# Build outputs
+/build
 /coverage
 
-# production
-/build
+# Environment files
+.env*
+**/.env*
 
-# misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-*.json
-**/memo.txt/**
+# Logs and databases
 **/*.log
-**/*.sqlite3
+**/*.sqlite*
 **/*.db
-**/*.csv
-**/*.xlsx
+
+# Media files
+**/*.mp4
+**/*.mp3
+**/*.avi
+**/*.mov
+**/*.webp
 **/*.png
+**/*.xlsx
 
-# Ignore Python compiled files
-log/
-__pycache__/
+# Python
+**/__pycache__/
+**/*.pyc
+**/venv/
 
-# Exclude all JSON files in every folder
-**/*.json
-
-# Ignore sensitive credential and authentication files
-*credentials.json
-*token.pickle
-*OAuth_credentials.json
-**/*credentials.json
-**/*token.pickle
-**/*OAuth_credentials.json
-**/credentials.json
-**/token.pickle
-**/OAuth_credentials.json
-
-# AWS credentials
-.aws/
-**/aws/credentials
-**/aws/config
-**/.aws/
-*aws_credentials*
-*aws_secret*
-*aws_access*
-
-# Google credentials
-*service_account*.json
-*client_secret*.json
-*google_credentials*.json
-
-# API keys and tokens
+# Credentials and secrets
+*credentials*
+*token*
+*secret*
 *api_key*
-*secret_key*
-*access_token*
-*refresh_token*
 *.pem
 *.key
 *.p12
 *.pfx
+.aws/
+**/aws/credentials
+**/aws/config
 
-# Environment files
-.env
-.env.local
-.env.*.local
-**/.env
-**/.env.*
-
-**/venv/
-
-# Config files that might contain secrets
-config.ini
-config.cfg
-settings.json
-**/config/*.json
-**/config/*.ini
-**/config/*.cfg
-**/**/old/**
-**/search_words.py
+# Config and data files
+**/*.json
 **/*.csv
+**/*.ini
+**/*.cfg
+**/config/
+**/__pycache__/
 
-# Ignore image or video folders
+# Project specific
+.vscode/
+**/memo.txt
+**/old/
+**/ascii/
+**/diary/
 web-sites-list/results/
 plan.txt
 secret_path.py
 ascii_art.py
+**/search_words.py
 
-.vscode/
-**/memo.txt
-**/*.webp
-**/*.png
-**/*.pyc
-**/ascii/**
-**/diary/**
-
-*.mp4
-*.mp3
-*.avi
-*.mov
-*.csv
-*.log
-*.json
-*.sqlite
-**/*.pyc
+# macOS
+.DS_Store

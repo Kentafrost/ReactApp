@@ -9,40 +9,53 @@ import {AWSCostSummaryComponent, CostSummaryComponent} from './jsx/CostSummary';
 
 function App() {
   return (
-    <div style={{ textAlign: 'center' }}>
-      <header>
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a href="https://reactjs.org" target="_blank" rel="noopener noreferrer">
-          Learn React
-        </a>
-      </header>
-    
+    <Router>
+      {/* ヘッダー */}
+      <div style={{ textAlign: 'center' }}>
+        <header className="bg-info py-3 mb-4">
+          <div class="container">
+            <h1 classname="h3">My React App</h1>
+          </div>
+        </header>
 
-      <div id="navigation">
-        <Router>
-          <h3> Navigation </h3>
-          <nav>
-            <Link to="/private-ui"> Private UI </Link> | {" "}
-            <Link to="/task-scheduler-switch"> Task Scheduler Switch </Link> | {" "}
-            <Link to="/task-scheduler-create"> Task Scheduler Create </Link> | {" "}
-            <Link to="/aws-cost-summary"> AWS Cost Summary </Link> | {" "}
-            <Link to="/cost-summary"> Cost Summary </Link>
-          </nav>
+        {/* ナビゲーション */}
+        <nav className="navbar navbar-expand-lg navbar-light bg-light mb-4">
+          <div className="container">
+            <h3 className="navbar-brand">Navigation</h3>
+            <div className="collapse navbar-collapse">
+              <ul className="navbar-nav me-auto">
+                <li className="nav-item">
+                  <Link className="nav-link" to="/private-ui">Private UI</Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/task-scheduler-switch">Task Scheduler Switch</Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/task-scheduler-create">Task Scheduler Create</Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/aws-cost-summary">AWS Cost Summary</Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/cost-summary">Cost Summary</Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </nav>
 
-          <Routes>
-            <Route path="/private-ui" element={<PrivateUI />} />
-            <Route path="/task-scheduler-switch" element={<TaskSwitch />} />
-            <Route path="/task-scheduler-create" element={<TaskCreate />} />
-            <Route path="/aws-cost-summary" element={<AWSCostSummaryComponent />} />
-            <Route path="/cost-summary" element={<CostSummaryComponent />} />
-          </Routes>
-
-        </Router>
+      {/* コンテンツ */}
+      <div className="container">
+        <Routes>
+          <Route path="/private-ui" element={<PrivateUI />} />
+          <Route path="/task-scheduler-switch" element={<TaskSwitch />} />
+          <Route path="/task-scheduler-create" element={<TaskCreate />} />
+          <Route path="/aws-cost-summary" element={<AWSCostSummaryComponent />} />
+          <Route path="/cost-summary" element={<CostSummaryComponent />} />
+        </Routes>
+        </div>
       </div>
-    </div>
-    
+    </Router>
   );
 }
 

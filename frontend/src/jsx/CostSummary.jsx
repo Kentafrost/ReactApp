@@ -63,8 +63,11 @@ function CostSummaryComponent() {
         <div>
             <h2> Cost Summary </h2>
             <div>
-                <button onClick={GetCostSummary}>Submit</button>
-                <p> Result {JSON.stringify(Result)}</p>
+                <button onClick={GetCostSummary} className="btn btn-primary">Submit</button>
+                
+                <div className="mt-3">
+                    <p> Result {JSON.stringify(Result)}</p>
+                </div>
             </div>
         </div>
     );
