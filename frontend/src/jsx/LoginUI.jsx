@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function LoginToPrivateComponent() {
 
@@ -7,8 +8,7 @@ function LoginToPrivateComponent() {
   
   const [LoggedIn, setLoggedIn] = useState(false);
   const [Error, setError] = useState(null);
-
-  const [NextPage, setNextPage] = useState(null);
+  const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
@@ -28,12 +28,13 @@ function LoginToPrivateComponent() {
 
       setLoggedIn(true);
       setError(null);
-      setNextPage("/private-ui");
+
+      // Simulate redirecting to a private UI component
+      navigate("/private-ui");
 
     } catch (err) {
       setLoggedIn(false);
       setError(err.message);
-      setNextPage(null);
     }
   };
 
@@ -64,8 +65,6 @@ function LoginToPrivateComponent() {
       />
       <br />
       <button onClick={handleLogin}>Login</button>
-
-      {NextPage && <p>Redirecting to {NextPage}...</p>}
 
       {Error && <p style={{ color: "red" }}>{Error}</p>}
     </div>

@@ -4,9 +4,10 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
-from task_api import task_router
-from cost_api import cost_router
 from login_api import login_router
+
+from private.task_api import task_router
+from private.cost_api import cost_router
 
 app = FastAPI()
 
@@ -18,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(task_router)
-app.include_router(cost_router)
 app.include_router(login_router)
 
+app.include_router(task_router)
+app.include_router(cost_router)

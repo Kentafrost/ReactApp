@@ -1,8 +1,11 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
+import os
 import sys
 
-sys.path.append("..")
+grand_parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.append(grand_parent_dir)
+
 from script.task_scheduler.task_scheduler_set import task_create, task_enable_disable, task_shutdown, task_listup
 
 task_router = APIRouter()

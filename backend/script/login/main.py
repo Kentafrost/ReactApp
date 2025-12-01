@@ -11,9 +11,8 @@ with open(os.path.join(current_dir, 'users.json')) as f:
 username = users.get("username", "")
 password = users.get("password", "")
 
-conn = sqlite3.connect('users.sqlite')
+conn = sqlite3.connect('users.sqlite3')
 cursor = conn.cursor()
-
 
 def initialize_db():
 
@@ -25,6 +24,8 @@ def initialize_db():
                 "password TEXT"
             ")"
         )
+        conn.commit()
+        print("Users table created successfully.")
     except Exception as e:
         print(f"Error creating table: {e}")
         return
@@ -41,6 +42,7 @@ def initialize_db():
             (username, password)
         )
         conn.commit()
+        print("User inserted successfully.")
     except Exception as e:
         print(f"Error inserting user: {e}")
         return
@@ -53,6 +55,9 @@ def db_login(username, password):
         "SELECT * FROM users WHERE username=? AND password=?",
         (username, password)
     )
+    conn.commit()
+
+    print(check_user.fetchone())
 
     if not check_user.fetchone():
         return {
@@ -64,7 +69,3 @@ def db_login(username, password):
         'status': 'success',
         'message': 'Logged in successfully'
     }
-
-if __name__ == "__main__":
-    initialize_db()
-    db_login(username, password)

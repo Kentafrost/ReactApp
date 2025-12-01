@@ -2,11 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
 // path imports
-import LoginToPrivateComponent from './jsx/LoginUI';
-import TaskCreateComponent from './jsx/private/TaskCreateUI';
-import TaskSwitchComponent from './jsx/private/TaskSwitchUI';
-import {AWSCostSummaryComponent, CostSummaryComponent} from './jsx/private/CostSummaryUI';
-
+import LoginToPrivate from './js/Login';
+import Private from './js/Private';
 
 function App() {
 
@@ -27,19 +24,10 @@ function App() {
             <div className="collapse navbar-collapse">
               <ul className="navbar-nav me-auto">
                 <li className="nav-item">
+                  <Link className="nav-link" to="/login">Login</Link>
+                </li>
+                <li className="nav-item">
                   <Link className="nav-link" to="/private-ui">Private UI</Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/task-scheduler-switch">Task Scheduler Switch</Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/task-scheduler-create">Task Scheduler Create</Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/aws-cost-summary">AWS Cost Summary</Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/cost-summary">Cost Summary</Link>
                 </li>
               </ul>
             </div>
@@ -49,11 +37,8 @@ function App() {
       {/* コンテンツ */}
       <div className="container">
         <Routes>
-          <Route path="/private-ui" element={<LoginToPrivateComponent />} />
-          <Route path="/task-scheduler-switch" element={<TaskSwitchComponent />} />
-          <Route path="/task-scheduler-create" element={<TaskCreateComponent />} />
-          <Route path="/aws-cost-summary" element={<AWSCostSummaryComponent />} />
-          <Route path="/cost-summary" element={<CostSummaryComponent />} />
+          <Route path="/login" element={<LoginToPrivate />} />
+          <Route path="/private-ui" element={<Private />} />
         </Routes>
         </div>
       </div>

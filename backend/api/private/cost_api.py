@@ -4,8 +4,8 @@ import sys
 from fastapi import APIRouter
 from fastapi.responses import FileResponse
 
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(parent_dir)
+grand_parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.append(grand_parent_dir)
 
 from script.retrieve_gmail.aws_summary_gmail import aws_mail_summary
 from script.retrieve_gmail.cost_summary_gmail import cost_mail_summary
