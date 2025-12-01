@@ -1,12 +1,12 @@
 import React from 'react';
-import {TaskSchedulerApp } from '../jsx/TaskSwitchUI';
+import {TaskSchedulerApp } from '../../jsx/private/TaskSwitchUI';
 
-function TaskSchedulerUI() {
+function TaskSwitch() {
   return (
     <div style={{ textAlign: 'center' }}>
       <header>
         <p>
-          Edit <code>src/js/TaskScheduler.js</code> and save to reload.
+          Edit <code>src/js/TaskSwitch.js</code> and save to reload.
         </p>
         <a href="https://reactjs.org" target="_blank" rel="noopener noreferrer">
           Learn React
@@ -22,4 +22,4 @@ function TaskSchedulerUI() {
   );
 }
 
-export default TaskSchedulerUI;
+export default TaskSwitch;

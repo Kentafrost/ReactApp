@@ -2,12 +2,14 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
 // path imports
-import PrivateUI from './jsx/PrivateUI';
-import TaskSwitch from './js/TaskSwitch';
-import TaskCreate from './js/TaskCreate';
-import {AWSCostSummaryComponent, CostSummaryComponent} from './jsx/CostSummary';
+import LoginToPrivateComponent from './jsx/LoginUI';
+import TaskCreateComponent from './jsx/private/TaskCreateUI';
+import TaskSwitchComponent from './jsx/private/TaskSwitchUI';
+import {AWSCostSummaryComponent, CostSummaryComponent} from './jsx/private/CostSummaryUI';
+
 
 function App() {
+
   return (
     <Router>
       {/* ヘッダー */}
@@ -47,9 +49,9 @@ function App() {
       {/* コンテンツ */}
       <div className="container">
         <Routes>
-          <Route path="/private-ui" element={<PrivateUI />} />
-          <Route path="/task-scheduler-switch" element={<TaskSwitch />} />
-          <Route path="/task-scheduler-create" element={<TaskCreate />} />
+          <Route path="/private-ui" element={<LoginToPrivateComponent />} />
+          <Route path="/task-scheduler-switch" element={<TaskSwitchComponent />} />
+          <Route path="/task-scheduler-create" element={<TaskCreateComponent />} />
           <Route path="/aws-cost-summary" element={<AWSCostSummaryComponent />} />
           <Route path="/cost-summary" element={<CostSummaryComponent />} />
         </Routes>

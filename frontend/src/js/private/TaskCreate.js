@@ -1,12 +1,12 @@
 import React from 'react';
-import {TaskSchedulerCreate } from '../jsx/TaskCreateUI';
+import {TaskCreateComponent } from '../../jsx/private/TaskCreateUI';
 
-function TaskSchedulerUI() {
+function TaskCreate() {
   return (
     <div style={{ textAlign: 'center' }}>
       <header>
         <p>
-          Edit <code>src/js/TaskScheduler.js</code> and save to reload.
+          Edit <code>src/js/TaskCreate.js</code> and save to reload.
         </p>
         <a href="https://reactjs.org" target="_blank" rel="noopener noreferrer">
           Learn React
@@ -15,10 +15,10 @@ function TaskSchedulerUI() {
 
       <div>
         <h1> Task Scheduler Create New Task </h1>
-        <TaskSchedulerCreate />
+        <TaskCreateComponent />
       </div>
     </div>
   );
 }
 
-export default TaskSchedulerUI;
+export default TaskCreate;

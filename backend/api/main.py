@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from task_api import task_router
 from cost_api import cost_router
-
+from login_api import login_router
 
 app = FastAPI()
 
@@ -20,3 +20,5 @@ app.add_middleware(
 
 app.include_router(task_router)
 app.include_router(cost_router)
+app.include_router(login_router)
+

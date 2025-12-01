@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 
 
 // fetch the task list from the backend and display them.(Already working)
-function TaskScheduleListup ( { onSelect } ) {
+function TaskListupComponent ( { onSelect } ) {
     const [schedules, setSchedules] = useState([]);
 
     useEffect(() => {
@@ -37,7 +37,7 @@ function TaskScheduleListup ( { onSelect } ) {
 
 
 // Enable / Disable Task Component. 
-function TaskSchedulerOnOff( { selectedTask } ) {
+function TaskOnOff( { selectedTask } ) {
 
     const [check, setCheck] = useState("enable");
 
@@ -97,8 +97,8 @@ function TaskSchedulerApp() {
 
     return (
         <div>
-            <TaskScheduleListup onSelect={setSelectedTask} />
-            <TaskSchedulerOnOff selectedTask={selectedTask} />
+            <TaskListupComponent onSelect={setSelectedTask} />
+            <TaskOnOff selectedTask={selectedTask} />
         </div>
     );
 }

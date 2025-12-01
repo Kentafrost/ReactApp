@@ -30,7 +30,7 @@ async def task_list_endpoint():
 
 
 @task_router.post("/task-scheduler/enable")
-async def task_switch(req: Task):
+async def task_switch_endpoint(req: Task):
     print(f"Received task_name: {req.task_name}, check: {req.check}")
     
     result = task_enable_disable(req.task_name, req.check)

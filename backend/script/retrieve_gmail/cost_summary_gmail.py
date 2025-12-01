@@ -45,7 +45,7 @@ except Exception as e:
 
 
 # retrieve gmail messages
-def retrieve_gmail_messages():
+def retrieve_gmail_messages(number_of_mails: int):
     messages = []
     
     # Use query to filter relevant messages only
@@ -61,7 +61,7 @@ def retrieve_gmail_messages():
             response = gmail_service.users().messages().list(
                 userId='me',
                 q=query,
-                maxResults=50  # Reduced batch size per query
+                maxResults=number_of_mails
             ).execute()
             
             if 'messages' in response:
@@ -284,19 +284,19 @@ def write_results_to_sheet(matched_results):
     #     if date_list:
     #         most_recent_date = date_list[1]
     #         min_recent_date = min(date_list)
-    #         print(f"Most recent date of Rakuten Card usage: {most_recent_date}")
-    #         print(f"Most old date of Rakuten Card usage: {min_recent_date}")
+    #         print(f"Most recent date of Card usage: {most_recent_date}")
+    #         print(f"Most old date of Card usage: {min_recent_date}")
     #     else:
-    #         print("No Rakuten Card usage data found.")
+    #         print("No Card usage data found.")
 
     return csv_path
 
-def cost_mail_summary():
+def cost_mail_summary(number_of_mails: int):
 
     logging.info("Starting cost summary retrieval from Gmail")
     
     try:
-        messages = retrieve_gmail_messages()
+        messages = retrieve_gmail_messages(number_of_mails)
     except Exception as e:
         logging.error(f"Error retrieving Gmail messages: {e}")
         return {"status": "failed", "message": "Error retrieving Gmail messages."}

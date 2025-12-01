@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 
 // Task Scheduler Create Component. 
 // create a new task scheduler by providing task name, date, time, timespan and file to execute.
-function TaskSchedulerCreate() {
+function TaskCreateComponent() {
 
     const [name, setName] = useState("");
     const [date, setDate] = useState("");
@@ -123,4 +123,4 @@ function TaskSchedulerCreate() {
 }
 
 
-export { TaskSchedulerCreate };
+export { TaskCreateComponent };

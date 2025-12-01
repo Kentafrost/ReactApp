@@ -22,9 +22,9 @@ async def aws_mail_summary_endpoint():
 
 # Gmail cost summary endpoint
 @cost_router.get("/mail/summary/cost-gmail")
-async def cost_mail_summary_endpoint():
+async def cost_mail_summary_endpoint(number_of_mails: int = 30000):
     
-    msg = cost_mail_summary()
+    msg = cost_mail_summary(number_of_mails)
     return msg
 
 # Download cost summary CSV
