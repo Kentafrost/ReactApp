@@ -8,6 +8,7 @@ from login_api import login_router
 
 from private.task_api import task_router
 from private.cost_api import cost_router
+from public.rakuten_api import rakuten_router
 
 app = FastAPI()
 
@@ -20,6 +21,5 @@ app.add_middleware(
 )
 
 app.include_router(login_router)
-
 app.include_router(task_router)
 app.include_router(cost_router)
