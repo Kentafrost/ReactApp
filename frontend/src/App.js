@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 // path imports
 import LoginToPrivate from './js/Login';
 import Private from './js/Private';
+import RakutenItemUI from './js/public/RakutenItemUI';
 
 function App() {
 
@@ -29,6 +30,9 @@ function App() {
                 <li className="nav-item">
                   <Link className="nav-link" to="/private-ui">Private UI</Link>
                 </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/rakuten-items">Rakuten Items</Link>
+                </li>
               </ul>
             </div>
           </div>
@@ -39,6 +43,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginToPrivate />} />
           <Route path="/private-ui" element={<Private />} />
+          <Route path="/rakuten-items" element={<RakutenItemUI />} />
         </Routes>
         </div>
       </div>

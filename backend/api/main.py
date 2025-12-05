@@ -23,3 +23,4 @@ app.add_middleware(
 app.include_router(login_router)
 app.include_router(task_router)
 app.include_router(cost_router)
+app.include_router(rakuten_router)
