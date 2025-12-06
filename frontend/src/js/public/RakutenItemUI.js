@@ -1,5 +1,5 @@
 import React from 'react';
-import { RakutenItemUIComponent } from '../../jsx/public/RakutenItemUI';
+import RakutenItemUIComponent from '../../jsx/public/RakutenItemUI';
 
 function RakutenItemUI() {
   return (

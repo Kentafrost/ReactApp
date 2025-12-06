@@ -14,9 +14,9 @@ rakuten_router = APIRouter()
 
 # Rakuten items listup endpoint
 @rakuten_router.get("/rakuten/items/listup")
-async def rakuten_item_listup_endpoint(number_hits, page, max_page, keywords, requirements):
+async def rakuten_item_listup_endpoint(number_hits, page, max_page, keywords):
     
-    data = rakuten_item_listup(number_hits, page, max_page, keywords, requirements)
+    data = rakuten_item_listup(number_hits, page, max_page, keywords)
     return data
 
 # Download rakuten items listup CSV

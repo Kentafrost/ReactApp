@@ -122,5 +122,4 @@ function TaskCreateComponent() {
     );
 }
 
-
-export { TaskCreateComponent };
+export default TaskCreateComponent;

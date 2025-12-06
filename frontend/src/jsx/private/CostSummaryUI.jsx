@@ -99,4 +99,4 @@ function CostSummaryComponent() {
     );
 }
 
-export { AWSCostSummaryComponent, CostSummaryComponent };
+export {AWSCostSummaryComponent, CostSummaryComponent};

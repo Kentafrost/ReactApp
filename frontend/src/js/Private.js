@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
 // path imports
 import TaskCreateComponent from '../jsx/private/TaskCreateUI';
-import TaskSwitchComponent from '../jsx/private/TaskSwitchUI';
+import {TaskSchedulerApp as TaskSwitchComponent} from '../jsx/private/TaskSwitchUI';
 import {AWSCostSummaryComponent, CostSummaryComponent} from '../jsx/private/CostSummaryUI';
 
 

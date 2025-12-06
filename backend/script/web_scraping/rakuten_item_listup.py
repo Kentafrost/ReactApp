@@ -128,14 +128,13 @@ def fetchItemsViaRapidAPI(keyword, csvPath, parameters):
 
 
 # reactからパラメータを受け取るメイン関数
-def main(number_hits, page, max_page, keywords, requirements):
+def main(number_hits, page, max_page, keywords):
 
     parameters = {
         "number_hits": number_hits,
         "page": page,
         "max_page": max_page,
-        "keywords": keywords,
-        "requirements": requirements
+        "keywords": keywords
     }
 
     results = {}
@@ -226,4 +225,4 @@ if __name__ == "__main__":
     #         "HP"
     #     ]
     # }
-    main(5, 1, 2, ["ノートパソコン"], None)
+    main(5, 1, 2, ["ノートパソコン"])
