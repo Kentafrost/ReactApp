@@ -14,9 +14,9 @@ cost_router = APIRouter()
 
 # Gmail summary endpoints
 @cost_router.get("/mail/summary/aws-gmail")
-async def aws_mail_summary_endpoint():
+async def aws_mail_summary_endpoint(mailNumber: int):
     
-    msg = aws_mail_summary()
+    msg = aws_mail_summary(mailNumber)
     return msg
     
 

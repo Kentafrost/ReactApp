@@ -46,17 +46,17 @@ def extract_body_from_part(part):
 
 
 def sheet_definition(workbook_name):
-    gc = common.authorize_gsheet()
+    gc = google_authorization.authorize_gsheet()
     
     try:
-        workbook = gc.open("")
         workbook = gc.open(workbook_name)
     except gspread.SpreadsheetNotFound:
         logging.error("Spreadsheet not found")
+
         return
     except Exception as e:
         logging.error(f"Error opening Google Sheets: {e}")
-    
+
     try:
         sheet = workbook.worksheet("aws-emails")
         sheet.clear()
@@ -65,9 +65,16 @@ def sheet_definition(workbook_name):
     return sheet
 
 
-def aws_mail_summary():
+def aws_mail_summary(mail_number: int):
     
-    sheet = sheet_definition("aws_gmail_summary")
+    sheet = sheet_definition("gmail_summary")
+    if sheet is None:
+        return {
+            "status": "failed",
+            "message": "Could not access or create the Google Sheet.\n"
+            "Please check whether 'gmail_summary' spreadsheet exists and the API has access to it."
+        }
+
     aws_emails = []
 
     try:
@@ -88,15 +95,7 @@ def aws_mail_summary():
                     logging.info(f"Found AWS nested label: {label['name']} with ID: {aws_label_id}")
                     break
         
-        default_maxResults = 1000
-        maxResults = input("Enter the maximum number of AWS emails to retrieve (e.g., 1000): ")
-        
-        if maxResults is None or maxResults.strip() == "":
-            maxResults = default_maxResults
-        elif maxResults.isdigit():
-            maxResults = int(maxResults)
-        else:
-            maxResults = default_maxResults
+        maxResults = mail_number
 
         if aws_label_id:
             aws_results = gmail_service.users().messages().list(
@@ -183,7 +182,7 @@ def aws_mail_summary():
                 ])
             
             # Write to sheet
-            sheet.update(values=data, range_name='A1')
+            sheet.update(range_name='A1', values=data)
             
             logging.info(f"Successfully wrote {len(aws_emails)} AWS emails to Google Sheets")
             
@@ -211,12 +210,14 @@ def aws_mail_summary():
     
     ssm_client = common.authorize_ssm()
 
-    send_mail.sending(
-        ssm_client, 
-        attachment_path="aws_gmail_summary.png"
-    )
+    # send_mail.sending(
+    #     ssm_client, 
+    #     attachment_path="aws_gmail_summary.png"
+    # )
 
     return {
         "status": "success", 
-        "message": f"Successfully wrote {len(aws_emails)} AWS emails to Google Sheets"
+        "message": f"Successfully wrote {len(aws_emails)} AWS emails to Google Sheets",
+        "gsheet_name": "gmail_summary",
+        "gsheet_link": f"https://docs.google.com/spreadsheets/d/{sheet.spreadsheet.id}/edit#gid={sheet.id}"
     }

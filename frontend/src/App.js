@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
 
 // path imports
 import LoginToPrivate from './js/Login';
@@ -12,11 +12,11 @@ import { AWSCostSummaryComponent, CostSummaryComponent } from './jsx/private/Cos
 
 function App() {
 
-  // login to private and public routes
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
 
   return (
     <Router>
-      {/* ヘッダー */}
+      {/* Header */}
       <div style={{ textAlign: 'center' }}>
         <header className="bg-info py-3 mb-4">
           <div className="container">
@@ -24,7 +24,7 @@ function App() {
           </div>
         </header>
 
-        {/* ナビゲーション */}
+        {/* Navigation */}
         <nav className="navbar navbar-expand-lg navbar-light bg-light mb-4">
           <div className="container">
             <h3 className="navbar-brand">Navigation</h3>
@@ -41,10 +41,13 @@ function App() {
           </div>
         </nav>
 
-      {/* コンテンツ */}
+      {/* Content */}
       <div className="container">
         <Routes>
-          <Route path="/login" element={<LoginToPrivate />} />
+          {/* Login */}
+          <Route path="/login" element={<LoginToPrivate onLogin={() => setIsAuthenticated(true)} />} />
+          
+          {/* Public Route */}
           <Route path="/rakuten-items" element={<RakutenItemUI />} />
         
           <Route path="/private-ui/*" element={<Private />}>
