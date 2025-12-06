@@ -6,7 +6,12 @@ function AWSCostSummaryComponent() {
 
     const [Result, setResult] = useState();
     const [Loading, setLoading] = useState(false);
-    const [mailNumber, setMailNumber] = useState(1000);
+    const [mailNumber, setMailNumber] = useState(50);
+
+    const [message, setMessage] = useState("");
+    const [NumberOfData, setNumberOfData] = useState(0);
+    const [gsheetName, setGsheetName] = useState("");
+    const [gsheetLink, setGsheetLink] = useState("");
 
     const GetAWSSummary = async () => {
         setLoading(true);
@@ -20,6 +25,12 @@ function AWSCostSummaryComponent() {
             console.log("Response:", data);
             setResult(data);
             setLoading(false);
+
+            setMessage(data.message || "");
+            setNumberOfData(data.number_of_data || 0);
+            setGsheetName(data.gsheet_name || "");
+            setGsheetLink(data.gsheet_link || "");
+
         } catch (error) {
             console.error("Error:", error);
             setResult({error: error.message});
@@ -57,7 +68,19 @@ function AWSCostSummaryComponent() {
 
                         <h5> Summary Result: </h5>
                         <pre className="bg-light p-2 border rounded"> 
-                            {JSON.stringify(Result)}
+                            Message: {message}
+
+                            <br />
+                            Number of Data: {NumberOfData}
+                            
+                            <br />
+                            GSheet Name: {gsheetName}
+                            {gsheetLink && (
+                                <>
+                                    <br />
+                                    GSheet Link: <a href={gsheetLink} target="_blank" rel="noopener noreferrer">{gsheetLink}</a>
+                                </>
+                            )}
                         </pre>
                     </div>
                 )}

@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import boto3
 import logging
 import os, sys
+import csv
 import json
 
 
@@ -196,9 +197,7 @@ def write_results_to_sheet(matched_results):
     logging.info("Starting to write results to sheet...")
     
     # Save results to CSV for debugging
-    import csv
     os.makedirs(f"{current_dir}\\csv", exist_ok=True)
-
     csv_path = f"{current_dir}\\csv\\cost.csv"
     
     with open(csv_path, "w", newline='', encoding='utf-8') as f:
@@ -208,88 +207,90 @@ def write_results_to_sheet(matched_results):
             writer.writerow([date, cost])
     
     logging.info(f"CSV saved with {len(matched_results['cost_list'])} cost entries")
-    
+
+    return csv_path, len(matched_results['cost_list'])
+
+
+def gsheet_write(matched_result):
     # write raw data to google spreadsheet
-    cost_list = matched_results['cost_list']
-    date_list = matched_results['date_list']
-    
-    if not cost_list:
-        logging.warning("No cost data found, skipping sheet operations")
-        return
-        
-    # sheet = sheet_definition("cost-summary")
+    cost_list = matched_result['cost_list']
+    date_list = matched_result ['date_list']
 
-    # # Clean and convert cost data
-    # clean_costs = []
-    # clean_dates = []
-    
-    # for date_str, cost_str in zip(date_list, cost_list):
-    #     try:
-    #         # Clean cost string (remove commas, convert to float)
-    #         if isinstance(cost_str, str):
-    #             cost_clean = float(cost_str.replace(',', '').replace('¥', '').replace('円', ''))
-    #         else:
-    #             cost_clean = float(cost_str)
-            
-    #         clean_costs.append(cost_clean)
-    #         clean_dates.append(date_str)
-    #     except (ValueError, TypeError) as e:
-    #         logging.warning(f"Skipping invalid cost/date pair: {cost_str}, {date_str} - {e}")
-    #         continue
-    
-    # if clean_costs:
-    #     data = [['Card Date', 'Card Cost']]
-    #     data.extend(zip(clean_dates, clean_costs))
-        
-    #     logging.info("Updating Google Sheet with cost data...")
-    #     sheet.update(values=data, range_name='A1')
+    sheet = sheet_definition("gmail_summary")
 
-    #     # Create pivot table only if we have enough data
-    #     if len(clean_costs) > 1:
-    #         df = pd.DataFrame({
-    #             'Card Date': clean_dates,
-    #             'Card Cost': clean_costs
-    #         })
+    if sheet is None:
+        return None
+
+    # Clean and convert cost data
+    clean_costs = []
+    clean_dates = []
+    
+    for date_str, cost_str in zip(date_list, cost_list):
+        try:
+            # Clean cost string (remove commas, convert to float)
+            if isinstance(cost_str, str):
+                cost_clean = float(cost_str.replace(',', '').replace('¥', '').replace('円', ''))
+            else:
+                cost_clean = float(cost_str)
             
-    #         # Convert dates and create monthly summary
-    #         try:
-    #             df['Month'] = pd.to_datetime(df['Card Date'], errors='coerce').dt.strftime('%Y/%m')
-    #             df = df.dropna(subset=['Month'])  # Remove invalid dates
+            clean_costs.append(cost_clean)
+            clean_dates.append(date_str)
+        except (ValueError, TypeError) as e:
+            logging.warning(f"Skipping invalid cost/date pair: {cost_str}, {date_str} - {e}")
+            continue
+    
+    if clean_costs:
+        data = [['Card Date', 'Card Cost']]
+        data.extend(zip(clean_dates, clean_costs))
+        
+        logging.info("Updating Google Sheet with cost data...")
+        sheet.update(values=data, range_name='A1')
+
+        # Create pivot table only if we have enough data
+        if len(clean_costs) > 1:
+            df = pd.DataFrame({
+                'Card Date': clean_dates,
+                'Card Cost': clean_costs
+            })
+            
+            # Convert dates and create monthly summary
+            try:
+                df['Month'] = pd.to_datetime(df['Card Date'], errors='coerce').dt.strftime('%Y/%m')
+                df = df.dropna(subset=['Month'])  # Remove invalid dates
                 
-    #             if not df.empty:
-    #                 pivot_table = pd.pivot_table(
-    #                     df, 
-    #                     index=['Month'],
-    #                     values=['Card Cost'],
-    #                     aggfunc='sum'
-    #                 )
+                if not df.empty:
+                    pivot_table = pd.pivot_table(
+                        df, 
+                        index=['Month'],
+                        values=['Card Cost'],
+                        aggfunc='sum'
+                    )
                     
-    #                 logging.info("Creating pivot table and chart...")
-    #                 pivot_data, pivot_png_path = create_pivot_table(pivot_table, "Rakuten Card Cost by Month")
+                    logging.info("Creating pivot table and chart...")
+                    pivot_data, pivot_png_path = create_pivot_table(pivot_table, "Rakuten Card Cost by Month")
                     
-    #                 sheet = sheet_definition("Pivot_tbl")
-    #                 sheet.update(values=pivot_data, range_name='A1')
+                    sheet = sheet_definition("Pivot_tbl")
+                    sheet.update(values=pivot_data, range_name='A1')
 
-    #                 # Only send email if we have valid data
-    #                 try:
-    #                     ssm_client = boto3.client('ssm', region_name='ap-southeast-2')
-    #                     send_mail(ssm_client, pivot_png_path)
-    #                     logging.info("Summary email sent successfully")
-    #                 except Exception as e:
-    #                     logging.warning(f"Failed to send email: {e}")
-    #         except Exception as e:
-    #             logging.error(f"Error creating pivot table: {e}")
+                    # Only send email if we have valid data
+                    try:
+                        ssm_client = boto3.client('ssm', region_name='ap-southeast-2')
+                        send_mail(ssm_client, pivot_png_path)
+                        logging.info("Summary email sent successfully")
+                    except Exception as e:
+                        logging.warning(f"Failed to send email: {e}")
+            except Exception as e:
+                logging.error(f"Error creating pivot table: {e}")
 
-    #     # get most recent data from date_list
-    #     if date_list:
-    #         most_recent_date = date_list[1]
-    #         min_recent_date = min(date_list)
-    #         print(f"Most recent date of Card usage: {most_recent_date}")
-    #         print(f"Most old date of Card usage: {min_recent_date}")
-    #     else:
-    #         print("No Card usage data found.")
+        # get most recent data from date_list
+        if date_list:
+            most_recent_date = date_list[1]
+            min_recent_date = min(date_list)
+            print(f"Most recent date of Card usage: {most_recent_date}")
+            print(f"Most old date of Card usage: {min_recent_date}")
+        else:
+            print("No Card usage data found.")
 
-    return csv_path
 
 def cost_mail_summary(number_of_mails: int):
 
@@ -341,7 +342,7 @@ def cost_mail_summary(number_of_mails: int):
 
     # Write results to sheet
     try:
-        csv_path = write_results_to_sheet(matched_results)
+        csv_path, number_of_data = write_results_to_sheet(matched_results)
     except Exception as e:
         logging.error(f"Error writing results to sheet: {e}")
         return {
@@ -352,5 +353,6 @@ def cost_mail_summary(number_of_mails: int):
     return {
         "status": "success", 
         "message": summary_msg,
-        "csv_path": csv_path
+        "csv_path": csv_path,
+        "number_of_data": number_of_data
     }

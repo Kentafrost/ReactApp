@@ -217,7 +217,8 @@ def aws_mail_summary(mail_number: int):
 
     return {
         "status": "success", 
-        "message": f"Successfully wrote {len(aws_emails)} AWS emails to Google Sheets",
+        "message": f"Wrote some AWS emails to Google Sheets",
+        "number_of_data": len(aws_emails),
         "gsheet_name": "gmail_summary",
         "gsheet_link": f"https://docs.google.com/spreadsheets/d/{sheet.spreadsheet.id}/edit#gid={sheet.id}"
     }
