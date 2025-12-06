@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 grand_parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(grand_parent_dir)
 
-from script.web_scraping.rakuten_item_listup import rakuten_item_listup
+from script.web_scraping.rakuten_item_listup import main as rakuten_item_listup
 
 rakuten_router = APIRouter()
 

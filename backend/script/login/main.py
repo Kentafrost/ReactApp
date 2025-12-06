@@ -11,7 +11,11 @@ with open(os.path.join(current_dir, 'users.json')) as f:
 username = users.get("username", "")
 password = users.get("password", "")
 
-conn = sqlite3.connect('users.sqlite3')
+db_path = os.path.abspath(os.path.join(current_dir, '..', 'users.sqlite3'))
+if not os.path.exists(db_path):
+    open(db_path, 'w').close()
+
+conn = sqlite3.connect(db_path, check_same_thread=False)
 cursor = conn.cursor()
 
 def initialize_db():
@@ -55,11 +59,11 @@ def db_login(username, password):
         "SELECT * FROM users WHERE username=? AND password=?",
         (username, password)
     )
-    conn.commit()
 
-    print(check_user.fetchone())
+    check = check_user.fetchone()
+    print(check)
 
-    if not check_user.fetchone():
+    if check is None:
         return {
             'status': 'error',
             'message': 'Invalid username or password'

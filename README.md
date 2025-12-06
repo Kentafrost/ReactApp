@@ -11,6 +11,6 @@ npm start
 ## Command
 
 ```bash
-cd backend/api
-uvicorn backend.main:app --reload
+cd backend
+uvicorn api.main:app --reload
 ```

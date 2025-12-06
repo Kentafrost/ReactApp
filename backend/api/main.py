@@ -20,6 +20,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+async def root():
+    return {"message": "API is running"}
+
 app.include_router(login_router)
 app.include_router(task_router)
 app.include_router(cost_router)

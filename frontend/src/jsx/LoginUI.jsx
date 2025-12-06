@@ -21,10 +21,14 @@ function LoginToPrivateComponent() {
         }),
       });
 
-      if (!res.ok) throw new Error("Invalid credentials");
+      if (UserName.trim() === "" || Password.trim() === "") {
+        throw new Error("Username and password cannot be empty");
+      }
       
       const data = await res.json();
-      console.log("Login response:", data);
+      if (data.status !== "success") {
+        throw new Error(data.message || "Login failed");
+      }
 
       setLoggedIn(true);
       setError(null);
