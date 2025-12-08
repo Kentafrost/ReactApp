@@ -2,6 +2,7 @@ from logging import info
 import os
 import json
 import requests
+import time
 
 # ディレクトリ設定
 currentDir = os.path.dirname(os.path.abspath(__file__))
@@ -21,7 +22,7 @@ if not os.path.exists(resultsDir):
 
 
 # CSVに保存する関数
-def saveToCSV(items, currentPage, csvPath, requirements):
+def saveToCSV(items, currentPage, csvPath):
 
     csvData = []
     print(f"📦 {len(items)}件の商品が見つかりました (ページ {currentPage}):")
@@ -32,23 +33,17 @@ def saveToCSV(items, currentPage, csvPath, requirements):
         name = info.get("itemName", info.get("productName", "-"))
         catchcopy = info.get("catchcopy", "-")
         availability = info.get("availability", "-")
-        price = info.get("itemPrice", info.get("productPrice", "-"))
+
+        # ensure price is integer
+        price = info.get("itemPrice", info.get("productPrice", "0"))
+        try:
+            price = int(price)
+        except ValueError:
+            price = 0
+
         url = info.get("itemUrl", info.get("productUrl", "-"))
         shopName = info.get("shopName", "-")
         shopUrl = info.get("shopUrl", "-")
-
-        # if requirements is matched then skip the item to write
-        if requirements and "cost" in requirements and "makers" in requirements:
-            try:
-                min_cost = requirements["cost"][0]["min"]
-                max_cost = requirements["cost"][1]["max"]
-                makers = requirements["makers"]
-
-                if min_cost < price < max_cost and any(maker in name for maker in makers):
-                    print(f"❌ {name} - ¥{price} は要件を満たしていません")
-                    continue
-            except Exception:
-                print("要件のチェックが不完全です。すべての商品を保存します。")
 
         row = f"{name},{catchcopy},{availability},{price},{url},{shopName},{shopUrl},{currentPage}\n"
         
@@ -96,9 +91,24 @@ def fetchItemsViaRapidAPI(keyword, csvPath, parameters):
                 "page": page_num + 1,
                 "hits": parameters["number_hits"]
             }
+
+            print(f"🔍 ページ {page_num + 1} を取得中...")
+            print("パラメータ:", params)
             
-            response = requests.get(url, params=params, timeout=30)
+            for attempt in range(5):
+                response = requests.get(url, params=params, timeout=30)
+                if response.status_code != 200:
+                    wait = (2 ** attempt)
+                    print(f"⚠️ API呼び出し失敗 (ステータス: {response.status_code})。{wait}秒後に再試行します...")
+                    time.sleep(wait)
+                    continue
+                else:
+                    break
+
             data = response.json()
+
+            print(f"📄 レスポンスデータ (ページ {page_num + 1}):")
+            print(json.dumps(data, ensure_ascii=False, indent=2))
 
             first_item = data["Items"][0]["Item"]
             for key, value in first_item.items():
@@ -107,13 +117,15 @@ def fetchItemsViaRapidAPI(keyword, csvPath, parameters):
             print(f"✅ API呼び出し成功 (ステータス: {response.status_code})")
             
             if data and data.get("products"):
-                csv_data_num = saveToCSV(data.get("products"), page_num, csvPath, parameters["requirements"]) # products, currentPage, csvPath, requirements
+                csv_data_num = saveToCSV(data.get("products"), page_num, csvPath) # products, currentPage, csvPath
             
             elif data and data.get("Items"):
-                csv_data_num = saveToCSV(data.get("Items"), page_num, csvPath, parameters["requirements"]) # items, currentPage, csvPath, requirements
+                csv_data_num = saveToCSV(data.get("Items"), page_num, csvPath) # items, currentPage, csvPath
             else:
                 print('⚠️ 商品データが見つかりませんでした')
                 print('レスポンス:', json.dumps(data, ensure_ascii=False, indent=2))
+            
+            # Collect all items
             all_items.extend(data.get('Items', []))
             total_csv_data_num += csv_data_num
 
@@ -134,7 +146,7 @@ def main(number_hits, page, max_page, keywords):
         "number_hits": number_hits,
         "page": page,
         "max_page": max_page,
-        "keywords": keywords
+        "keywords": keywords if isinstance(keywords, list) else [keywords]
     }
 
     results = {}
@@ -153,76 +165,15 @@ def main(number_hits, page, max_page, keywords):
                 "message": str(error)
             }
 
-            # affiliateRate       = data["affiliateRate"]
-            # affiliateUrl        = data["affiliateUrl"]
-            # asurakuArea         = data["asurakuArea"]
-            # asurakuClosingTime  = data["asurakuClosingTime"]
-            # asurakuFlag         = data["asurakuFlag"]
-            # availability        = data["availability"]
-            # catchcopy           = data["catchcopy"]
-            # creditCardFlag      = data["creditCardFlag"]
-            # endTime             = data["endTime"]
-            # genreId             = data["genreId"]
-            # giftFlag            = data["giftFlag"]
-            # imageFlag           = data["imageFlag"]
-            # itemCaption         = data["itemCaption"]
-            # itemCode            = data["itemCode"]
-            # itemName            = data["itemName"]
-            # itemPrice           = data["itemPrice"]
-            # itemPriceBaseField  = data["itemPriceBaseField"]
-            # itemPriceMax1       = data["itemPriceMax1"]
-            # itemPriceMax2       = data["itemPriceMax2"]
-            # itemPriceMax3       = data["itemPriceMax3"]
-            # itemPriceMin1       = data["itemPriceMin1"]
-            # itemPriceMin2       = data["itemPriceMin2"]
-            # itemPriceMin3       = data["itemPriceMin3"]
-            # itemUrl             = data["itemUrl"]
-            # mediumImageUrls     = data["mediumImageUrls"]
-            # pointRate           = data["pointRate"]
-            # pointRateEndTime    = data["pointRateEndTime"]
-            # pointRateStartTime  = data["pointRateStartTime"]
-            # postageFlag         = data["postageFlag"]
-            # reviewAverage       = data["reviewAverage"]
-            # reviewCount         = data["reviewCount"]
-            # shipOverseasArea    = data["shipOverseasArea"]
-            # shipOverseasFlag    = data["shipOverseasFlag"]
-            # shopAffiliateUrl    = data["shopAffiliateUrl"]
-            # shopCode            = data["shopCode"]
-            # shopName            = data["shopName"]
-            # shopOfTheYearFlag   = data["shopOfTheYearFlag"]
-            # shopUrl             = data["shopUrl"]
-            # smallImageUrls      = data["smallImageUrls"]
-            # startTime           = data["startTime"]
-            # tagIds              = data["tagIds"]
-            # taxFlag             = data["taxFlag"]
-            results[keyword] = {
-                "status": "success",
-                "CSV": csvPath,
-                "DATA": data,
-                "CSV_DATA_NUM": total_csv_data_num
-            }
+            data = []
+            csvPath = ""
+            total_csv_data_num = 0
+
+        results[keyword] = {
+            "status": "success",
+            "CSV": csvPath,
+            "DATA": data,
+            "CSV_DATA_NUM": total_csv_data_num
+        }
 
     return results
-
-if __name__ == "__main__":
-    # Example parameters
-
-    # "number_hits": 30,
-    # "page": 1,
-    # "max_page": 3,
-    # "keywords": [
-    #     "デスクトップPC", 
-    #     "laptop"
-    # ],
-    # "requirements": {
-    #     "cost": [
-    #         { "min": 40000 },
-    #         { "max": 200000 }
-    #     ],
-    #     "makers": [
-    #         "ASUS",
-    #         "Acer",
-    #         "HP"
-    #     ]
-    # }
-    main(5, 1, 2, ["ノートパソコン"])

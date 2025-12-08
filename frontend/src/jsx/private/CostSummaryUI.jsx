@@ -12,11 +12,12 @@ function AWSCostSummaryComponent() {
     const [NumberOfData, setNumberOfData] = useState(0);
     const [gsheetName, setGsheetName] = useState("");
     const [gsheetLink, setGsheetLink] = useState("");
-
+    const [sendEmailFlg, setSendEmailFlg] = useState(false);
+    
     const GetAWSSummary = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`http://localhost:5000/mail/summary/aws-gmail/?mailNumber=${mailNumber}`, {
+            const res = await fetch(`http://localhost:5000//mail/summary/aws_gmail/?mailNumber=${mailNumber}&send_email_flg=${sendEmailFlg}`, {
                 method: "GET",
                 headers: {"Content-Type": "application/json"}
             });
@@ -57,6 +58,18 @@ function AWSCostSummaryComponent() {
                     className="form-control w-25"
                 />
                     
+                <div className="form-check mt-2">
+                    <input 
+                        type="checkbox" 
+                        className="form-check-input" 
+                        id="sendEmailFlg" 
+                        checked={sendEmailFlg} 
+                        onChange={(e) => setSendEmailFlg(e.target.checked)} 
+                    />
+                    <label className="form-check-label" htmlFor="sendEmailFlg">
+                        Send Email
+                    </label>
+                </div>
 
                 <button onClick={GetAWSSummary} className="btn btn-primary">
                     Submit
@@ -97,12 +110,13 @@ function CostSummaryComponent() {
     const [DownloadLink, setDownloadLink] = useState(null);
     const [Loading, setLoading] = useState(false);
     const InputSearchMailNumber = useRef(null);
+    const [sendEmailFlg, setSendEmailFlg] = useState(false);
 
     const GetCostSummary = async () => {
 
         setLoading(true);
         try {
-            const res = await fetch(`http://localhost:5000/mail/summary/cost-gmail?number_of_mails=${InputSearchMailNumber.current.value}`, {
+            const res = await fetch(`http://localhost:5000/mail/summary/credit_cost?number_of_mails=${InputSearchMailNumber.current.value}&send_email_flg=${sendEmailFlg}`, {
                 method: "GET",
                 headers: {"Content-Type": "application/json"}
             });
@@ -110,7 +124,8 @@ function CostSummaryComponent() {
             const data = await res.json();
             console.log("Response:", data);
             setResult(data);
-            setDownloadLink("http://localhost:5000/mail/summary/cost-gmail/download");
+            
+            setDownloadLink("http://localhost:5000/mail/summary/credit_cost/download");
             setLoading(false);
 
         } catch (error) {
@@ -128,6 +143,20 @@ function CostSummaryComponent() {
                 <h3> Number of Mails to search</h3>
                 <input type="number" min="1" max="100000" step="1" ref={InputSearchMailNumber} />
                 <br />
+
+                <h3> Send Email</h3>
+                <div className="form-check mt-2">
+                    <input 
+                        type="checkbox" 
+                        className="form-check-input" 
+                        id="sendEmailFlg" 
+                        checked={sendEmailFlg} 
+                        onChange={(e) => setSendEmailFlg(e.target.checked)} 
+                    />
+                    <label className="form-check-label" htmlFor="sendEmailFlg">
+                        Send Email
+                    </label>
+                </div>
 
                 <button onClick={GetCostSummary} className="btn btn-primary">Submit</button>
 

@@ -65,7 +65,7 @@ def sheet_definition(workbook_name):
     return sheet
 
 
-def aws_mail_summary(mail_number: int):
+def aws_mail_summary(mail_number: int, send_email_flg: bool):
     
     sheet = sheet_definition("gmail_summary")
     if sheet is None:
@@ -208,12 +208,33 @@ def aws_mail_summary(mail_number: int):
             "message": "No AWS emails found."
         }
     
-    ssm_client = common.authorize_ssm()
+    try:
+        ssm_client = common.authorize_ssm()
+    except Exception as e:
+        logging.error(f"Error authorizing SSM client: {e}")
+        return {
+            "status": "failed",
+            "message": f"Error authorizing SSM client: {e}"
+        }
 
-    # send_mail.sending(
-    #     ssm_client, 
-    #     attachment_path="aws_gmail_summary.png"
-    # )
+    if send_email_flg == True:
+
+        try:
+            logging.info("Sending summary email with Google Sheets link...")
+            send_mail.sending(
+                ssm_client, 
+                subject="AWS Gmail Summary - Google Sheets Link",
+                body=(
+                    f"Successfully wrote {len(aws_emails)} AWS emails to Google Sheets.\n\n"
+                    f"Google Sheets Link: https://docs.google.com/spreadsheets/d/{sheet.spreadsheet.id}/edit#gid={sheet.id}"
+                )
+            )
+        except Exception as e:
+            logging.error(f"Error sending summary email: {e}")
+            return {
+                "status": "failed",
+                "message": f"Error sending summary email: {e}"
+            }
 
     return {
         "status": "success", 

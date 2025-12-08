@@ -4,18 +4,16 @@ import RakutenItemUIComponent from '../../jsx/public/RakutenItemUI';
 function RakutenItemUI() {
   return (
     <div style={{ textAlign: 'center' }}>
-      <header>
-        <p>
-          Edit <code>src/js/CostSummary.js</code> and save to reload.
-        </p>
-        <a href="https://reactjs.org" target="_blank" rel="noopener noreferrer">
-          Learn React
-        </a>
+      <header style={{ 
+        backgroundColor: "#f8f8f8", 
+        padding: "10px", 
+        borderBottom: "1px solid #ddd" 
+      }}>
+        <h1 style={{ margin: 0 }}>Rakuten Item Finder</h1>
+
       </header>
 
       <div>
-        <h1> Rakuten Item List </h1>
-
         <RakutenItemUIComponent />
       </div>
 

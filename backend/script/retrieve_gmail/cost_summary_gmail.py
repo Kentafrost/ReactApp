@@ -11,6 +11,7 @@ import logging
 import os, sys
 import csv
 import json
+import matplotlib
 
 
 # Add current directory to path for local imports
@@ -192,6 +193,22 @@ def create_pivot_table(pivot_table, graph_title):
     return pivot_data, pivot_png_path
 
 
+def graph_creation(df):
+    # create graph from dataframe
+    plt.switch_backend('Agg')
+    fig, ax = plt.subplots(figsize=(10, 6))
+    df.plot(kind='bar', title="Rakuten Card Cost by Month", ax=ax)
+    ax.set_xlabel('Month')
+    ax.set_ylabel('Cost (¥)')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    png_path = f"{current_dir}\\png\\rakuten_card_cost_by_month.png"
+    plt.savefig(png_path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+
+    return png_path
+
+
 # write results to sheet
 def write_results_to_sheet(matched_results):
     logging.info("Starting to write results to sheet...")
@@ -200,15 +217,21 @@ def write_results_to_sheet(matched_results):
     os.makedirs(f"{current_dir}\\csv", exist_ok=True)
     csv_path = f"{current_dir}\\csv\\cost.csv"
     
+    df = pd.DataFrame({
+        'Date': matched_results['date_list'],
+        'Cost': matched_results['cost_list']
+    })
+
+    png_path = graph_creation(df)
+
     with open(csv_path, "w", newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(['Date', 'Cost'])
         for date, cost in zip(matched_results['date_list'], matched_results['cost_list']):
             writer.writerow([date, cost])
-    
     logging.info(f"CSV saved with {len(matched_results['cost_list'])} cost entries")
 
-    return csv_path, len(matched_results['cost_list'])
+    return csv_path, len(matched_results['cost_list']), png_path
 
 
 def gsheet_write(matched_result):
@@ -266,19 +289,16 @@ def gsheet_write(matched_result):
                         aggfunc='sum'
                     )
                     
+                    # Create pivot table and chart
                     logging.info("Creating pivot table and chart...")
                     pivot_data, pivot_png_path = create_pivot_table(pivot_table, "Rakuten Card Cost by Month")
-                    
                     sheet = sheet_definition("Pivot_tbl")
                     sheet.update(values=pivot_data, range_name='A1')
 
-                    # Only send email if we have valid data
-                    try:
-                        ssm_client = boto3.client('ssm', region_name='ap-southeast-2')
-                        send_mail(ssm_client, pivot_png_path)
-                        logging.info("Summary email sent successfully")
-                    except Exception as e:
-                        logging.warning(f"Failed to send email: {e}")
+                    # Create graph from original dataframe
+                    png_path = graph_creation(df)
+
+                    return png_path
             except Exception as e:
                 logging.error(f"Error creating pivot table: {e}")
 
@@ -292,7 +312,7 @@ def gsheet_write(matched_result):
             print("No Card usage data found.")
 
 
-def cost_mail_summary(number_of_mails: int):
+def cost_mail_summary(number_of_mails: int, send_email_flg: bool):
 
     logging.info("Starting cost summary retrieval from Gmail")
     
@@ -342,7 +362,7 @@ def cost_mail_summary(number_of_mails: int):
 
     # Write results to sheet
     try:
-        csv_path, number_of_data = write_results_to_sheet(matched_results)
+        csv_path, number_of_data, png_path = write_results_to_sheet(matched_results)
     except Exception as e:
         logging.error(f"Error writing results to sheet: {e}")
         return {
@@ -350,9 +370,23 @@ def cost_mail_summary(number_of_mails: int):
             "message": "Error writing results to sheet."
         }
     
+    # Only send email if we have valid data
+    if send_email_flg == True:
+
+        try:
+            ssm_client = boto3.client('ssm', region_name='ap-southeast-2')
+            result_msg = send_mail.sending(ssm_client, png_path)
+            logging.info("Summary email sent successfully")
+
+            print(result_msg)
+        except Exception as e:
+            logging.warning(f"Failed to send email: {e}")
+    
+    # show the summary png path in the return value
     return {
         "status": "success", 
         "message": summary_msg,
         "csv_path": csv_path,
-        "number_of_data": number_of_data
+        "number_of_data": number_of_data,
+        "png_path": png_path
     }
