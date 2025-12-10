@@ -10,12 +10,13 @@ function RakutenItemUIComponent ( { onSelect } ) {
     const [max_page, setMaxPage] = useState(0);
     const [keywords, setKeywords] = useState("");
 
-
     // for filtering uses
     const [min_money, setMinMoney] = useState(0);
     const [max_money, setMaxMoney] = useState(0);
     const [makers, setMakers] = useState("");
-    const [shop_code, setShopCode] = useState("");
+
+    // graph filter fields
+    const [shop_name, setShopName] = useState("");
 
     // flag to check if items have been listed
     const [start, setStart] = useState(false);
@@ -41,36 +42,66 @@ function RakutenItemUIComponent ( { onSelect } ) {
             }
             if (start) {
 
-                try {
-                    const res = await fetch(
-                        `http://localhost:5000/rakuten/items/listup?number_hits=${number_hits}&page=${page}&max_page=${max_page}&keywords=${keywords}`
-                    );
-                    const json = await res.json();                    
-                    setfullItems(json.results);
-                    setHasListed(true);
-                    
-                    const graphRes = await fetch(
-                        `http://localhost:5000/rakuten/items/graph/create?json_data=${encodeURIComponent(JSON.stringify(json.results))}`
-                    );
+                const res = await fetch(
+                    `http://localhost:5000/rakuten/items/listup?number_hits=${number_hits}&page=${page}&max_page=${max_page}&keywords=${keywords}`
+                );
+                const json = await res.json();                    
+                setfullItems(json.results);
+                setHasListed(true);
 
+                // create graph with the fetched items for all items searched with the keywords
+                
+                const graphRes = await fetch(
+                    `http://localhost:5000/rakuten/items/graph/create?json_data=${encodeURIComponent(JSON.stringify(json.results))}`);
+
+                try {
                     const graphBlob = await graphRes.blob();
                     const graphUrl = URL.createObjectURL(graphBlob);
                     setGraphImagePath(graphUrl);
-
-
                 } catch (err) {
-                    console.error("Error fetching items:", err);
-                    setHasListed(false);
-                } finally {
-                    setStart(false);
+                    console.error("Error fetching graph:", err);
+                    const graphUrl = "";
+                    setGraphImagePath(graphUrl);
+                    setErrorMsg("Error generating graph for the items.");
                 }
+                }
+            };
+            if (keywords) {
+                fetchItems();
+            }
+        }, [number_hits, page, max_page, keywords, start]);
+
+
+    // useEffect for filtering with shop code
+    useEffect(() => {
+        const fetchItems_graph_filter = async () => {
+
+            // filter with shop code
+            let filteredItems = items;
+
+            try {
+                const res_graph_filter = await fetch(
+                    `http://localhost:5000/rakuten/items/graph/create?json_data=${encodeURIComponent(JSON.stringify(filteredItems))}&shop_code=${shop_code}`
+                )
+                const graphBlob_filter = await res_graph_filter.blob();
+                const graphUrl_filter = URL.createObjectURL(graphBlob_filter);
+                setGraphImagePath(graphUrl_filter);
+
+            } catch (err) {
+                console.error("Error fetching filtered graph:", err);
+                const graphUrl_filter = "";
+                setGraphImagePath(graphUrl_filter);
+                setErrorMsg("Error generating filtered graph. Please check the shop code.");
             }
         };
-        if (keywords) {
-            fetchItems();
-        }
-    }, [number_hits, page, max_page, keywords, start]);
 
+        if (shop_code && items.length > 0) {
+            fetchItems_graph_filter();
+        }
+    }, [shop_code, items]);
+
+
+    // # Sample data fields from Rakuten API
     // # affiliateRate       = data["affiliateRate"]
     // # affiliateUrl        = data["affiliateUrl"]
     // # asurakuArea         = data["asurakuArea"]
@@ -183,10 +214,16 @@ function RakutenItemUIComponent ( { onSelect } ) {
                 })}
             </div>
 
+            <div style={{ marginTop: "20px" }}>
+                <h2> Filtered Graph Options </h2>
+                <input type="text" placeholder="Shop Code" 
+                value={shop_name} onChange={(e) => setShopName(e.target.value)} />
+            </div>
+
             {graphImagePath && (
                 <div>
                     <h2> Item Price Graph </h2>
-                    <img src={graphImagePath} alt="Rakuten Item Price Graph" />
+                    <img src={graphImagePath + "?ts=" + Date.now()} alt="Rakuten Item Price Graph" />
                 </div>
             )}
 
@@ -209,10 +246,6 @@ function RakutenItemUIComponent ( { onSelect } ) {
                     <input type="text" value={makers} onChange={(e) => setMakers(e.target.value)} />
                 </div>
 
-                <div>
-                    <label> Shop Code: </label>
-                    <input type="text" value={shop_code} onChange={(e) => setShopCode(e.target.value)} />
-                </div>
             </div>
             </div>
         </>

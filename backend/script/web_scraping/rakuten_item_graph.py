@@ -3,20 +3,15 @@ import json
 import matplotlib.pyplot as plt
 import pandas as pd
 
-def create_rakuten_item_graph(json_data:str, shop_filter:str=None) -> str:
+def create_rakuten_item_graph(df: pd.DataFrame) -> str:
 
     # Parse the JSON data
-    items = json.loads(json_data)
-
-    df = pd.DataFrame(items)
     df = df[["itemName", "itemPrice", "shopName"]]
     shop_counts = df['shopName'].value_counts()
 
     plt.figure(figsize=(8,6))
-    for shop in shop_counts.index:
-        if shop_filter and shop != shop_filter:
-            continue
 
+    for shop in shop_counts.index:
         subset = df[df["shopName"] == shop]
         plt.scatter(subset["itemPrice"], range(len(subset)), label=shop, alpha=0.7)
     plt.xlabel("価格 (円)")

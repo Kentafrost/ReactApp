@@ -3,6 +3,8 @@ import os
 import sys
 from fastapi import APIRouter
 from fastapi.responses import FileResponse
+import pandas as pd
+import json
 
 grand_parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(grand_parent_dir)
@@ -57,6 +59,13 @@ async def rakuten_item_listup_csv_download_endpoint():
 """ create rakuten item graph endpoint """
 @rakuten_router.get("/rakuten/items/graph/create")
 
-async def rakuten_item_graph_create_endpoint(json_data: str):
-    graph_path = create_rakuten_item_graph(json_data)
+async def rakuten_item_graph_create_endpoint(json_data: str, shop_code: str = None):
+
+    items = json.loads(json_data)
+    df = pd.DataFrame(items)
+
+    if shop_code:
+        df = df[df['shopCode'] == shop_code]
+
+    graph_path = create_rakuten_item_graph(df)
     return FileResponse(path=graph_path, filename=os.path.basename(graph_path), media_type='image/png')
