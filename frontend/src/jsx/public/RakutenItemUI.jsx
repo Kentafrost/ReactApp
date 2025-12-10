@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 
 // fetch the task list from the backend and display them.(Already working)
 function RakutenItemUIComponent ( { onSelect } ) {
 
     // for listing all items on rakuten
-    const [number_hits, setNumberHits] = useState(0);
-    const [page, setPage] = useState(0);
-    const [max_page, setMaxPage] = useState(0);
-    const [keywords, setKeywords] = useState("");
+    const [number_hits, setNumberHits] = useState(10);
+    const [page, setPage] = useState(1);
+    const [max_page, setMaxPage] = useState(3);
+    const [keywords, setKeywords] = useState("Desktop");
 
     // for filtering uses
     const [min_money, setMinMoney] = useState(0);
@@ -41,30 +41,64 @@ function RakutenItemUIComponent ( { onSelect } ) {
                 return;
             }
             if (start) {
-
-                const res = await fetch(
-                    `http://localhost:5000/rakuten/items/listup?number_hits=${number_hits}&page=${page}&max_page=${max_page}&keywords=${keywords}`
-                );
-                const json = await res.json();                    
-                setfullItems(json.results);
-                setHasListed(true);
-
-                // create graph with the fetched items for all items searched with the keywords
-                
-                const graphRes = await fetch(
-                    `http://localhost:5000/rakuten/items/graph/create?json_data=${encodeURIComponent(JSON.stringify(json.results))}`);
-
                 try {
-                    const graphBlob = await graphRes.blob();
-                    const graphUrl = URL.createObjectURL(graphBlob);
-                    setGraphImagePath(graphUrl);
+                    const res = await fetch(
+                        `http://localhost:5000/rakuten/items/listup?number_hits=${number_hits}&page=${page}&max_page=${max_page}&keywords=${keywords}`
+                    );
+                    
+                    if (!res.ok) {
+                        throw new Error(`HTTP error! status: ${res.status}`);
+                    }
+                    
+                    const json = await res.json();
+                    console.log("API Response:", json); // デバッグログ
+                    
+                    // データの妥当性をチェック
+                    if (json && json.results && Array.isArray(json.results)) {
+                        setfullItems(json.results);
+                        setHasListed(true);
+                        setErrorMsg(""); // Clear any previous errors
+
+                        // create graph with the fetched items for all items searched with the keywords
+                        if (json.results.length > 0) {
+                            console.log("Creating graph with data:", json.results);
+                            
+                            const graphRes = await fetch(
+                            "http://localhost:5000/rakuten/items/graph/create", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({ 
+                                    json_data: JSON.stringify(json.results), 
+                                    shop_name: shop_name 
+                                }),
+                            }
+                            ); 
+                            if (graphRes.ok) {
+                                const graphBlob = await graphRes.blob();
+                                const graphUrl = URL.createObjectURL(graphBlob);
+                                setGraphImagePath(graphUrl);
+                            } else {
+                                console.error("Error fetching graph: HTTP", graphRes.status);
+                                setGraphImagePath("");
+                                setErrorMsg("Error generating graph for the items.");
+                            }
+                        } else {
+                            setGraphImagePath("");
+                            setErrorMsg("No items found for the search keywords.");
+                        }
+                    } else {
+                        console.error("Invalid API response structure:", json);
+                        setErrorMsg("Invalid response format from API.");
+                        setHasListed(false);
+                    }
                 } catch (err) {
-                    console.error("Error fetching graph:", err);
-                    const graphUrl = "";
-                    setGraphImagePath(graphUrl);
-                    setErrorMsg("Error generating graph for the items.");
+                    console.error("Error fetching items:", err);
+                    setErrorMsg(`Failed to fetch items: ${err.message}`);
+                    setHasListed(false);
                 }
-                }
+            }
             };
             if (keywords) {
                 fetchItems();
@@ -79,10 +113,33 @@ function RakutenItemUIComponent ( { onSelect } ) {
             // filter with shop code
             let filteredItems = items;
 
+            // データの妥当性をチェック
+            if (!Array.isArray(filteredItems) || filteredItems.length === 0) {
+                console.error("No valid items data for filtering:", filteredItems);
+                setErrorMsg("No items available for filtering.");
+                return;
+            }
+
             try {
+                console.log("Filtering with shop_name:", shop_name, "Items:", filteredItems);
+                
                 const res_graph_filter = await fetch(
-                    `http://localhost:5000/rakuten/items/graph/create?json_data=${encodeURIComponent(JSON.stringify(filteredItems))}&shop_code=${shop_code}`
+                    `http://localhost:5000/rakuten/items/graph/create`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            json_data: filteredItems,
+                            shop_name: shop_name
+                        }),
+                    }
                 )
+                
+                if (!res_graph_filter.ok) {
+                    throw new Error(`HTTP error! status: ${res_graph_filter.status}`);
+                }
+                
                 const graphBlob_filter = await res_graph_filter.blob();
                 const graphUrl_filter = URL.createObjectURL(graphBlob_filter);
                 setGraphImagePath(graphUrl_filter);
@@ -91,15 +148,14 @@ function RakutenItemUIComponent ( { onSelect } ) {
                 console.error("Error fetching filtered graph:", err);
                 const graphUrl_filter = "";
                 setGraphImagePath(graphUrl_filter);
-                setErrorMsg("Error generating filtered graph. Please check the shop code.");
+                setErrorMsg(`Error generating filtered graph: ${err.message}`);
             }
         };
 
-        if (shop_code && items.length > 0) {
+        if (shop_name && items.length > 0) {
             fetchItems_graph_filter();
         }
-    }, [shop_code, items]);
-
+    }, [shop_name, items]);
 
     // # Sample data fields from Rakuten API
     // # affiliateRate       = data["affiliateRate"]
