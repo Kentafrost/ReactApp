@@ -107,9 +107,6 @@ def fetchItemsViaRapidAPI(keyword, csvPath, parameters):
 
             data = response.json()
 
-            print(f"📄 レスポンスデータ (ページ {page_num + 1}):")
-            print(json.dumps(data, ensure_ascii=False, indent=2))
-
             first_item = data["Items"][0]["Item"]
             for key, value in first_item.items():
                 print(f"{key}: {value}")
