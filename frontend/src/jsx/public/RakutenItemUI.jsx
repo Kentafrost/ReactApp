@@ -25,6 +25,8 @@ function RakutenItemUIComponent ( { onSelect } ) {
     // full items from rakuten
     const [items, setfullItems] = useState([]);
 
+    const [graphImagePath, setGraphImagePath] = useState("");
+
     useEffect(() => {
         const fetchItems = async () => {
             if (!keywords) {
@@ -46,6 +48,15 @@ function RakutenItemUIComponent ( { onSelect } ) {
                     const json = await res.json();                    
                     setfullItems(json.results);
                     setHasListed(true);
+                    
+                    const graphRes = await fetch(
+                        `http://localhost:5000/rakuten/items/graph/create?json_data=${encodeURIComponent(JSON.stringify(json.results))}`
+                    );
+
+                    const graphBlob = await graphRes.blob();
+                    const graphUrl = URL.createObjectURL(graphBlob);
+                    setGraphImagePath(graphUrl);
+
 
                 } catch (err) {
                     console.error("Error fetching items:", err);
@@ -113,19 +124,30 @@ function RakutenItemUIComponent ( { onSelect } ) {
 
         <div style={{ marginTop: "30px" }}>
             <div>
-                <label> Number of Hits: </label>
-                <input type="number" value={number_hits} onChange={(e) => setNumberHits(e.target.value)} />
+                <label> Number of Hits(20まで選択可能): </label>
+                <input type="number" max={20} value={number_hits} onChange={(e) => setNumberHits(e.target.value)} />
             </div>
-            <div>
-                <label> Page: </label>
-                <input type="number" value={page} onChange={(e) => setPage(e.target.value)} />
+            <div style={{ marginBottom: "10px" }}>
+                <label style={{ marginRight: "10px" }}> 
+                    Page(100まで選択可能): 
+                </label>
+                
+                <input type="number" max={100} value={page} onChange={(e) => setPage(e.target.value)} />
             </div>
-            <div>
-                <label> Max Page: </label>
-                <input type="number" value={max_page} onChange={(e) => setMaxPage(e.target.value)} />
+
+            <div style={{ marginBottom: "10px" }}>
+                <label style={{ marginRight: "10px" }}> 
+                    Max Page(3まで選択可能): 
+                </label>
+                
+                <input type="number" max={3} value={max_page} onChange={(e) => setMaxPage(e.target.value)} />
             </div>
-            <div>
-                <label> Keywords: </label>
+
+            <div style={{ marginBottom: "10px" }}>
+                <label style={{ marginRight: "10px" }}> 
+                    Keywords(複数記載可能、カンマ区切り): 
+                </label>
+                
                 <input type="text" value={keywords} onChange={(e) => setKeywords(e.target.value)} />
             </div>
 
@@ -160,6 +182,13 @@ function RakutenItemUIComponent ( { onSelect } ) {
                     );                    
                 })}
             </div>
+
+            {graphImagePath && (
+                <div>
+                    <h2> Item Price Graph </h2>
+                    <img src={graphImagePath} alt="Rakuten Item Price Graph" />
+                </div>
+            )}
 
             <div style={{ display: "flex", gap: "20px" }}>
             <div style={{ width: "250px", padding: "10px", borderRight: "1px solid #ccc" }}>

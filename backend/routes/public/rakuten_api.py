@@ -8,6 +8,7 @@ grand_parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 sys.path.append(grand_parent_dir)
 
 from script.web_scraping.rakuten_item_listup import main as rakuten_item_listup
+from script.web_scraping.rakuten_item_graph import create_rakuten_item_graph
 
 rakuten_router = APIRouter()
 
@@ -52,3 +53,10 @@ async def rakuten_item_listup_csv_download_endpoint():
                 "path": os.path.join(file_path, file_name)
             }
     return {"files": files}
+
+""" create rakuten item graph endpoint """
+@rakuten_router.get("/rakuten/items/graph/create")
+
+async def rakuten_item_graph_create_endpoint(json_data: str):
+    graph_path = create_rakuten_item_graph(json_data)
+    return FileResponse(path=graph_path, filename=os.path.basename(graph_path), media_type='image/png')
