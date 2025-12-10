@@ -27,6 +27,7 @@ function RakutenItemUIComponent ( { onSelect } ) {
     const [items, setfullItems] = useState([]);
 
     const [graphImagePath, setGraphImagePath] = useState("");
+    const [filterStart, setFilterStart] = useState(false);
 
     useEffect(() => {
         const fetchItems = async () => {
@@ -71,7 +72,7 @@ function RakutenItemUIComponent ( { onSelect } ) {
                                 },
                                 body: JSON.stringify({ 
                                     json_data: JSON.stringify(json.results), 
-                                    shop_name: shop_name 
+                                    shop_name: shop_name  // No shop filter for overall graph
                                 }),
                             }
                             ); 
@@ -106,54 +107,56 @@ function RakutenItemUIComponent ( { onSelect } ) {
         }, [number_hits, page, max_page, keywords, start]);
 
 
-    // useEffect for filtering with shop code
+    // useEffect for filtering with shop name
     useEffect(() => {
-        const fetchItems_graph_filter = async () => {
+        if (filterStart && items.length > 0 && shop_name) {
+            const fetchItems_graph_filter = async () => {
 
-            // filter with shop code
-            let filteredItems = items;
-
-            // データの妥当性をチェック
-            if (!Array.isArray(filteredItems) || filteredItems.length === 0) {
-                console.error("No valid items data for filtering:", filteredItems);
-                setErrorMsg("No items available for filtering.");
-                return;
-            }
-
-            try {
-                console.log("Filtering with shop_name:", shop_name, "Items:", filteredItems);
-                
-                const res_graph_filter = await fetch(
-                    `http://localhost:5000/rakuten/items/graph/create`, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            json_data: filteredItems,
-                            shop_name: shop_name
-                        }),
-                    }
-                )
-                
-                if (!res_graph_filter.ok) {
-                    throw new Error(`HTTP error! status: ${res_graph_filter.status}`);
+                // データの妥当性をチェック
+                if (!Array.isArray(items) || items.length === 0) {
+                    console.error("No valid items data for filtering:", items);
+                    setErrorMsg("No items available for filtering.");
+                    return;
                 }
-                
-                const graphBlob_filter = await res_graph_filter.blob();
-                const graphUrl_filter = URL.createObjectURL(graphBlob_filter);
-                setGraphImagePath(graphUrl_filter);
 
-            } catch (err) {
-                console.error("Error fetching filtered graph:", err);
-                const graphUrl_filter = "";
-                setGraphImagePath(graphUrl_filter);
-                setErrorMsg(`Error generating filtered graph: ${err.message}`);
+                try {
+                    console.log("Filtering with shop_name:", shop_name, "Items:", items);
+                    
+                    const res_graph_filter = await fetch(
+                        `http://localhost:5000/rakuten/items/graph/create`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                json_data: JSON.stringify(items),
+                                shop_name: shop_name
+                            }),
+                        }
+                    )
+                    
+                    if (!res_graph_filter.ok) {
+                        throw new Error(`HTTP error! status: ${res_graph_filter.status}`);
+                    }
+                    
+                    const graphBlob_filter = await res_graph_filter.blob();
+                    const graphUrl_filter = URL.createObjectURL(graphBlob_filter);
+                    setGraphImagePath(graphUrl_filter);
+                    setFilterStart(false);
+                    setErrorMsg(""); // Clear any previous errors
+
+                } catch (err) {
+                    console.error("Error fetching filtered graph:", err);
+                    const graphUrl_filter = "";
+                    setGraphImagePath(graphUrl_filter);
+                    setFilterStart(false);
+                    setErrorMsg(`Error generating filtered graph: ${err.message}`);
+                }
+            };
+
+            if (shop_name && items.length > 0) {
+                fetchItems_graph_filter();
             }
-        };
-
-        if (shop_name && items.length > 0) {
-            fetchItems_graph_filter();
         }
     }, [shop_name, items]);
 
@@ -272,10 +275,20 @@ function RakutenItemUIComponent ( { onSelect } ) {
 
             <div style={{ marginTop: "20px" }}>
                 <h2> Filtered Graph Options </h2>
-                <input type="text" placeholder="Shop Code" 
+                <input type="text" placeholder="Shop Name" 
                 value={shop_name} onChange={(e) => setShopName(e.target.value)} />
             </div>
 
+            <div>
+                <button onClick={() => {
+                    setFilterStart(true);
+                }}> Generate Filtered Graph 
+                </button>
+            </div>
+
+            <br />
+
+            {/* Graph Image Display */}
             {graphImagePath && (
                 <div>
                     <h2> Item Price Graph </h2>
@@ -283,6 +296,7 @@ function RakutenItemUIComponent ( { onSelect } ) {
                 </div>
             )}
 
+            {/* Filter Options */}
             <div style={{ display: "flex", gap: "20px" }}>
             <div style={{ width: "250px", padding: "10px", borderRight: "1px solid #ccc" }}>
                 <h2> Filter Options </h2>

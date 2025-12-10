@@ -71,5 +71,5 @@ async def rakuten_item_graph_create_endpoint(request: GraphRequest):
     if request.shop_name:
         df = df[df['shopName'] == request.shop_name]
 
-    graph_path = create_rakuten_item_graph(df)
-    return FileResponse(path=graph_path, filename=os.path.basename(graph_path), media_type='image/png')
+    result = create_rakuten_item_graph(df)
+    return FileResponse(path=result["graph_path"], filename=os.path.basename(result["graph_path"]), media_type='image/png')
