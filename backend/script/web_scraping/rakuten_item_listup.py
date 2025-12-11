@@ -4,6 +4,7 @@ import json
 import requests
 import time
 import pandas as pd
+from datetime import datetime
 import sqlite3
 
 
@@ -155,36 +156,53 @@ keyword: str
 def db_input(df_summary, keyword):
     
     currentDir = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.join(currentDir, 'rakuten_items.db')
-    
-    table_name = f"items_{keyword.replace(' ', '_')}"
+    db_path = os.path.join(currentDir, 'db', 'rakuten_items_data_lake.sqlite3')
+    if not os.path.exists(os.path.dirname(db_path)):
+        open(db_path, 'w').close()
 
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-
-    # add YYYY-MM-DD date column to table
-    create_table_query = f'''
-    CREATE TABLE IF NOT EXISTS {table_name} (
-        "Item Name" TEXT,
-        "Item Price" INTEGER,
-        "Shop Name" TEXT,
-        "Item URL" TEXT,
-        "date" TEXT DEFAULT (DATE('now'))
-    );
-    '''
-    
-    cursor.execute(create_table_query)
-    conn.commit()
-    conn.close()
-
+    table_name = f"rakuten_items_{keyword.replace(' ', '_').lower()}"
 
     with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+
+        # add YYYY-MM-DD date column to table
+        create_table_query = f'''
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            "Item Name" TEXT,
+            "Item Price" INTEGER,
+            "Shop Name" TEXT,
+            "Item URL" TEXT,
+            "Keyword" TEXT,
+            "date" TEXT DEFAULT (DATE('now'))
+        );
+        '''
+        
+        cursor.execute(create_table_query)
+        conn.commit()
+
         try:
-            df_summary.to_sql(table_name, conn, if_exists='append', index=False)
+            for index, row in df_summary.iterrows():
+                insert_stmt = f'''
+                INSERT INTO {table_name} ("Item Name", "Item Price", "Shop Name", "Item URL", "Keyword", "date")
+                VALUES (?, ?, ?, ?, ?, ?);
+                '''
+                cursor.execute(insert_stmt, (
+                    row["Item Name"],
+                    row["Item Price"],
+                    row["Shop Name"],
+                    row["Item URL"],
+                    keyword,
+                    datetime.now().strftime("%Y-%m-%d")
+                ))
+            
             conn.commit()
         except Exception as e:
             print("❌ データベースへのデータ保存に失敗しました:", str(e))
             return
+        
+        check_stmt = f'''SELECT COUNT(*) FROM {table_name};'''
+        check_data = cursor.execute(check_stmt)
+        print(f"📊 テーブル {table_name} のデータ件数: {check_data.fetchone()[0]}")
 
     print(f"✅ データベースにデータを保存しました: {db_path} のテーブル {table_name}")
 
@@ -218,24 +236,34 @@ def main(number_hits, page, max_page, keywords):
             csvPath = ""
             total_csv_data_num = 0
 
+        items = []
+
         try:
-            df = pd.DataFrame(data)
-            itemName  = df.get("Item", pd.DataFrame())
-            itemPrice = itemName.get("itemPrice", pd.Series())
-            shopName = itemName.get("shopName", pd.Series())
-            itemUrl = itemName.get("itemUrl", pd.Series())
+            for index, item in enumerate(data):
+                info = item.get("Item", item)
+                items.append(info)
+            df = pd.DataFrame(items)
+
+            itemName  = df.get("itemName", pd.Series())
+            itemPrice = df.get("itemPrice", pd.Series())
+            shopName = df.get("shopName", pd.Series())
+            itemUrl = df.get("itemUrl", pd.Series())
+            
             df_summary = pd.DataFrame({
-                "Item Name": itemName.get("itemName", pd.Series()),
+                "Item Name": itemName,
                 "Item Price": itemPrice,
                 "Shop Name": shopName,
                 "Item URL": itemUrl
             })
+
         except Exception as e:
             print("❌ データフレームの作成に失敗しました:", str(e))
             df_summary = pd.DataFrame()
 
-        if not df_summary.empty:
-            db_input(df_summary, keyword)
+        print("📊 データフレームの概要:")
+        print(df_summary.head())
+
+        db_input(df_summary, keyword)
 
         results[keyword] = {
             "status": "success",

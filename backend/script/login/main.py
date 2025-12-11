@@ -5,6 +5,7 @@ import json
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
+# load username and password from users.json
 with open(os.path.join(current_dir, 'users.json')) as f:
     users = json.load(f)
 
@@ -18,6 +19,7 @@ if not os.path.exists(db_path):
 conn = sqlite3.connect(db_path, check_same_thread=False)
 cursor = conn.cursor()
 
+# create users table if not exists
 def initialize_db():
 
     """ Users table creation"""
@@ -51,7 +53,7 @@ def initialize_db():
         print(f"Error inserting user: {e}")
         return
 
-
+# login function
 def db_login(username, password):
 
     # check if the login user, password exists in the db
@@ -59,9 +61,7 @@ def db_login(username, password):
         "SELECT * FROM users WHERE username=? AND password=?",
         (username, password)
     )
-
     check = check_user.fetchone()
-    print(check)
 
     if check is None:
         return {
