@@ -72,7 +72,7 @@ function RakutenItemUIComponent ( { onSelect } ) {
                                 },
                                 body: JSON.stringify({ 
                                     json_data: JSON.stringify(json.results), 
-                                    shop_name: shop_name  // No shop filter for overall graph
+                                    shop_name: null  // No shop filter for overall graph
                                 }),
                             }
                             ); 
@@ -80,10 +80,13 @@ function RakutenItemUIComponent ( { onSelect } ) {
                                 const graphBlob = await graphRes.blob();
                                 const graphUrl = URL.createObjectURL(graphBlob);
                                 setGraphImagePath(graphUrl);
+                                setErrorMsg(""); // Clear any previous errors
                             } else {
                                 console.error("Error fetching graph: HTTP", graphRes.status);
+                                const errorText = await graphRes.text();
+                                console.error("Error details:", errorText);
                                 setGraphImagePath("");
-                                setErrorMsg("Error generating graph for the items.");
+                                setErrorMsg(`Error generating graph: ${graphRes.status} - ${errorText}`);
                             }
                         } else {
                             setGraphImagePath("");
@@ -107,22 +110,29 @@ function RakutenItemUIComponent ( { onSelect } ) {
         }, [number_hits, page, max_page, keywords, start]);
 
 
-    // useEffect for filtering with shop name
+    // filtering with shop name
     useEffect(() => {
-        if (filterStart && items.length > 0 && shop_name) {
+        if (filterStart) {
+            if (!shop_name) {
+                setErrorMsg("Please enter a shop name for filtering.");
+                setFilterStart(false);
+                return;
+            }
+            
             const fetchItems_graph_filter = async () => {
 
                 // データの妥当性をチェック
                 if (!Array.isArray(items) || items.length === 0) {
                     console.error("No valid items data for filtering:", items);
                     setErrorMsg("No items available for filtering.");
+                    setFilterStart(false);
                     return;
                 }
 
                 try {
                     console.log("Filtering with shop_name:", shop_name, "Items:", items);
                     
-                    const res_graph_filter = await fetch(
+                    const res_graph = await fetch(
                         `http://localhost:5000/rakuten/items/graph/create`, {
                             method: "POST",
                             headers: {
@@ -135,13 +145,15 @@ function RakutenItemUIComponent ( { onSelect } ) {
                         }
                     )
                     
-                    if (!res_graph_filter.ok) {
-                        throw new Error(`HTTP error! status: ${res_graph_filter.status}`);
+                    if (!res_graph.ok) {
+                        throw new Error(`HTTP error! status: ${res_graph.status}`);
                     }
                     
-                    const graphBlob_filter = await res_graph_filter.blob();
-                    const graphUrl_filter = URL.createObjectURL(graphBlob_filter);
-                    setGraphImagePath(graphUrl_filter);
+                    const graphBlob = await res_graph.blob();
+                    const graphUrl = URL.createObjectURL(graphBlob);
+                    console.log("Filtered graph URL:", graphUrl);
+
+                    setGraphImagePath(graphUrl);
                     setFilterStart(false);
                     setErrorMsg(""); // Clear any previous errors
 
@@ -158,7 +170,7 @@ function RakutenItemUIComponent ( { onSelect } ) {
                 fetchItems_graph_filter();
             }
         }
-    }, [shop_name, items]);
+    }, [filterStart, shop_name, items]);
 
     // # Sample data fields from Rakuten API
     // # affiliateRate       = data["affiliateRate"]
@@ -292,7 +304,13 @@ function RakutenItemUIComponent ( { onSelect } ) {
             {graphImagePath && (
                 <div>
                     <h2> Item Price Graph </h2>
-                    <img src={graphImagePath + "?ts=" + Date.now()} alt="Rakuten Item Price Graph" />
+                    <img 
+                        src={graphImagePath} 
+                        alt="Rakuten Item Price Graph" 
+                        style={{maxWidth: '100%', height: 'auto', border: '1px solid #ccc'}}
+                        onLoad={() => console.log("Graph image loaded successfully")}
+                        onError={(e) => console.error("Failed to load graph image:", e)}
+                    />
                 </div>
             )}
 

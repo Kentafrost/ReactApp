@@ -3,6 +3,9 @@ import os
 import json
 import requests
 import time
+import pandas as pd
+import sqlite3
+
 
 # ディレクトリ設定
 currentDir = os.path.dirname(os.path.abspath(__file__))
@@ -136,7 +139,57 @@ def fetchItemsViaRapidAPI(keyword, csvPath, parameters):
             raise error
 
 
-# reactからパラメータを受け取るメイン関数
+"""
+Save the summary dataframe to a SQLite database table named after the keyword.
+
+parameters:
+-------------
+df_summary: pd.DataFrame
+    Summary dataframe containing item details.
+
+keyword: str
+    Keyword used for searching items, used to name the database table.
+"""
+
+# save dataframe to sqlite database
+def db_input(df_summary, keyword):
+    
+    currentDir = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(currentDir, 'rakuten_items.db')
+    
+    table_name = f"items_{keyword.replace(' ', '_')}"
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # add YYYY-MM-DD date column to table
+    create_table_query = f'''
+    CREATE TABLE IF NOT EXISTS {table_name} (
+        "Item Name" TEXT,
+        "Item Price" INTEGER,
+        "Shop Name" TEXT,
+        "Item URL" TEXT,
+        "date" TEXT DEFAULT (DATE('now'))
+    );
+    '''
+    
+    cursor.execute(create_table_query)
+    conn.commit()
+    conn.close()
+
+
+    with sqlite3.connect(db_path) as conn:
+        try:
+            df_summary.to_sql(table_name, conn, if_exists='append', index=False)
+            conn.commit()
+        except Exception as e:
+            print("❌ データベースへのデータ保存に失敗しました:", str(e))
+            return
+
+    print(f"✅ データベースにデータを保存しました: {db_path} のテーブル {table_name}")
+
+
+# main function that retrieve items given by the react frontend
 def main(number_hits, page, max_page, keywords):
 
     parameters = {
@@ -150,7 +203,6 @@ def main(number_hits, page, max_page, keywords):
 
     for keyword in parameters["keywords"]:
         csvPath = os.path.join(resultsDir, f"rakuten_products_{keyword}.csv")
-
         
         print(f"🔍 キーワード \"{keyword}\" で商品検索を開始...")
 
@@ -165,6 +217,25 @@ def main(number_hits, page, max_page, keywords):
             data = []
             csvPath = ""
             total_csv_data_num = 0
+
+        try:
+            df = pd.DataFrame(data)
+            itemName  = df.get("Item", pd.DataFrame())
+            itemPrice = itemName.get("itemPrice", pd.Series())
+            shopName = itemName.get("shopName", pd.Series())
+            itemUrl = itemName.get("itemUrl", pd.Series())
+            df_summary = pd.DataFrame({
+                "Item Name": itemName.get("itemName", pd.Series()),
+                "Item Price": itemPrice,
+                "Shop Name": shopName,
+                "Item URL": itemUrl
+            })
+        except Exception as e:
+            print("❌ データフレームの作成に失敗しました:", str(e))
+            df_summary = pd.DataFrame()
+
+        if not df_summary.empty:
+            db_input(df_summary, keyword)
 
         results[keyword] = {
             "status": "success",

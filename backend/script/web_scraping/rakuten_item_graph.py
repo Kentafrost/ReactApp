@@ -29,13 +29,13 @@ def create_rakuten_item_graph(df: pd.DataFrame) -> str:
     plt.legend(prop=matplotlib.font_manager.FontProperties(fname=font_path))
 
     # Save the graph to a file
-    results_dir = os.path.join(os.path.dirname(__file__), 'rakuten_item_graph', 'results')
+    results_dir = os.path.join(os.path.dirname(__file__), 'rakuten_item_graph')
     os.makedirs(results_dir, exist_ok=True)
+
     graph_path = os.path.join(results_dir, 'rakuten_item_cost_graph.png')
+    print("Saving graph to:", graph_path)
+
     plt.savefig(graph_path)
     plt.close()
 
-    return {
-        "status": "success", 
-        "graph_path": graph_path
-    }
+    return graph_path

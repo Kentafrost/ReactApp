@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse
 import pandas as pd
 import json
 from pydantic import BaseModel
+from typing import Optional
 
 grand_parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(grand_parent_dir)
@@ -59,7 +60,7 @@ async def rakuten_item_listup_csv_download_endpoint():
 
 class GraphRequest(BaseModel):
     json_data: str
-    shop_name: str = None
+    shop_name: Optional[str] = None
 
 """ create rakuten item graph endpoint """
 @rakuten_router.post("/rakuten/items/graph/create")
@@ -71,5 +72,5 @@ async def rakuten_item_graph_create_endpoint(request: GraphRequest):
     if request.shop_name:
         df = df[df['shopName'] == request.shop_name]
 
-    result = create_rakuten_item_graph(df)
-    return FileResponse(path=result["graph_path"], filename=os.path.basename(result["graph_path"]), media_type='image/png')
+    graph_path = create_rakuten_item_graph(df)
+    return FileResponse(path=graph_path, filename=os.path.basename(graph_path), media_type='image/png')
