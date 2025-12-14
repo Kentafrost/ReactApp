@@ -20,7 +20,7 @@ def create_rakuten_item_graph(df: pd.DataFrame) -> str:
             subset = df[df["shopName"] == shop]
             plt.scatter(subset["itemPrice"], range(len(subset)), label=shop, alpha=0.7)
 
-    # label ⇒ Shift-JIS対応
+    # label ⇒ Shift-JIS
     font_path = r"C:\\Windows\\Fonts\\meiryo.ttc"
     
     plt.xlabel("価格 (円)", fontproperties=matplotlib.font_manager.FontProperties(fname=font_path))

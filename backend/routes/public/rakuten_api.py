@@ -17,8 +17,8 @@ from script.web_scraping.rakuten_item_graph import create_rakuten_item_graph
 rakuten_router = APIRouter()
 
 
-# Rakuten items listup endpoint
-@rakuten_router.get("/rakuten/items/listup")
+""" Rakuten items listup endpoint"""
+@rakuten_router.get("/rakuten/listup")
 async def rakuten_item_listup_endpoint(number_hits: int, page: int, max_page: int, keywords: str):
 
     keywords_list = keywords.split(",")
@@ -42,8 +42,8 @@ async def rakuten_item_listup_endpoint(number_hits: int, page: int, max_page: in
     return {"results": items}
 
 
-# Download rakuten items listup CSV
-@rakuten_router.get("/rakuten/items/listup/download")
+""" Download rakuten items listup CSV """
+@rakuten_router.get("/rakuten/listup/csv/download")
 async def rakuten_item_listup_csv_download_endpoint():
 
     # loop all files in results directory
@@ -58,12 +58,14 @@ async def rakuten_item_listup_csv_download_endpoint():
             }
     return {"files": files}
 
+
 class GraphRequest(BaseModel):
     json_data: str
     shop_name: Optional[str] = None
 
+
 """ create rakuten item graph endpoint """
-@rakuten_router.post("/rakuten/items/graph/create")
+@rakuten_router.post("/rakuten/graph/create")
 async def rakuten_item_graph_create_endpoint(request: GraphRequest):
 
     items = json.loads(request.json_data)
@@ -73,4 +75,34 @@ async def rakuten_item_graph_create_endpoint(request: GraphRequest):
         df = df[df['shopName'] == request.shop_name]
 
     graph_path = create_rakuten_item_graph(df)
+    return FileResponse(path=graph_path, filename=os.path.basename(graph_path), media_type='image/png')
+
+
+class FilterOptionsRequest(BaseModel):
+    json_data: str
+
+""" filter options for rakuten item graph endpoint """
+@rakuten_router.post("/rakuten/graph/filter/options")
+async def rakuten_item_graph_filter_options_endpoint(request: FilterOptionsRequest = None):
+
+    items = json.loads(request.json_data) if request else []
+    df = pd.DataFrame(items)
+
+    shop_names = df['shopName'].unique().tolist()
+
+    return {"shop_names": shop_names}
+
+
+""" display rakuten item graph endpoint """
+@rakuten_router.get("/rakuten/graph/display")
+async def rakuten_item_graph_display_endpoint():
+
+    # get all data from sqlite3 database and get keyword to create graph and API routes
+    get_data_stet = "Select * from rakuten_items_list"
+
+    graph_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'script', 'web_scraping', 'rakuten_item_graph', 'rakuten_item_cost_graph.png'))
+
+    if not os.path.exists(graph_path):
+        return {"error": "Graph file does not exist. Please create the graph first."}
+
     return FileResponse(path=graph_path, filename=os.path.basename(graph_path), media_type='image/png')

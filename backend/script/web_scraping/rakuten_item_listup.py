@@ -160,7 +160,7 @@ def db_input(df_summary, keyword):
     if not os.path.exists(os.path.dirname(db_path)):
         open(db_path, 'w').close()
 
-    table_name = f"rakuten_items_{keyword.replace(' ', '_').lower()}"
+    table_name = f"rakuten_items_list"
 
     with sqlite3.connect(db_path) as conn:
         cursor = conn.cursor()

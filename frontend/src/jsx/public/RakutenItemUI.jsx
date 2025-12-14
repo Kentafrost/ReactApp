@@ -10,10 +10,6 @@ function RakutenItemUIComponent ( { onSelect } ) {
     const [max_page, setMaxPage] = useState(3);
     const [keywords, setKeywords] = useState("Desktop");
 
-    // for filtering uses
-    const [min_money, setMinMoney] = useState(0);
-    const [max_money, setMaxMoney] = useState(0);
-    const [makers, setMakers] = useState("");
 
     // graph filter fields
     const [shop_name, setShopName] = useState("");
@@ -28,6 +24,13 @@ function RakutenItemUIComponent ( { onSelect } ) {
 
     const [graphImagePath, setGraphImagePath] = useState("");
     const [filterStart, setFilterStart] = useState(false);
+
+    // filter options state
+    const [min_money, setMinMoney] = useState(0);
+    const [max_money, setMaxMoney] = useState(0);
+    const [makers, setMakers] = useState("");
+
+    const [shops, setShops] = useState({});
 
     useEffect(() => {
         const fetchItems = async () => {
@@ -44,7 +47,7 @@ function RakutenItemUIComponent ( { onSelect } ) {
             if (start) {
                 try {
                     const res = await fetch(
-                        `http://localhost:5000/rakuten/items/listup?number_hits=${number_hits}&page=${page}&max_page=${max_page}&keywords=${keywords}`
+                        `http://localhost:5000/rakuten/listup?number_hits=${number_hits}&page=${page}&max_page=${max_page}&keywords=${keywords}`
                     );
                     
                     if (!res.ok) {
@@ -65,7 +68,7 @@ function RakutenItemUIComponent ( { onSelect } ) {
                             console.log("Creating graph with data:", json.results);
                             
                             const graphRes = await fetch(
-                            "http://localhost:5000/rakuten/items/graph/create", {
+                            "http://localhost:5000/rakuten/graph/create", {
                                 method: "POST",
                                 headers: {
                                     "Content-Type": "application/json",
@@ -76,6 +79,27 @@ function RakutenItemUIComponent ( { onSelect } ) {
                                 }),
                             }
                             ); 
+
+                            // collect all shops names for filter options
+                            const optionsRes = await fetch(
+                                "http://localhost:5000/rakuten/graph/filter/options", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json"
+                                    },
+                                    body: JSON.stringify({
+                                        json_data: JSON.stringify(json.results)
+                                    })
+                                }
+                            )
+
+                            if (!optionsRes.ok) {
+                                throw new Error(`HTTP error! status: ${optionsRes.status}`);
+                            }
+                            const optionsJson = await optionsRes.json();
+                            console.log("Filter Options Response:", optionsJson); // デバッグログ
+                            setShops(optionsJson);
+                            
                             if (graphRes.ok) {
                                 const graphBlob = await graphRes.blob();
                                 const graphUrl = URL.createObjectURL(graphBlob);
@@ -133,7 +157,7 @@ function RakutenItemUIComponent ( { onSelect } ) {
                     console.log("Filtering with shop_name:", shop_name, "Items:", items);
                     
                     const res_graph = await fetch(
-                        `http://localhost:5000/rakuten/items/graph/create`, {
+                        `http://localhost:5000/rakuten/graph/create`, {
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json",
@@ -319,14 +343,26 @@ function RakutenItemUIComponent ( { onSelect } ) {
             <div style={{ width: "250px", padding: "10px", borderRight: "1px solid #ccc" }}>
                 <h2> Filter Options </h2>
 
-                <div>
-                    <label> Min Money: </label>
-                    <input type="number" value={min_money} onChange={(e) => setMinMoney(e.target.value)} />
+                <div> 
+                    <label> Min Money: {min_money} </label>
+                    <input 
+                        type="range" 
+                        min="0"
+                        max="100000"
+                        value={min_money} 
+                        onChange={(e) => setMinMoney(e.target.value)} 
+                    />
                 </div>
 
                 <div>
-                    <label> Max Money: </label>
-                    <input type="number" value={max_money} onChange={(e) => setMaxMoney(e.target.value)} />
+                    <label> Max Money: {max_money} </label>
+                    <input 
+                        type="range" 
+                        min="0"
+                        max="100000"
+                        value={max_money} 
+                        onChange={(e) => setMaxMoney(e.target.value)} 
+                    />
                 </div>
 
                 <div>
