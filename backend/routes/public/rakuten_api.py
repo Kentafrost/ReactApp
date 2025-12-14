@@ -62,7 +62,7 @@ async def rakuten_item_listup_csv_download_endpoint():
 class GraphRequest(BaseModel):
     json_data: str
     shop_name: Optional[str] = None
-
+    range: Optional[list[int]] = None
 
 """ create rakuten item graph endpoint """
 @rakuten_router.post("/rakuten/graph/create")
@@ -73,6 +73,12 @@ async def rakuten_item_graph_create_endpoint(request: GraphRequest):
 
     if request.shop_name:
         df = df[df['shopName'] == request.shop_name]
+
+    # filter by min and max price range
+    if request.range is not None:
+        df = df[df['itemPrice'] >= request.range[0]]
+    if request.range is not None:
+        df = df[df['itemPrice'] <= request.range[1]]
 
     graph_path = create_rakuten_item_graph(df)
     return FileResponse(path=graph_path, filename=os.path.basename(graph_path), media_type='image/png')
