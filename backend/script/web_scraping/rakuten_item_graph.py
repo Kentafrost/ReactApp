@@ -17,7 +17,7 @@ def create_rakuten_item_graph(df: pd.DataFrame) -> str:
 
     if not shop_counts.empty:
         for shop in shop_counts.index:
-            subset = df[df["shopName"] == shop]
+            subset = df[df["shopName"] == shop] 
             plt.scatter(subset["itemPrice"], range(len(subset)), label=shop, alpha=0.7)
 
     # label ⇒ Shift-JIS

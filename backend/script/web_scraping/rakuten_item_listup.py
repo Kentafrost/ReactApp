@@ -172,6 +172,7 @@ def db_input(df_summary, keyword):
             "Item Price" INTEGER,
             "Shop Name" TEXT,
             "Item URL" TEXT,
+            "Cost Range" TEXT,
             "Keyword" TEXT,
             "date" TEXT DEFAULT (DATE('now'))
         );
@@ -183,14 +184,15 @@ def db_input(df_summary, keyword):
         try:
             for index, row in df_summary.iterrows():
                 insert_stmt = f'''
-                INSERT INTO {table_name} ("Item Name", "Item Price", "Shop Name", "Item URL", "Keyword", "date")
-                VALUES (?, ?, ?, ?, ?, ?);
+                INSERT INTO {table_name} ("Item Name", "Item Price", "Shop Name", "Item URL", "Cost Range", "Keyword", "date")
+                VALUES (?, ?, ?, ?, ?, ?, ?);
                 '''
                 cursor.execute(insert_stmt, (
                     row["Item Name"],
                     row["Item Price"],
                     row["Shop Name"],
                     row["Item URL"],
+                    row["Cost Range"],
                     keyword,
                     datetime.now().strftime("%Y-%m-%d")
                 ))
@@ -246,14 +248,40 @@ def main(number_hits, page, max_page, keywords):
 
             itemName  = df.get("itemName", pd.Series())
             itemPrice = df.get("itemPrice", pd.Series())
+
+            cost_range = []
+
+            for row in itemPrice.index:
+                try:
+                    if row >= 1000 and row <=3000:
+                        cost_range.append("1000-3000")
+                    elif row > 3000 and row <=7000:
+                        cost_range.append("3001-7000")
+                    elif row > 7000 and row <=15000:
+                        cost_range.append("7001-15000")
+                    elif row > 15000:
+                        cost_range.append("15001-")
+                    elif row > 30000:
+                        cost_range.append("30001-")
+                    elif row > 50000:
+                        cost_range.append("50001-")
+                    elif row > 100000:
+                        cost_range.append("100001-")
+                    else:
+                        cost_range.append("0-999")
+                except ValueError:
+                    itemPrice[row] = 0
+
             shopName = df.get("shopName", pd.Series())
             itemUrl = df.get("itemUrl", pd.Series())
+            cost_range_series = pd.Series(cost_range, name="Cost Range")
             
             df_summary = pd.DataFrame({
                 "Item Name": itemName,
                 "Item Price": itemPrice,
                 "Shop Name": shopName,
-                "Item URL": itemUrl
+                "Item URL": itemUrl,
+                "Cost Range": cost_range_series
             })
 
         except Exception as e:
@@ -267,9 +295,9 @@ def main(number_hits, page, max_page, keywords):
 
         results[keyword] = {
             "status": "success",
-            "CSV": csvPath,
-            "DATA": data,
-            "CSV_DATA_NUM": total_csv_data_num
+            "csv_path": csvPath,
+            "data": data,
+            "csv_data_num": total_csv_data_num
         }
 
     return results

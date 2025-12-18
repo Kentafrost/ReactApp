@@ -34,12 +34,21 @@ async def rakuten_item_listup_endpoint(number_hits: int, page: int, max_page: in
 
     # Itemキーを展開して返す
     items = []
+    csv_path_list = []
+    csv_data_num_list = []
+
     for keyword, result in data.items():
-        for item in result.get("DATA", []):
+        csv_path = result.get("csv_path", "")
+        csv_data_num = result.get("csv_data_num", 0)
+
+        csv_path_list.append(csv_path)
+        csv_data_num_list.append(csv_data_num)
+
+        for item in result.get("data", []):
             info = item.get("Item", item)
             items.append(info)
 
-    return {"results": items}
+    return {"results": items, "csv_paths": csv_path_list, "csv_data_nums": csv_data_num_list}
 
 
 """ Download rakuten items listup CSV """
@@ -76,9 +85,7 @@ async def rakuten_item_graph_create_endpoint(request: GraphRequest):
 
     # filter by min and max price range
     if request.range is not None:
-        df = df[df['itemPrice'] >= request.range[0]]
-    if request.range is not None:
-        df = df[df['itemPrice'] <= request.range[1]]
+        df = df[(df['itemPrice'] >= request.range[0]) & (df['itemPrice'] <= request.range[1])]
 
     graph_path = create_rakuten_item_graph(df)
     return FileResponse(path=graph_path, filename=os.path.basename(graph_path), media_type='image/png')

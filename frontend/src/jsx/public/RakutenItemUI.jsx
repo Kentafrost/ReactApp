@@ -16,7 +16,7 @@ const fetchRakutenItems = async (number_hits, page, max_page, keywords) => {
 
 
 // create graph with optional filters
-const createGraph = async (items, shop_name = null, range = null) => {
+const GraphCreate = async (items, shop_name = null, range = null) => {
     const res = await fetch("http://localhost:5000/rakuten/graph/create", {
         method: "POST",
         headers: {
@@ -51,7 +51,8 @@ const fetchFilterOptions = async (items) => {
     });
     
     if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        const error = await res.text();
+        throw new Error(`HTTP ${res.status}: ${error}`);
     }
     
     return await res.json();
@@ -151,27 +152,14 @@ function FilterOptions({
 }) {
     return (
         <div>
-            <div style={{ marginTop: "20px" }}>
-                <h2> Filtered Graph Options </h2>
-                <input 
-                    type="text" 
-                    placeholder="Shop Name" 
-                    value={shopName} 
-                    onChange={(e) => setShopName(e.target.value)} 
-                />
-            </div>
-            <div>
-                <button onClick={() => setFilterStart(true)}>
-                    Generate Filtered Graph 
-                </button>
-            </div>
+
             <br />
             <div style={{ display: "flex", gap: "20px" }}>
                 <div style={{ width: "250px", padding: "10px", borderRight: "1px solid #ccc" }}>
                     
                     <h2> Filter Options </h2>
                     <div style={{ padding: '20px' }}> 
-                        <label> Money range: ¥{range[0].toLocaleString()} - ¥{range[1].toLocaleString()} </label>
+                        <label> Money range: ¥{(range && range[0] !== undefined ? range[0] : 0).toLocaleString()} - ¥{(range && range[1] !== undefined ? range[1] : 100000).toLocaleString()} </label>
                         
                         <div style={{ marginTop: '10px' }}>
                             <label>Min Price: ¥</label>
@@ -180,11 +168,15 @@ function FilterOptions({
                                 min={0}
                                 max={100000}
                                 step={1000}
-                                value={range[0]}
-                                onChange={(e) => setRange([parseInt(e.target.value), range[1]])}
+                                value={range[0] || 0}
+                                onChange={(e) => {
+                                    const newMin = parseInt(e.target.value) || 0;
+                                    const currentMax = range[1] || 100000;
+                                    setRange([newMin, Math.max(newMin, currentMax)]);
+                                }}
                                 style={{ width: '200px', marginBottom: '10px' }}
                             />
-                            <div>¥{range[0].toLocaleString()}</div>
+                            <div>¥{(range[0] || 0).toLocaleString()}</div>
                         </div>
 
                         <div style={{ marginTop: '10px' }}>
@@ -194,11 +186,15 @@ function FilterOptions({
                                 min={0}
                                 max={100000}
                                 step={1000}
-                                value={range[1]}
-                                onChange={(e) => setRange([range[0], parseInt(e.target.value)])}
+                                value={range[1] || 100000}
+                                onChange={(e) => {
+                                    const newMax = parseInt(e.target.value) || 100000;
+                                    const currentMin = range[0] || 0;
+                                    setRange([Math.min(currentMin, newMax), newMax]);
+                                }}
                                 style={{ width: '200px', marginBottom: '10px' }}
                             />
-                            <div>¥{range[1].toLocaleString()}</div>
+                            <div>¥{(range[1] || 100000).toLocaleString()}</div>
                         </div>
                     </div>
                     
@@ -214,6 +210,14 @@ function FilterOptions({
                             ))}
                         </select>
                     </div>
+
+                    <br />
+                    <div>
+                        <button onClick={() => setFilterStart(true)}>
+                            Filter started
+                        </button>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -247,7 +251,7 @@ function RakutenItemUIComponent ( { onSelect } ) {
     const [range, setRange] = useState([0, 100000]);
 
 
-    // カスタムフック的な関数
+    // custom hook for fetching rakuten items
     const handleItemsFetch = async () => {
         if (!keywords) {
             setErrorMsg("Please enter keywords to search.");
@@ -272,9 +276,9 @@ function RakutenItemUIComponent ( { onSelect } ) {
                 if (json.results.length > 0) {
                     console.log("Creating graph with data:", json.results);
                     
-                    // グラフとフィルターオプションを並列取得
+                    // graph and filter options fetch
                     const [graphBlob, FilterOptionsJson] = await Promise.all([
-                        createGraph(json.results, null),
+                        GraphCreate(json.results, null),
                         fetchFilterOptions(json.results)
                     ]);
 
@@ -312,6 +316,7 @@ function RakutenItemUIComponent ( { onSelect } ) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [number_hits, page, max_page, keywords, start]);
 
+
     // custom hook for filtering graph
     const handleGraphFilter = async () => {
         if (!Array.isArray(items) || items.length === 0) {
@@ -324,7 +329,7 @@ function RakutenItemUIComponent ( { onSelect } ) {
         try {
             console.log("Filtering with shop_name:", shopName, "range:", range, "Items:", items);
             
-            const graphBlob = await createGraph(items, shopName || null, range[0], range[1]);
+            const graphBlob = await GraphCreate(items, shopName || null, range || null);
             const graphUrl = URL.createObjectURL(graphBlob);
             console.log("Filtered graph URL:", graphUrl);
 
