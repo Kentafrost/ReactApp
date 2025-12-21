@@ -9,10 +9,12 @@ import Private from './js/Private';
 import TaskCreateComponent from './jsx/private/TaskCreateUI';
 import { TaskSchedulerApp as TaskSwitchComponent } from './jsx/private/TaskSwitchUI';
 import { AWSCostSummaryComponent, CostSummaryComponent } from './jsx/private/CostSummaryUI';
+import LogViewer from './jsx/public/LogViewerUI';
+
 
 function App() {
-
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const [showLogs, setShowLogs] = React.useState(false);
 
   return (
     <Router>
@@ -41,25 +43,41 @@ function App() {
           </div>
         </nav>
 
-      {/* Content */}
-      <div className="container">
-        <Routes>
-          {/* Login */}
-          <Route path="/login" element={<LoginToPrivate onLogin={() => setIsAuthenticated(true)} />} />
+        {/* Content */}
+        <div className="container">
+          <Routes>
+            {/* Login */}
+            <Route path="/login" element={<LoginToPrivate onLogin={() => setIsAuthenticated(true)} />} />
+            
+            {/* Public Route */}
+            <Route path="/rakuten-items" element={<RakutenItemUI />} />
           
-          {/* Public Route */}
-          <Route path="/rakuten-items" element={<RakutenItemUI />} />
-        
-          <Route path="/private-ui/*" element={<Private />}>
-            <Route path="task-scheduler-switch" element={<TaskSwitchComponent />} />
-            <Route path="task-scheduler-create" element={<TaskCreateComponent />} />
-            <Route path="aws-cost-summary" element={<AWSCostSummaryComponent />} />
-            <Route path="cost-summary" element={<CostSummaryComponent />} />
-          </Route>
+            <Route path="/private-ui/*" element={<Private />}>
+              <Route path="task-scheduler-switch" element={<TaskSwitchComponent />} />
+              <Route path="task-scheduler-create" element={<TaskCreateComponent />} />
+              <Route path="aws-cost-summary" element={<AWSCostSummaryComponent />} />
+              <Route path="cost-summary" element={<CostSummaryComponent />} />
+            </Route>
+          </Routes>
 
-        </Routes>
+          {/* Log Viewer Toggle */}
+          <br />
+          <div>
+            <label>
+              <input type="checkbox"
+                checked={showLogs}
+                onChange ={(e) => setShowLogs(e.target.checked)}
+              /> Enable Logging
+            </label>
+          </div>
+
+          {showLogs && (
+            <div style={{ marginTop: '20px' }}>
+              <LogViewer />
+            </div>
+          )}
         </div>
-      </div>
+      </div>        
     </Router>
   );
 }
