@@ -5,10 +5,11 @@ from datetime import datetime
 import logging
 import boto3
 
+"""Get the Chrome bookmarks file path based on OS"""
+import platform
+
 def get_chrome_bookmarks_path():
-    """Get the Chrome bookmarks file path based on OS"""
-    import platform
-    
+
     system = platform.system()
     if system == "Windows":
         # Default Chrome bookmarks path on Windows

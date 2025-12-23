@@ -52,10 +52,12 @@ def sheet_definition(workbook_name):
         workbook = gc.open(workbook_name)
     except gspread.SpreadsheetNotFound:
         logging.error("Spreadsheet not found")
+        common.log_insert("Spreadsheet not found", status="error")
 
         return
     except Exception as e:
         logging.error(f"Error opening Google Sheets: {e}")
+        common.log_insert(f"Error opening Google Sheets: {e}", status="error")
 
     try:
         sheet = workbook.worksheet("aws-emails")
@@ -69,6 +71,8 @@ def aws_mail_summary(mail_number: int, send_email_flg: bool):
     
     sheet = sheet_definition("gmail_summary")
     if sheet is None:
+        common.log_insert("Could not access or create the Google Sheet.", status="error")
+
         return {
             "status": "failed",
             "message": "Could not access or create the Google Sheet.\n"
@@ -105,6 +109,7 @@ def aws_mail_summary(mail_number: int, send_email_flg: bool):
             ).execute()
             aws_messages = aws_results.get('messages', [])
             logging.info(f"Found {len(aws_messages)} messages with AWS label")
+            common.log_insert(f"Found {len(aws_messages)} messages with AWS label", status="info")
             
             # Process AWS emails
             for i, message in enumerate(aws_messages):
@@ -150,16 +155,21 @@ def aws_mail_summary(mail_number: int, send_email_flg: bool):
                     })
                     
                 except Exception as e:
+                    common.log_insert(f"Error processing AWS email {message['id']}: {e}", status="error")
                     logging.error(f"Error processing AWS email {message['id']}: {e}")
                     continue
         else:
             # if no AWS label found
             logging.warning("AWS label not found. Available labels:")
+            common.log_insert("AWS label not found. Available labels:")
+
             for label in labels[:100]: 
                 logging.warning(f"  - {label['name']} (ID: {label['id']})")
     
     except Exception as e:
         logging.error(f"Error accessing Gmail labels: {e}")
+        common.log_insert(f"Error accessing Gmail labels: {e}", status="error")
+
         return {
             "status": "failed",
             "message": "Error accessing Gmail labels."
@@ -185,6 +195,7 @@ def aws_mail_summary(mail_number: int, send_email_flg: bool):
             sheet.update(range_name='A1', values=data)
             
             logging.info(f"Successfully wrote {len(aws_emails)} AWS emails to Google Sheets")
+            common.log_insert(f"Successfully wrote {len(aws_emails)} AWS emails to Google Sheets", status="info")
             
             # Count by sender
             sender_counts = {}
@@ -197,12 +208,16 @@ def aws_mail_summary(mail_number: int, send_email_flg: bool):
                 
         except Exception as e:
             logging.error(f"Error writing to Google Sheets: {e}")
+            common.log_insert(f"Error writing to Google Sheets: {e}", status="error")
+
             return {
                 "status": "failed",
                 "message": f"Error writing to Google Sheets: {e}"
             }
     else:
         logging.info("No AWS emails found to write to Google Sheets")
+        common.log_insert("No AWS emails found to write to Google Sheets", status="info")
+
         return {
             "status": "success", 
             "message": "No AWS emails found."
@@ -221,6 +236,8 @@ def aws_mail_summary(mail_number: int, send_email_flg: bool):
 
         try:
             logging.info("Sending summary email with Google Sheets link...")
+            common.log_insert("Sending summary email with Google Sheets link...", status="info")
+
             send_mail.sending(
                 ssm_client, 
                 subject="AWS Gmail Summary - Google Sheets Link",
@@ -229,12 +246,21 @@ def aws_mail_summary(mail_number: int, send_email_flg: bool):
                     f"Google Sheets Link: https://docs.google.com/spreadsheets/d/{sheet.spreadsheet.id}/edit#gid={sheet.id}"
                 )
             )
+            logging.info("Summary email sent successfully.")
+            common.log_insert("Summary email sent successfully.")
+
         except Exception as e:
             logging.error(f"Error sending summary email: {e}")
+            common.log_insert(f"Error sending summary email: {e}")
+
             return {
                 "status": "failed",
                 "message": f"Error sending summary email: {e}"
             }
+        
+    common.log_insert(
+        f"(backend script name: aws_summary_gmail.py) AWS Gmail summary process completed.", status="info"
+    )
 
     return {
         "status": "success", 
