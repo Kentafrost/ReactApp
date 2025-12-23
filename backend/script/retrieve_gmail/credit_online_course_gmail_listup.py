@@ -43,6 +43,7 @@ try:
         rules_json = json.load(f)
 except Exception as e:
     logging.error(f"Error loading rules JSON: {e}")
+    common.log_insert(f"Error loading rules JSON: {e}", status="error")
     rules_json = {"rules": []}
 
 
@@ -71,6 +72,7 @@ def retrieve_gmail_messages(number_of_mails: int):
                 
         except Exception as e:
             logging.warning(f"Error with query '{query}': {e}")
+            common.log_insert(f"Error with query '{query}': {e}", status="warning")
             continue
     
     # Remove duplicates
@@ -82,6 +84,7 @@ def retrieve_gmail_messages(number_of_mails: int):
             seen_ids.add(msg['id'])
     
     logging.info(f"Total unique messages retrieved: {len(unique_messages)}")
+    common.log_insert(f"Total unique messages retrieved: {len(unique_messages)}", status="info")
     return unique_messages[:100]  # Limit to 100 most recent
 
 
@@ -133,6 +136,7 @@ def match_rules_to_messages(messages):
                 }
             except Exception as e:
                 logging.warning(f"Error fetching message {message['id']}: {e}")
+                common.log_insert(f"Error fetching message {message['id']}: {e}", status="warning")
                 continue
     
     # Apply rules to all messages
@@ -143,6 +147,9 @@ def match_rules_to_messages(messages):
             local_results = match_rules(rule, text_to_match, local_results)
     
     logging.info(f"Matched results: costs={len(local_results['cost_list'])}, dates={len(local_results['date_list'])}")
+    common.log_insert(
+        f"Matched results: costs={len(local_results['cost_list'])}, dates={len(local_results['date_list'])}", status="info"
+    )
     return local_results
 
 
@@ -181,9 +188,12 @@ def create_pivot_table(pivot_table, graph_title):
         plt.close(fig)  # Close figure to free memory
         
         logging.info(f"Chart saved to {pivot_png_path}")
+        common.log_insert(f"Chart saved to {pivot_png_path}", status="info")
         
     except Exception as e:
         logging.error(f"Error creating chart: {e}")
+        common.log_insert(f"Error creating chart: {e}", status="error")
+
         # Create a simple text file as fallback
         with open(pivot_png_path.replace('.png', '.txt'), 'w') as f:
             f.write(f"Chart generation failed: {e}")
@@ -205,6 +215,8 @@ def graph_creation(df):
     png_path = f"{current_dir}\\png\\rakuten_card_cost_by_month.png"
     plt.savefig(png_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
+
+    common.log_insert(f"Graph saved to {png_path}", status="info")
 
     return png_path
 
@@ -230,6 +242,7 @@ def write_results_to_sheet(matched_results):
         for date, cost in zip(matched_results['date_list'], matched_results['cost_list']):
             writer.writerow([date, cost])
     logging.info(f"CSV saved with {len(matched_results['cost_list'])} cost entries")
+    common.log_insert(f"CSV saved with {len(matched_results['cost_list'])} cost entries", status="info")
 
     return csv_path, len(matched_results['cost_list']), png_path
 
@@ -260,6 +273,7 @@ def gsheet_write(matched_result):
             clean_dates.append(date_str)
         except (ValueError, TypeError) as e:
             logging.warning(f"Skipping invalid cost/date pair: {cost_str}, {date_str} - {e}")
+            common.log_insert(f"Skipping invalid cost/date pair: {cost_str}, {date_str} - {e}", status="warning")
             continue
     
     if clean_costs:
@@ -267,6 +281,7 @@ def gsheet_write(matched_result):
         data.extend(zip(clean_dates, clean_costs))
         
         logging.info("Updating Google Sheet with cost data...")
+        common.log_insert("Updating Google Sheet with cost data...", status="info")
         sheet.update(values=data, range_name='A1')
 
         # Create pivot table only if we have enough data
@@ -291,12 +306,15 @@ def gsheet_write(matched_result):
                     
                     # Create pivot table and chart
                     logging.info("Creating pivot table and chart...")
+                    common.log_insert("Creating pivot table and chart...", status="info")
+
                     pivot_data, pivot_png_path = create_pivot_table(pivot_table, "Rakuten Card Cost by Month")
                     sheet = sheet_definition("Pivot_tbl")
                     sheet.update(values=pivot_data, range_name='A1')
 
                     # Create graph from original dataframe
                     png_path = graph_creation(df)
+                    common.log_insert("Google Sheet update and graph creation completed.", status="info")
 
                     return png_path
             except Exception as e:
@@ -312,18 +330,26 @@ def gsheet_write(matched_result):
             print("No Card usage data found.")
 
 
-def cost_mail_summary(number_of_mails: int, send_email_flg: bool):
+def credit_online_course_gmail_listup(number_of_mails: int, send_email_flg: bool):
 
-    logging.info("Starting cost summary retrieval from Gmail")
+    logging.info(f"Scipt Name: {__name__} - Starting cost summary retrieval from Gmail")
     
     try:
         messages = retrieve_gmail_messages(number_of_mails)
+        common.log_insert(
+            f"Retrieved {len(messages)} Gmail messages for cost summary.", status="info"
+        )
+
     except Exception as e:
         logging.error(f"Error retrieving Gmail messages: {e}")
+        common.log_insert(f"Error retrieving Gmail messages: {e}", status="error")
+
         return {"status": "failed", "message": "Error retrieving Gmail messages."}
     
     if not rules_json["rules"]:
         logging.error("No rules found in rules JSON.")
+        common.log_insert("No rules found in rules JSON.", status="error")
+
         return {
             "status": "failed", 
             "message": "No rules found in rules JSON."
@@ -334,6 +360,7 @@ def cost_mail_summary(number_of_mails: int, send_email_flg: bool):
         matched_results = match_rules_to_messages(messages)
     except Exception as e:
         logging.error(f"Error matching rules to messages: {e}")
+        common.log_insert(f"Error matching rules to messages: {e}", status="error")
         return {
             "status": "failed", 
             "message": f"Error matching rules to messages.{e}"
@@ -350,6 +377,7 @@ def cost_mail_summary(number_of_mails: int, send_email_flg: bool):
             total_cost += cost_clean
         except (ValueError, TypeError):
             logging.warning(f"Skipping invalid cost value: {cost_str}")
+            common.log_insert(f"Skipping invalid cost value: {cost_str}", status="warning")
             continue
     
     # summary the results
@@ -359,12 +387,14 @@ def cost_mail_summary(number_of_mails: int, send_email_flg: bool):
         f"Numbers of course enrolled in Coursera: {len(matched_results['online_learning_enrolled_list'])}"
     )
     logging.info(summary_msg)
+    common.log_insert(summary_msg, status="info")
 
     # Write results to sheet
     try:
         csv_path, number_of_data, png_path = write_results_to_sheet(matched_results)
     except Exception as e:
         logging.error(f"Error writing results to sheet: {e}")
+        common.log_insert(f"Error writing results to sheet: {e}", status="error")
         return {
             "status": "failed",
             "message": "Error writing results to sheet."
@@ -377,12 +407,15 @@ def cost_mail_summary(number_of_mails: int, send_email_flg: bool):
             ssm_client = boto3.client('ssm', region_name='ap-southeast-2')
             result_msg = send_mail.sending(ssm_client, png_path)
             logging.info("Summary email sent successfully")
+            common.log_insert("Summary email sent successfully", status="info")
 
             print(result_msg)
         except Exception as e:
             logging.warning(f"Failed to send email: {e}")
+            common.log_insert(f"Failed to send email: {e}", status="warning")
     
     # show the summary png path in the return value
+    common.log_insert(f"Script Name: {__name__} - Cost summary process completed successfully.", status="info")
     return {
         "status": "success", 
         "message": summary_msg,

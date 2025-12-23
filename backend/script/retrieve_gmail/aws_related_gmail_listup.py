@@ -67,7 +67,10 @@ def sheet_definition(workbook_name):
     return sheet
 
 
-def aws_mail_summary(mail_number: int, send_email_flg: bool):
+def aws_related_gmail_listup(mail_number: int, send_email_flg: bool):
+    common.log_insert(
+        f"(backend script name: aws_related_gmail_listup.py) AWS Gmail summary process started.", status="info"
+    )
     
     sheet = sheet_definition("gmail_summary")
     if sheet is None:
@@ -227,10 +230,17 @@ def aws_mail_summary(mail_number: int, send_email_flg: bool):
         ssm_client = common.authorize_ssm()
     except Exception as e:
         logging.error(f"Error authorizing SSM client: {e}")
+        common.log_insert(f"Error authorizing SSM client: {e}", status="error")
         return {
             "status": "failed",
             "message": f"Error authorizing SSM client: {e}"
         }
+    
+    common.log_insert(
+        f"Sending mail flg is {send_email_flg}", status="info"
+    )
+
+    google_sheet_link = f"https://docs.google.com/spreadsheets/d/{sheet.spreadsheet.id}/edit#gid={sheet.id}"
 
     if send_email_flg == True:
 
@@ -243,7 +253,7 @@ def aws_mail_summary(mail_number: int, send_email_flg: bool):
                 subject="AWS Gmail Summary - Google Sheets Link",
                 body=(
                     f"Successfully wrote {len(aws_emails)} AWS emails to Google Sheets.\n\n"
-                    f"Google Sheets Link: https://docs.google.com/spreadsheets/d/{sheet.spreadsheet.id}/edit#gid={sheet.id}"
+                    f"Google Sheets Link: {google_sheet_link}"
                 )
             )
             logging.info("Summary email sent successfully.")
@@ -267,5 +277,5 @@ def aws_mail_summary(mail_number: int, send_email_flg: bool):
         "message": f"Wrote some AWS emails to Google Sheets",
         "number_of_data": len(aws_emails),
         "gsheet_name": "gmail_summary",
-        "gsheet_link": f"https://docs.google.com/spreadsheets/d/{sheet.spreadsheet.id}/edit#gid={sheet.id}"
+        "gsheet_link": google_sheet_link
     }

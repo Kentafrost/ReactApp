@@ -1,13 +1,12 @@
 """ local api """
 
 from fastapi import FastAPI
-from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
 from login_api import login_router
 
 from private.task_api import task_router
-from private.cost_api import cost_router
+from backend.routes.private.gmail_api import gmail_router
 from public.rakuten_api import rakuten_router
 
 app = FastAPI()
@@ -33,5 +32,5 @@ async def options_handler(path: str):
 
 app.include_router(login_router)
 app.include_router(task_router)
-app.include_router(cost_router)
+app.include_router(gmail_router)
 app.include_router(rakuten_router)

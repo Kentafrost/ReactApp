@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 
 
 // AWS Cost Summary Component
-function AWSCostSummaryComponent() {
+function AWSMailSummaryComponent() {
 
     const [Result, setResult] = useState();
     const [Loading, setLoading] = useState(false);
@@ -17,7 +17,7 @@ function AWSCostSummaryComponent() {
     const GetAWSSummary = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`http://localhost:5000//mail/summary/aws_gmail/?mailNumber=${mailNumber}&send_email_flg=${sendEmailFlg}`, {
+            const res = await fetch(`http://localhost:5000//mail/listup/aws_related_gmail/?mailNumber=${mailNumber}&send_email_flg=${sendEmailFlg}`, {
                 method: "GET",
                 headers: {"Content-Type": "application/json"}
             });
@@ -104,19 +104,21 @@ function AWSCostSummaryComponent() {
 
 
 // Default export component
-function CostSummaryComponent() {
+function CreditOnlineCourseMailSummaryComponent() {
 
     const [Result, setResult] = useState();
-    const [DownloadLink, setDownloadLink] = useState(null);
     const [Loading, setLoading] = useState(false);
-    const InputSearchMailNumber = useRef(null);
     const [sendEmailFlg, setSendEmailFlg] = useState(false);
+
+    const InputSearchMailNumber = useRef(null);
+    const [DownloadLink, setDownloadLink] = useState(null);
+    const [GraphLink, setGraphLink] = useState(null);
 
     const GetCostSummary = async () => {
 
         setLoading(true);
         try {
-            const res = await fetch(`http://localhost:5000/mail/summary/credit_cost?number_of_mails=${InputSearchMailNumber.current.value}&send_email_flg=${sendEmailFlg}`, {
+            const res = await fetch(`http://localhost:5000/mail/listup/credit_online_course?number_of_mails=${InputSearchMailNumber.current.value}&send_email_flg=${sendEmailFlg}`, {
                 method: "GET",
                 headers: {"Content-Type": "application/json"}
             });
@@ -125,13 +127,21 @@ function CostSummaryComponent() {
             console.log("Response:", data);
             setResult(data);
             
-            setDownloadLink("http://localhost:5000/mail/summary/credit_cost/download");
-            setLoading(false);
+            const res_download = await fetch(`http://localhost:5000/mail/listup/credit_online_course/csv/download`);
+            console.log("Download Response:", res_download);
+            setDownloadLink(res_download.url);
+
+            const res_graph = await fetch(`http://localhost:5000/mail/listup/credit_online_course/graph/show`);
+            console.log("Graph Response:", res_graph);
+            setGraphLink(res_graph.url);
 
         } catch (error) {
             console.error("Error:", error);
             setResult({error: error.message});
             setDownloadLink(null);
+            setGraphLink(null);
+
+        } finally {
             setLoading(false);
         }
     };
@@ -177,10 +187,18 @@ function CostSummaryComponent() {
                             </a>
                         </p>
                     )}
+
+                    {GraphLink && (
+                        <p>
+                            <a href={GraphLink} target="_blank" rel="noopener noreferrer" className="btn btn-info">
+                                Show Cost Summary Graph
+                            </a>
+                        </p>
+                    )}
                 </div>
             </div>
         </div>
     );
 }
 
-export {AWSCostSummaryComponent, CostSummaryComponent};
+export {AWSMailSummaryComponent, CreditOnlineCourseMailSummaryComponent};

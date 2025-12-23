@@ -8,7 +8,7 @@ import RakutenItemUI from './js/public/RakutenItem';
 import Private from './js/Private';
 import TaskCreateComponent from './jsx/private/TaskCreateUI';
 import { TaskSchedulerApp as TaskSwitchComponent } from './jsx/private/TaskSwitchUI';
-import { AWSCostSummaryComponent, CostSummaryComponent } from './jsx/private/CostSummaryUI';
+import { AWSMailSummaryComponent, CreditOnlineCourseMailSummaryComponent } from './jsx/private/GmailSummaryUI';
 import LogViewer from './jsx/public/LogViewerUI';
 
 
@@ -55,8 +55,8 @@ function App() {
             <Route path="/private-ui/*" element={<Private />}>
               <Route path="task-scheduler-switch" element={<TaskSwitchComponent />} />
               <Route path="task-scheduler-create" element={<TaskCreateComponent />} />
-              <Route path="aws-cost-summary" element={<AWSCostSummaryComponent />} />
-              <Route path="cost-summary" element={<CostSummaryComponent />} />
+              <Route path="aws-cost-summary" element={<AWSMailSummaryComponent />} />
+              <Route path="cost-summary" element={<CreditOnlineCourseMailSummaryComponent />} />
             </Route>
           </Routes>
 
