@@ -23,11 +23,10 @@ SCRIPT_FUNCTIONS = {
     "aws_related_gmail_listup": aws_related_gmail_listup 
 }
 
-
 # Gmail cost summary endpoint
 @gmail_router.get("/mail/listup/{script_name}")
 async def credit_online_course_gmail_listup_endpoint(number_of_mails: int = 30000, send_email_flg: bool = False, script_name: str = ""):
-    
+
     with open(os.path.join(current_dir, 'config.json'), 'r', encoding='utf-8') as config_file:
         config_all = json.load(config_file)
 
@@ -49,19 +48,23 @@ async def credit_online_course_gmail_listup_endpoint(number_of_mails: int = 3000
 
     if not json_file_name or not table_name or not script_func:
         return {"status": "error", "message": "Invalid script configuration"}
-    
-    script_func = SCRIPT_FUNCTIONS.get(config["script_func"])
+
+    script_func = SCRIPT_FUNCTIONS.get(config["script_func"])    
 
     msg = script_func(number_of_mails, send_email_flg)
+    print(f"Debug: Script function {script_name} executed with message: {msg}")
 
     # delete to initialize json log file and insert log to mongodb
     db_status = db_func.log_insert(table_name, json_file_name)
 
     if not db_status.get("status") == "success":
         msg["db_log_status"] = "DB log insert failed"
+        print(f"Debug: DB log insert failed for table_name={table_name}, json_file_name={json_file_name}")
 
     # delete json log file after inserting to mongodb to initialize for next operation
     db_func.delete_json(json_file_name)
+    print(f"Debug: Deleted JSON log file: {json_file_name}")
+
     return msg
 
 
@@ -71,7 +74,7 @@ async def cost_summary_csv_download_endpoint(script_name: str = ""):
     csv_path = os.path.join(gmail_script_dir, 'csv', 'cost.csv')
     return FileResponse(path=csv_path, media_type='text/csv', filename='cost.csv')
 
-
+# Show cost summary graph
 @gmail_router.get("/mail/listup/{script_name}/graph/show")
 async def credit_online_course_gmail_graph_show_endpoint(script_name: str = ""):
     graph_path = os.path.join(gmail_script_dir, 'png', 'rakuten_card_cost_by_month.png')

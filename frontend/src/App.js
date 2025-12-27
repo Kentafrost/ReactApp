@@ -6,9 +6,9 @@ import LoginToPrivate from './js/Login';
 import RakutenItemUI from './js/public/RakutenItem';
 
 import Private from './js/Private';
-import TaskCreateComponent from './jsx/private/TaskCreateUI';
-import { TaskSchedulerApp as TaskSwitchComponent } from './jsx/private/TaskSwitchUI';
-import { AWSMailSummaryComponent, CreditOnlineCourseMailSummaryComponent } from './jsx/private/GmailSummaryUI';
+import TaskCreate from './js/private/TaskCreate';
+import TaskSwitch from './js/private/TaskSwitch';
+import GmailSummary from './js/private/GmailSummary';
 import LogViewer from './jsx/public/LogViewerUI';
 
 
@@ -52,11 +52,11 @@ function App() {
             {/* Public Route */}
             <Route path="/rakuten-items" element={<RakutenItemUI />} />
           
+            {/* Private Routes */}
             <Route path="/private-ui/*" element={<Private />}>
-              <Route path="task-scheduler-switch" element={<TaskSwitchComponent />} />
-              <Route path="task-scheduler-create" element={<TaskCreateComponent />} />
-              <Route path="aws-cost-summary" element={<AWSMailSummaryComponent />} />
-              <Route path="cost-summary" element={<CreditOnlineCourseMailSummaryComponent />} />
+              <Route path="task-scheduler-switch" element={<TaskSwitch />} />
+              <Route path="task-scheduler-create" element={<TaskCreate />} />
+              <Route path="gmail-summary" element={<GmailSummary />} />
             </Route>
           </Routes>
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import {TaskCreateComponent } from '../../jsx/private/TaskCreateUI';
+import TaskCreateComponent from '../../jsx/private/TaskCreateUI';
 
 function TaskCreate() {
   return (

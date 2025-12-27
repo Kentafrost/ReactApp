@@ -22,11 +22,7 @@ function Private() {
               </li>
 
               <li className="nav-item">
-                <Link className="nav-link" to="/private-ui/aws-cost-summary">AWS Cost Summary</Link>
-              </li>
-              
-              <li className="nav-item">
-                <Link className="nav-link" to="/private-ui/cost-summary">Cost Summary</Link>
+                <Link className="nav-link" to="/private-ui/gmail-summary">Gmail Summary</Link>
               </li>
             </ul>
           </div>
