@@ -25,7 +25,7 @@ SCRIPT_FUNCTIONS = {
 
 # Gmail cost summary endpoint
 @gmail_router.get("/mail/listup/{script_name}")
-async def credit_online_course_gmail_listup_endpoint(number_of_mails: int = 30000, send_email_flg: bool = False, script_name: str = ""):
+async def credit_online_course_gmail_listup_endpoint(number_of_mails: int = 50, send_email_flg: bool = False, script_name: str = ""):
 
     with open(os.path.join(current_dir, 'config.json'), 'r', encoding='utf-8') as config_file:
         config_all = json.load(config_file)
@@ -52,10 +52,11 @@ async def credit_online_course_gmail_listup_endpoint(number_of_mails: int = 3000
     script_func = SCRIPT_FUNCTIONS.get(config["script_func"])    
 
     msg = script_func(number_of_mails, send_email_flg)
-    print(f"Debug: Script function {script_name} executed with message: {msg}")
+    print(f"Debug: Script function {script_name} executed successfully")
 
     # delete to initialize json log file and insert log to mongodb
     db_status = db_func.log_insert(table_name, json_file_name)
+    print(f"Debug: log_insert returned: {db_status}")
 
     if not db_status.get("status") == "success":
         msg["db_log_status"] = "DB log insert failed"
@@ -67,15 +68,15 @@ async def credit_online_course_gmail_listup_endpoint(number_of_mails: int = 3000
 
     return msg
 
+csv_path = os.path.join(gmail_script_dir, 'csv', 'cost.csv')
+graph_path = os.path.join(gmail_script_dir, 'png', 'rakuten_card_cost_by_month.png')
 
 # Download cost summary CSV
 @gmail_router.get("/mail/listup/{script_name}/csv/download")
 async def cost_summary_csv_download_endpoint(script_name: str = ""):
-    csv_path = os.path.join(gmail_script_dir, 'csv', 'cost.csv')
-    return FileResponse(path=csv_path, media_type='text/csv', filename='cost.csv')
+    return FileResponse(path=csv_path, media_type='text/csv', filename=os.path.basename(csv_path))
 
 # Show cost summary graph
 @gmail_router.get("/mail/listup/{script_name}/graph/show")
 async def credit_online_course_gmail_graph_show_endpoint(script_name: str = ""):
-    graph_path = os.path.join(gmail_script_dir, 'png', 'rakuten_card_cost_by_month.png')
-    return FileResponse(path=graph_path, media_type='image/png', filename='cost_summary.png')
+    return FileResponse(path=graph_path, media_type='image/png', filename=os.path.basename(graph_path))

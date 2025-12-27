@@ -30,7 +30,7 @@ import common
 import db_func
 import google_authorization
 
-log_json_file_name = "credit_online_course_gmail_listup.json"
+log_json_file_name = "credit_online_course_log.json"
 gmail_service = google_authorization.authorize_gmail()
 
 results = {
@@ -210,14 +210,14 @@ def graph_creation(date_list, cost_list):
     plt.switch_backend('Agg')
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.bar(date_list, cost_list)
-    ax.set_title("Rakuten Card Cost by Month")
+    ax.set_title("Card Cost by Month")
 
     ax.set_xlabel('Month')
     ax.set_ylabel('Cost (¥)')
     plt.xticks(rotation=45)
     plt.tight_layout()
 
-    png_path = f"{current_dir}\\png\\rakuten_card_cost_by_month.png"
+    png_path = f"{current_dir}\\png\\card_cost_by_month.png"
     plt.savefig(png_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
 
@@ -233,7 +233,7 @@ def write_results_to_sheet(matched_results):
     
     # Save results to CSV for debugging
     os.makedirs(f"{current_dir}\\csv", exist_ok=True)
-    csv_path = f"{current_dir}\\csv\\cost.csv"
+    csv_path = f"{current_dir}\\csv\\card_cost.csv"
     
     with open(csv_path, "w", newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
@@ -317,7 +317,7 @@ def gsheet_write(matched_result):
                     logging.info("Creating pivot table and chart...")
                     db_func.append_to_json(log_json_file_name, {"status": "info", "message": "Creating pivot table and chart..."})
 
-                    pivot_data, pivot_png_path = create_pivot_table(pivot_table, "Rakuten Card Cost by Month")
+                    pivot_data, pivot_png_path = create_pivot_table(pivot_table, "Card Cost by Month")
                     sheet = sheet_definition("Pivot_tbl")
                     sheet.update(values=pivot_data, range_name='A1')
 
@@ -389,7 +389,7 @@ def credit_online_course_gmail_listup(number_of_mails: int, send_email_flg: bool
     
     # summary the results
     summary_msg = (
-        f"Total cost I spent in Rakuten Card: {total_cost:.0f}円\n"
+        f"Total cost in Card: {total_cost:.0f}円\n"
         f"Numbers of course completed in Coursera: {len(matched_results['online_learning_list'])}\n"
         f"Numbers of course enrolled in Coursera: {len(matched_results['online_learning_enrolled_list'])}"
     )
@@ -407,16 +407,19 @@ def credit_online_course_gmail_listup(number_of_mails: int, send_email_flg: bool
             "message": "Error writing results to sheet."
         }
     
-    # Only send email if we have valid data
+    # send email with summary if check box is checked(flg is true)
     if send_email_flg == True:
+        db_func.append_to_json(log_json_file_name, {"status": "info", "message": "Preparing to send summary email..."})
 
         try:
             ssm_client = boto3.client('ssm', region_name='ap-southeast-2')
-            result_msg = send_mail.sending(ssm_client, png_path)
+            subject = "Gmail Cost Summary Report"
+            body = summary_msg
+
+            send_mail.sending(ssm_client, subject, body, png_path)
             logging.info("Summary email sent successfully")
             db_func.append_to_json(log_json_file_name, {"status": "info", "message": "Summary email sent successfully"})
 
-            print(result_msg)
         except Exception as e:
             logging.warning(f"Failed to send email: {e}")
             db_func.append_to_json(log_json_file_name, {"status": "warning", "message": f"Failed to send email: {e}"})
@@ -425,9 +428,5 @@ def credit_online_course_gmail_listup(number_of_mails: int, send_email_flg: bool
     db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"Scripts operated successfully. Script Name: {__name__}"})
     return {
         "status": "success",
-        "json_file_name": log_json_file_name,
-        "message": summary_msg,
-        "csv_path": csv_path,
         "number_of_data": number_of_data,
-        "png_path": png_path
     }

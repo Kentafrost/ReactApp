@@ -65,7 +65,11 @@ function GmailSummaryComponent() {
             // Fetch api to show graph
             const res_graph = await fetch(`http://localhost:5000/mail/listup/${selectedScript}/graph/show`);
             console.log("Graph Response:", res_graph);
-            setGraphLink(res_graph.url);
+
+            const graphBlob = await res_graph.blob();
+            const graphUrl = URL.createObjectURL(graphBlob);
+            
+            setGraphLink(graphUrl);
             setLoading(false);
 
         } catch (error) {
@@ -83,80 +87,98 @@ function GmailSummaryComponent() {
 
     return (
         <div>
-            <div>
-                <h3> Number of Mails to search</h3>
-                <br/>
+            <div className="d-flex justify-content-center">
+                <table className="table table-bordered" style={{maxWidth: '500px'}}>
+                    <tbody>
+                        <tr>
+                            <td className="text-start align-middle">
+                                <strong>Number of Mails to Search:</strong>
+                            </td>
+                            <td>
+                                <input 
+                                    type="number" min="1" max="100000" step="1" defaultValue="50"
+                                    ref={InputSearchMailNumber}
+                                    className="form-control"
+                                    style={{maxWidth: '200px'}}
+                                />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td className="text-start align-middle">
+                                <strong>Send Email with Summary:</strong>
+                            </td>
+                            <td className="text-start">
+                                <input
+                                    type="checkbox" 
+                                    id="sendEmailFlg" 
+                                    checked={sendEmailFlg}
+                                    className="form-check-input"
+                                    onChange={(e) => setSendEmailFlg(e.target.checked)} 
+                                />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td className="text-start align-middle">
+                                <strong>Select Script:</strong>
+                            </td>
+                            <td>
+                                <select onChange={(e) => runScript(e.target.value)} className="form-select" style={{maxWidth: '300px'}}>
+                                    {scripts.map(s => (
+                                        <option key={s.value} value={s.value}>
+                                            {s.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
-                <input 
-                    type="number" min="1" max="100000" step="1" defaultValue="50"
-                    ref={InputSearchMailNumber} />
-                <br />
+            <br />
+            <button onClick={GetCostSummary} className="btn btn-primary">Submit</button>
 
-                <br />
+            <div className="mt-3">
+                {Loading ?
+                    <p> Loading... </p>
+                    : (
+                        <></>
+                    )
+                }
+                {Result && JSON.stringify(Result.status) === "success" && (
+                    <div>
+                        <h4> Summary Result: </h4>
+                        <p />
 
-                <h3>Send Email</h3>
-                
-                <div className="d-flex justify-content-center align-items-center">
-                    <label htmlFor="sendEmailFlg" className="me-2"> Send Email with Summary </label>
+                        <h4> Number of Saved Data: <span>{JSON.stringify(Result.number_of_data, null, 2)}</span></h4>
+                    </div>
+                )}
 
-                    <input
-                        type="checkbox" 
-                        id="sendEmailFlg" 
-                        checked={sendEmailFlg}
-                        className="form-check-input" 
-                        onChange={(e) => setSendEmailFlg(e.target.checked)} 
-                    />
-                </div>
+                {gsheet && (
+                    <p>
+                        GSheet Link: <a href={gsheet} target="_blank" rel="noopener noreferrer">{gsheet}</a>
+                    </p>
+                )}
 
-                <br />
-                <p />
-                <div>
-                    <h3> Select Script</h3>
+                {DownloadLink && (
+                    <p>
+                        <a href={DownloadLink} download className="btn btn-success">
+                            Download Cost Summary CSV
+                        </a>
+                    </p>
+                )}
 
-                    <select onChange={(e) => runScript(e.target.value)}>
-                    {scripts.map(s => (
-                        <option key={s.value} value={s.value}>
-                            {s.label}
-                        </option>
-                    ))}
-                    </select>
-                </div>
-
-                <br />
-                <button onClick={GetCostSummary} className="btn btn-primary">Submit</button>
-
-                <div className="mt-3">
-                    {Loading ?
-                        <p> Loading... </p>
-                        : (
-                            <></>
-                        )
-                    }
-                    
-                    <p> Result: {JSON.stringify({status: Result?.status, message: Result?.message})}</p>
-
-                    {gsheet && (
-                        <p>
-                            GSheet Link: <a href={gsheet} target="_blank" rel="noopener noreferrer">{gsheet}</a>
-                        </p>
-                    )}
-
-                    {DownloadLink && (
-                        <p>
-                            <a href={DownloadLink} download className="btn btn-success">
-                                Download Cost Summary CSV
-                            </a>
-                        </p>
-                    )}
-
-                    {GraphLink && (
-                        <p>
-                            <a href={GraphLink} target="_blank" rel="noopener noreferrer" className="btn btn-info">
-                                Show Cost Summary Graph
-                            </a>
-                        </p>
-                    )}
-                </div>
+                {GraphLink && (
+                    <p>
+                        <img
+                            src={GraphLink}
+                            alt="Cost Summary Graph"
+                            style={{ maxWidth: '600px', height: 'auto', display: 'block', marginBottom: '10px' }}
+                            onLoad={() => console.log('Graph image loaded successfully')}
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                    </p>
+                )}
             </div>
         </div>
     );

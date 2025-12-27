@@ -10,8 +10,7 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 
 
-# send email with attachment
-def sending(ssm_client, attachment_path):
+def sending(ssm_client, subject, body, png_path):
     logging.info('Starting email send process.')
     try:
         from_address = ssm_client.get_parameter(
@@ -24,30 +23,24 @@ def sending(ssm_client, attachment_path):
 
         # Create MIME message
         msg = MIMEMultipart()
-        msg['Subject'] = "Rakuten cards fee summary"
+        msg['Subject'] = subject
+        msg['Body'] = body
         msg['From'] = from_address
         msg['To'] = to_address
 
-        body = "This is the report of cost used in Rakuten card"
         msg.attach(MIMEText(body, 'plain'))
 
-        # Add attachment
-        with open(attachment_path, 'rb') as f:
-            img = MIMEImage(f.read())
-            img.add_header('Content-Disposition', 'attachment', 
-                           filename=os.path.basename(attachment_path))
-            msg.attach(img)
-
+        # Add attachment if provided
+        if png_path:
+            with open(png_path, 'rb') as f:
+                img = MIMEImage(f.read())
+                img.add_header('Content-Disposition', 'attachment', 
+                               filename=os.path.basename(png_path))
+                msg.attach(img)
     except Exception as e:
         logging.error('Failed to retrieve email content from SSM. {}'.format(e))
-        return {
-            "status": "failed",
-            "message": f"Failed to retrieve email content from SSM. {e}"
-        }
     
     try:
-        # message = f"Subject: {subject}\nTo: {to_address}\nFrom: {from_address}\n\n{bodyText}".encode('utf-8') # メールの内容をUTF-8でエンコード
-
         if "gmail.com" in to_address:
             port = 465
             mail_type = 'gmail'
@@ -64,15 +57,6 @@ def sending(ssm_client, attachment_path):
                 smtp_server.sendmail(from_address, to_address, msg.as_string())
         
         logging.info(f'{mail_type} email sent successfully to {to_address}.')
-        return {
-            "status": "success", 
-            "message": f"Email sent successfully to {to_address}."
-        }
-        
             
     except Exception as e:
         logging.error('Error occurred during email sending process. {}'.format(e))
-        return {
-            "status": "failed",
-            "message": f"Error occurred during email sending process. {e}"
-        }    

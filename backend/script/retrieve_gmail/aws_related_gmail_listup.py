@@ -254,7 +254,8 @@ def aws_related_gmail_listup(mail_number: int, send_email_flg: bool):
                 body=(
                     f"Successfully wrote {len(aws_emails)} AWS emails to Google Sheets.\n\n"
                     f"Google Sheets Link: {google_sheet_link}"
-                )
+                ),
+                png_path=""  # No attachment for this email
             )
             logging.info("Summary email sent successfully.")
             common.log_insert("Summary email sent successfully.")
