@@ -68,7 +68,7 @@ async def credit_online_course_gmail_listup_endpoint(number_of_mails: int = 50, 
 
     return msg
 
-csv_path = os.path.join(gmail_script_dir, 'csv', 'cost.csv')
+csv_path = os.path.join(gmail_script_dir, 'csv', 'card_cost.csv')
 graph_path = os.path.join(gmail_script_dir, 'png', 'card_cost_by_date.png')
 
 # Download cost summary CSV

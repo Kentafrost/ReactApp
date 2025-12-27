@@ -6,7 +6,7 @@ from datetime import datetime
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 def json_recover(table_name, file_name):
-    file_path = os.path.join(current_dir, "json", file_name)
+    file_path = os.path.join(current_dir, "json", "log", file_name)
 
     if not os.path.exists(file_path):
         return {"status": "error", "message": "JSON file does not exist"}
@@ -24,16 +24,20 @@ def json_recover(table_name, file_name):
 
 def delete_json(file_name):
     
-    file_path = os.path.join(current_dir, "json", file_name)
+    file_path = os.path.join(current_dir, "json", "log", file_name)
 
+    # delete only file if exists
     if os.path.exists(file_path):
-        os.remove(file_path)
+        try:
+            os.remove(file_path)
+            print(f"Deleted JSON file: {file_path}")
+        except Exception as e:
+            print(f"Error deleting JSON file: {e}")
 
 # Function to write data to a JSON file
 def append_to_json(file_name, new_data):
 
-    file_path = os.path.join(current_dir, "json", file_name)
-
+    file_path = os.path.join(current_dir, "json", "log", file_name)
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
     if os.path.exists(file_path):
@@ -48,6 +52,8 @@ def append_to_json(file_name, new_data):
         existing_data = []
 
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    new_data['script_name'] = file_name.replace('.json', '')
     new_data['timestamp'] = current_date
 
     # Append new data
@@ -86,7 +92,7 @@ def log_insert(table_name, json_file_name):
         return {"status": "error", "message": "Table name or JSON file name is missing"}
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    json_file_path = os.path.join(current_dir, "json", json_file_name)
+    json_file_path = os.path.join(current_dir, "json", "log", json_file_name)
 
     try:
         db_url = "mongodb://localhost:27017/"
@@ -104,7 +110,7 @@ def log_insert(table_name, json_file_name):
 
     # data in json file ⇒ specific mongo db table
     if not os.path.exists(json_file_path):
-        return {"status": "error", "message": "JSON file does not exist"}
+        return {"status": "error", "message": "JSON file does not exist. json_file_path: " + json_file_path}
 
     try:
         with open(json_file_path, 'r', encoding='utf-8') as json_file:

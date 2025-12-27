@@ -18,11 +18,12 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 
 import common
+import db_func
 import google_authorization
 import send_mail
 
-common.import_log("AWS_Related_Gmail_Summary")
 gmail_service = google_authorization.authorize_gmail()
+log_json_file_name = f"{os.path.splitext(os.path.basename(__file__))[0]}.json"
 
 
 """Recursively extract body content from email parts."""
@@ -52,12 +53,12 @@ def sheet_definition(workbook_name):
         workbook = gc.open(workbook_name)
     except gspread.SpreadsheetNotFound:
         logging.error("Spreadsheet not found")
-        common.log_insert("Spreadsheet not found", status="error")
+        db_func.append_to_json(log_json_file_name, {"status": "error", "message": "Spreadsheet not found"})
 
         return
     except Exception as e:
         logging.error(f"Error opening Google Sheets: {e}")
-        common.log_insert(f"Error opening Google Sheets: {e}", status="error")
+        db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error opening Google Sheets: {e}"})
 
     try:
         sheet = workbook.worksheet("aws-emails")
@@ -68,13 +69,11 @@ def sheet_definition(workbook_name):
 
 
 def aws_related_gmail_listup(mail_number: int, send_email_flg: bool):
-    common.log_insert(
-        f"(backend script name: aws_related_gmail_listup.py) AWS Gmail summary process started.", status="info"
-    )
+    db_func.append_to_json(log_json_file_name, {"status": "info", "message": "(backend script name: aws_related_gmail_listup.py) AWS Gmail summary process started."})
     
     sheet = sheet_definition("gmail_summary")
     if sheet is None:
-        common.log_insert("Could not access or create the Google Sheet.", status="error")
+        db_func.append_to_json(log_json_file_name, {"status": "error", "message": "Could not access or create the Google Sheet."})
 
         return {
             "status": "failed",
@@ -92,14 +91,14 @@ def aws_related_gmail_listup(mail_number: int, send_email_flg: bool):
         for label in labels:
             if 'AWS' in label['name'] or label['name'].lower() == 'aws':
                 aws_label_id = label['id']
-                logging.info(f"Found AWS label: {label['name']} with ID: {aws_label_id}")
+                db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"Found AWS label: {label['name']} with ID: {aws_label_id}"})
                 break
         
         if not aws_label_id:
             for label in labels:
                 if 'aws' in label['name'].lower():
                     aws_label_id = label['id']
-                    logging.info(f"Found AWS nested label: {label['name']} with ID: {aws_label_id}")
+                    db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"Found AWS nested label: {label['name']} with ID: {aws_label_id}"})
                     break
         
         maxResults = mail_number
@@ -111,8 +110,7 @@ def aws_related_gmail_listup(mail_number: int, send_email_flg: bool):
                 maxResults=maxResults
             ).execute()
             aws_messages = aws_results.get('messages', [])
-            logging.info(f"Found {len(aws_messages)} messages with AWS label")
-            common.log_insert(f"Found {len(aws_messages)} messages with AWS label", status="info")
+            db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"Found {len(aws_messages)} messages with AWS label"})
             
             # Process AWS emails
             for i, message in enumerate(aws_messages):
@@ -158,20 +156,20 @@ def aws_related_gmail_listup(mail_number: int, send_email_flg: bool):
                     })
                     
                 except Exception as e:
-                    common.log_insert(f"Error processing AWS email {message['id']}: {e}", status="error")
+                    db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error processing AWS email {message['id']}: {e}"})
                     logging.error(f"Error processing AWS email {message['id']}: {e}")
                     continue
         else:
             # if no AWS label found
             logging.warning("AWS label not found. Available labels:")
-            common.log_insert("AWS label not found. Available labels:")
+            db_func.append_to_json(log_json_file_name, {"status": "info", "message": "AWS label not found. Available labels:"})
 
             for label in labels[:100]: 
                 logging.warning(f"  - {label['name']} (ID: {label['id']})")
     
     except Exception as e:
         logging.error(f"Error accessing Gmail labels: {e}")
-        common.log_insert(f"Error accessing Gmail labels: {e}", status="error")
+        db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error accessing Gmail labels: {e}"})
 
         return {
             "status": "failed",
@@ -198,7 +196,7 @@ def aws_related_gmail_listup(mail_number: int, send_email_flg: bool):
             sheet.update(range_name='A1', values=data)
             
             logging.info(f"Successfully wrote {len(aws_emails)} AWS emails to Google Sheets")
-            common.log_insert(f"Successfully wrote {len(aws_emails)} AWS emails to Google Sheets", status="info")
+            db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"Successfully wrote {len(aws_emails)} AWS emails to Google Sheets"})
             
             # Count by sender
             sender_counts = {}
@@ -211,7 +209,7 @@ def aws_related_gmail_listup(mail_number: int, send_email_flg: bool):
                 
         except Exception as e:
             logging.error(f"Error writing to Google Sheets: {e}")
-            common.log_insert(f"Error writing to Google Sheets: {e}", status="error")
+            db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error writing to Google Sheets: {e}"})
 
             return {
                 "status": "failed",
@@ -219,7 +217,7 @@ def aws_related_gmail_listup(mail_number: int, send_email_flg: bool):
             }
     else:
         logging.info("No AWS emails found to write to Google Sheets")
-        common.log_insert("No AWS emails found to write to Google Sheets", status="info")
+        db_func.append_to_json(log_json_file_name, {"status": "info", "message": "No AWS emails found to write to Google Sheets"})
 
         return {
             "status": "success", 
@@ -230,14 +228,14 @@ def aws_related_gmail_listup(mail_number: int, send_email_flg: bool):
         ssm_client = common.authorize_ssm()
     except Exception as e:
         logging.error(f"Error authorizing SSM client: {e}")
-        common.log_insert(f"Error authorizing SSM client: {e}", status="error")
+        db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error authorizing SSM client: {e}"})
         return {
             "status": "failed",
             "message": f"Error authorizing SSM client: {e}"
         }
     
-    common.log_insert(
-        f"Sending mail flg is {send_email_flg}", status="info"
+    db_func.append_to_json(
+        log_json_file_name, {"status": "info", "message": f"Sending mail flg is {send_email_flg}"}
     )
 
     google_sheet_link = f"https://docs.google.com/spreadsheets/d/{sheet.spreadsheet.id}/edit#gid={sheet.id}"
@@ -246,7 +244,7 @@ def aws_related_gmail_listup(mail_number: int, send_email_flg: bool):
 
         try:
             logging.info("Sending summary email with Google Sheets link...")
-            common.log_insert("Sending summary email with Google Sheets link...", status="info")
+            db_func.append_to_json(log_json_file_name, {"status": "info", "message": "Sending summary email with Google Sheets link..."})
 
             send_mail.sending(
                 ssm_client, 
@@ -258,19 +256,19 @@ def aws_related_gmail_listup(mail_number: int, send_email_flg: bool):
                 png_path=""  # No attachment for this email
             )
             logging.info("Summary email sent successfully.")
-            common.log_insert("Summary email sent successfully.")
+            db_func.append_to_json(log_json_file_name, {"status": "info", "message": "Summary email sent successfully."})
 
         except Exception as e:
             logging.error(f"Error sending summary email: {e}")
-            common.log_insert(f"Error sending summary email: {e}")
+            db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error sending summary email: {e}"})
 
             return {
                 "status": "failed",
                 "message": f"Error sending summary email: {e}"
             }
         
-    common.log_insert(
-        f"(backend script name: aws_summary_gmail.py) AWS Gmail summary process completed.", status="info"
+    db_func.append_to_json(
+        log_json_file_name, {"status": "info", "message": f"(backend script name: aws_summary_gmail.py) AWS Gmail summary process completed."}
     )
 
     return {

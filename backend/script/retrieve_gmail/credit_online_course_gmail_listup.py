@@ -19,7 +19,6 @@ import matplotlib.pyplot as plt
 # Add current directory to path for local imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
-
 import send_mail
 
 # parent directory
@@ -30,7 +29,7 @@ import common
 import db_func
 import google_authorization
 
-log_json_file_name = "credit_online_course_log.json"
+log_json_file_name = f"{os.path.splitext(os.path.basename(__file__))[0]}.json"
 gmail_service = google_authorization.authorize_gmail()
 
 results = {
