@@ -5,8 +5,11 @@ import requests
 import time
 import pandas as pd
 from datetime import datetime
-import sqlite3
+import sys
 
+# import db_func from one directory up
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import db_func
 
 # ディレクトリ設定
 currentDir = os.path.dirname(os.path.abspath(__file__))
@@ -30,6 +33,7 @@ def saveToCSV(items, currentPage, csvPath):
 
     csvData = []
     print(f"📦 {len(items)}件の商品が見つかりました (ページ {currentPage}):")
+    db_func.append_to_json(os.path.splitext(os.path.basename(__file__))[0], f"{len(items)}件の商品が見つかりました (ページ {currentPage}):", "rakuten_item_listup.py", "info")
 
     for index, item in enumerate(items):
         
@@ -60,6 +64,7 @@ def saveToCSV(items, currentPage, csvPath):
         csvData.append(row)
         print(f"{index + 1}. {name} - ¥{price} - {shopName}")
     print(f"✅ {currentPage}ページ目 {len(csvData)}件の商品をCSVに保存しました: {csvPath}")
+    db_func.append_to_json(os.path.splitext(os.path.basename(__file__))[0], f"{currentPage}ページ目 {len(csvData)}件の商品をCSVに保存しました: {csvPath}", "rakuten_item_listup.py", "info")
     return len(csvData)
     
 
@@ -79,13 +84,14 @@ def fetchItemsViaRapidAPI(keyword, csvPath, parameters):
 
     # e.g 
     # https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601?applicationId=[APPLICATION ID]
-    # &keyword=%E7%A6%8F%E8%A2%8B
+    # &keyword=%E7%A6%8B%E8%A2%8B
     # &sort=%2BitemPrice
 
     url = f"{ApiUrl}?applicationId={ApplicationId}"
 
     try:
         print('🛍️ RapidAPI経由で楽天商品を検索中...');
+        db_func.append_to_json(os.path.splitext(os.path.basename(__file__))[0], 'RapidAPI経由で楽天商品を検索中...', "rakuten_item_listup.py", "info")
         
         for page_num in range(parameters["max_page"]):
 
@@ -104,6 +110,7 @@ def fetchItemsViaRapidAPI(keyword, csvPath, parameters):
                 if response.status_code != 200:
                     wait = (2 ** attempt)
                     print(f"⚠️ API呼び出し失敗 (ステータス: {response.status_code})。{wait}秒後に再試行します...")
+                    db_func.append_to_json(os.path.splitext(os.path.basename(__file__))[0], f"API呼び出し失敗 (ステータス: {response.status_code})。{wait}秒後に再試行します...", "rakuten_item_listup.py", "error")
                     time.sleep(wait)
                     continue
                 else:
@@ -116,6 +123,7 @@ def fetchItemsViaRapidAPI(keyword, csvPath, parameters):
                 print(f"{key}: {value}")
 
             print(f"✅ API呼び出し成功 (ステータス: {response.status_code})")
+            db_func.append_to_json(os.path.splitext(os.path.basename(__file__))[0], f"API呼び出し成功 (ステータス: {response.status_code})", "rakuten_item_listup.py", "info")
             
             if data and data.get("products"):
                 csv_data_num = saveToCSV(data.get("products"), page_num, csvPath) # products, currentPage, csvPath
@@ -125,6 +133,7 @@ def fetchItemsViaRapidAPI(keyword, csvPath, parameters):
             else:
                 print('⚠️ 商品データが見つかりませんでした')
                 print('レスポンス:', json.dumps(data, ensure_ascii=False, indent=2))
+                db_func.append_to_json(os.path.splitext(os.path.basename(__file__))[0], '商品データが見つかりませんでした', "rakuten_item_listup.py", "warning")
             
             # Collect all items
             all_items.extend(data.get('Items', []))
@@ -137,76 +146,8 @@ def fetchItemsViaRapidAPI(keyword, csvPath, parameters):
         if (error.response):
             print('ステータス:', error.response.status)
             print('レスポンス:', error.response.data)
-            raise error
-
-
-"""
-Save the summary dataframe to a SQLite database table named after the keyword.
-
-parameters:
--------------
-df_summary: pd.DataFrame
-    Summary dataframe containing item details.
-
-keyword: str
-    Keyword used for searching items, used to name the database table.
-"""
-
-# save dataframe to sqlite database
-def db_input(df_summary, keyword):
-    
-    currentDir = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.join(currentDir, 'db', 'rakuten_items_data_lake.sqlite3')
-    if not os.path.exists(os.path.dirname(db_path)):
-        open(db_path, 'w').close()
-
-    table_name = f"rakuten_items_list"
-
-    with sqlite3.connect(db_path) as conn:
-        cursor = conn.cursor()
-
-        # add YYYY-MM-DD date column to table
-        create_table_query = f'''
-        CREATE TABLE IF NOT EXISTS {table_name} (
-            "Item Name" TEXT,
-            "Item Price" INTEGER,
-            "Shop Name" TEXT,
-            "Item URL" TEXT,
-            "Cost Range" TEXT,
-            "Keyword" TEXT,
-            "date" TEXT DEFAULT (DATE('now'))
-        );
-        '''
-        
-        cursor.execute(create_table_query)
-        conn.commit()
-
-        try:
-            for index, row in df_summary.iterrows():
-                insert_stmt = f'''
-                INSERT INTO {table_name} ("Item Name", "Item Price", "Shop Name", "Item URL", "Cost Range", "Keyword", "date")
-                VALUES (?, ?, ?, ?, ?, ?, ?);
-                '''
-                cursor.execute(insert_stmt, (
-                    row["Item Name"],
-                    row["Item Price"],
-                    row["Shop Name"],
-                    row["Item URL"],
-                    row["Cost Range"],
-                    keyword,
-                    datetime.now().strftime("%Y-%m-%d")
-                ))
-            
-            conn.commit()
-        except Exception as e:
-            print("❌ データベースへのデータ保存に失敗しました:", str(e))
-            return
-        
-        check_stmt = f'''SELECT COUNT(*) FROM {table_name};'''
-        check_data = cursor.execute(check_stmt)
-        print(f"📊 テーブル {table_name} のデータ件数: {check_data.fetchone()[0]}")
-
-    print(f"✅ データベースにデータを保存しました: {db_path} のテーブル {table_name}")
+            db_func.append_to_json(os.path.splitext(os.path.basename(__file__))[0], f"RapidAPI呼び出しエラー: {str(error)}", "rakuten_item_listup.py", "error")
+        raise error
 
 
 # main function that retrieve items given by the react frontend
@@ -219,12 +160,15 @@ def main(number_hits, page, max_page, keywords):
         "keywords": keywords if isinstance(keywords, list) else [keywords]
     }
 
+    db_func.append_to_json(os.path.splitext(os.path.basename(__file__))[0], f"検索パラメータ: {parameters}", "rakuten_item_listup.py", "info")
+
     results = {}
 
     for keyword in parameters["keywords"]:
         csvPath = os.path.join(resultsDir, f"rakuten_products_{keyword}.csv")
         
         print(f"🔍 キーワード \"{keyword}\" で商品検索を開始...")
+        db_func.append_to_json(os.path.splitext(os.path.basename(__file__))[0], f"キーワード \"{keyword}\" で商品検索を開始...", "rakuten_item_listup.py", "info")
 
         try:
             data, total_csv_data_num = fetchItemsViaRapidAPI(keyword, csvPath, parameters)
@@ -237,6 +181,8 @@ def main(number_hits, page, max_page, keywords):
             data = []
             csvPath = ""
             total_csv_data_num = 0
+
+            db_func.append_to_json(os.path.splitext(os.path.basename(__file__))[0], f"キーワード \"{keyword}\" の商品検索中にエラーが発生: {str(error)}", "rakuten_item_listup.py", "error")
 
         items = []
 
@@ -286,12 +232,13 @@ def main(number_hits, page, max_page, keywords):
 
         except Exception as e:
             print("❌ データフレームの作成に失敗しました:", str(e))
+            db_func.append_to_json(os.path.splitext(os.path.basename(__file__))[0], f"データフレームの作成に失敗しました: {str(e)}", "rakuten_item_listup.py", "error")
             df_summary = pd.DataFrame()
 
         print("📊 データフレームの概要:")
         print(df_summary.head())
 
-        db_input(df_summary, keyword)
+        db_func.append_to_json(os.path.splitext(os.path.basename(__file__))[0], f"キーワード \"{keyword}\" の商品検索が完了しました。結果をまとめています...", "rakuten_item_listup.py", "info")
 
         results[keyword] = {
             "status": "success",
@@ -299,5 +246,7 @@ def main(number_hits, page, max_page, keywords):
             "data": data,
             "csv_data_num": total_csv_data_num
         }
+
+        db_func.append_to_json(os.path.splitext(os.path.basename(__file__))[0], f"キーワード \"{keyword}\" の商品検索結果を保存しました: {csvPath}", "rakuten_item_listup.py", "info")
 
     return results

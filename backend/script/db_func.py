@@ -5,6 +5,18 @@ from datetime import datetime
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
+
+"""
+function: json_recover
+description: Recover data from a JSON log file.
+
+parameters:
+    table_name: (str) Name of the table associated with the JSON data.
+    file_name: (str) Name of the JSON file to recover data from.
+
+returns:
+    dict: status and data or error message
+"""
 def json_recover(table_name, file_name):
     file_path = os.path.join(current_dir, "json", "log", file_name)
 
@@ -22,6 +34,13 @@ def json_recover(table_name, file_name):
         return {"status": "error", "message": "Error reading JSON file"}
 
 
+"""
+function: delete_json
+description: Delete a JSON log file to initialize for the next operation.
+
+parameters:
+    file_name: (str) Name of the JSON file to delete.
+"""
 def delete_json(file_name):
     
     file_path = os.path.join(current_dir, "json", "log", file_name)
@@ -34,11 +53,21 @@ def delete_json(file_name):
         except Exception as e:
             print(f"Error deleting JSON file: {e}")
 
-# Function to write data to a JSON file
-def append_to_json(file_name, new_data):
 
-    file_path = os.path.join(current_dir, "json", "log", file_name)
+""" 
+function: append_to_json
+description: Append new data to a JSON log file. If the file does not exist, it
+
+parameters:
+    json_file_name: (str) Name of the JSON file including extension. e.g., 'log.json'
+    new_data: (dict or list) New data to append to the JSON file.
+"""
+def append_to_json(json_file_name, new_data):
+
+    file_path = os.path.join(current_dir, "json", "log", f"{json_file_name}")
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    print(f"Debug: Appending to JSON file at {file_path}")
 
     if os.path.exists(file_path):
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -53,7 +82,7 @@ def append_to_json(file_name, new_data):
 
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    new_data['script_name'] = file_name.replace('.json', '')
+    new_data['script_name'] = json_file_name.replace('.json', '')
     new_data['timestamp'] = current_date
 
     # Append new data
@@ -78,11 +107,9 @@ description: Insert log data into specific table in the MongoDB database.
 mongodb database: react-main
 table: argument table_name
 json file: argument json_file_name
-
 parameters:
     table_name: (str)
     json_file_name: (str)
-
 returns:
     dict: status and message of the operation to display in the API response 
 """

@@ -73,30 +73,78 @@ function SearchForm({
             <h2> Search Conditions </h2>
             <br />
             <div style={{ marginTop: "30px" }}>
-                <div>
-                    <label> Number of Hits(20まで選択可能): </label>
-                    <input type="number" max={20} value={number_hits} onChange={(e) => setNumberHits(e.target.value)} />
-                </div>
-                <div style={{ marginBottom: "10px" }}>
-                    <label style={{ marginRight: "10px" }}> 
-                        Page(100まで選択可能): 
-                    </label>
-                    <input type="number" max={100} value={page} onChange={(e) => setPage(e.target.value)} />
-                </div>
-                <div style={{ marginBottom: "10px" }}>
-                    <label style={{ marginRight: "10px" }}> 
-                        Max Page(3まで選択可能): 
-                    </label>
-                    <input type="number" max={3} value={max_page} onChange={(e) => setMaxPage(e.target.value)} />
-                </div>
-                <div style={{ marginBottom: "10px" }}>
-                    <label style={{ marginRight: "10px" }}> 
-                        Keywords(複数記載可能、カンマ区切り): 
-                    </label>
-                    <input type="text" value={keywords} onChange={(e) => setKeywords(e.target.value)} />
-                </div>
-                <div>
-                    <button onClick={() => setStart(true)}>Search</button>
+                <div className="d-flex justify-content-center">
+                    <table className="table table-bordered" style={{maxWidth: '600px'}}>
+                        <tbody>
+                            <tr>
+                                <td className="text-start align-middle">
+                                    <strong>Number of Hits (20まで選択可能):</strong>
+                                </td>
+                                <td>
+                                    <input 
+                                        type="number" 
+                                        max={20} 
+                                        value={number_hits} 
+                                        onChange={(e) => setNumberHits(e.target.value)}
+                                        className="form-control"
+                                        style={{maxWidth: '150px'}}
+                                    />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td className="text-start align-middle">
+                                    <strong>Page (100まで選択可能):</strong>
+                                </td>
+                                <td>
+                                    <input 
+                                        type="number" 
+                                        max={100} 
+                                        value={page} 
+                                        onChange={(e) => setPage(e.target.value)}
+                                        className="form-control"
+                                        style={{maxWidth: '150px'}}
+                                    />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td className="text-start align-middle">
+                                    <strong>Max Page (3まで選択可能):</strong>
+                                </td>
+                                <td>
+                                    <input 
+                                        type="number" 
+                                        max={3} 
+                                        value={max_page} 
+                                        onChange={(e) => setMaxPage(e.target.value)}
+                                        className="form-control"
+                                        style={{maxWidth: '150px'}}
+                                    />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td className="text-start align-middle">
+                                    <strong>Keywords (複数記載可能、カンマ区切り):</strong>
+                                </td>
+                                <td>
+                                    <input 
+                                        type="text" 
+                                        value={keywords} 
+                                        onChange={(e) => setKeywords(e.target.value)}
+                                        className="form-control"
+                                        style={{maxWidth: '300px'}}
+                                    />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td>
+                                    <button onClick={() => setStart(true)} className="btn btn-primary">
+                                        Search
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -107,18 +155,48 @@ function SearchForm({
 function ItemsList({ items }) {
     return (
         <div>
-            <h2> Rakuten Item List </h2>
-            <div>
-                {items.map((item, index) => (
-                    <div key={index}>
-                        <p> Item Name: {item.itemName} </p>
-                        <p> Item Price: {item.itemPrice} </p>
-                        <p>
-                            Item URL: 
-                            <a href={item.itemUrl} target="_blank" rel="noopener noreferrer">{item.itemUrl}</a>
-                        </p>
-                    </div>
-                ))}
+            <div className="text-center mb-4">
+                <h2 className="text-primary">
+                    <strong>🛍️ Rakuten Item List</strong>
+                </h2>
+            </div>
+            
+            <div className="d-flex justify-content-center">
+                <table className="table table-bordered table-striped table-hover" style={{maxWidth: '1200px'}}>
+                    <thead className="table-dark">
+                        <tr>
+                            <th scope="col" className="text-center">#</th>
+                            <th scope="col" className="text-center">Item Name</th>
+                            <th scope="col" className="text-center">Price</th>
+                            <th scope="col" className="text-center">URL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items.map((item, index) => (
+                            <tr key={index}>
+                                <td className="text-center align-middle">
+                                    <span className="badge bg-primary">{index + 1}</span>
+                                </td>
+                                <td className="text-start align-middle">
+                                    <strong>{item.itemName}</strong>
+                                </td>
+                                <td className="text-end align-middle">
+                                    <span className="text-success fw-bold">{item.itemPrice}</span>
+                                </td>
+                                <td className="text-center align-middle">
+                                    <a 
+                                        href={item.itemUrl} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="btn btn-outline-primary btn-sm"
+                                    >
+                                        View Item
+                                    </a>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
         </div>
     );
