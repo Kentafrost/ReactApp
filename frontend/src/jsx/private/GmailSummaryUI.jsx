@@ -114,13 +114,33 @@ function CreditOnlineCourseMailSummaryComponent() {
     const [DownloadLink, setDownloadLink] = useState(null);
     const [GraphLink, setGraphLink] = useState(null);
 
+    const scripts = [
+        {label: "Credit Online Course", value: "credit_online_course"}, 
+        {label: "AWS gmail Listup", value: "aws_related_gmail"}
+    ];
+
+    const [selectedScript, setSelectedScript] = useState(scripts[0].value);
+    const runScript = (scriptName) => {
+        setSelectedScript(scriptName);
+    };
+
+    if (!selectedScript) {
+        return <div> No script selected </div>;
+    }
+
     const GetCostSummary = async () => {
 
         setLoading(true);
-        try {
 
+        if (!InputSearchMailNumber.current || !InputSearchMailNumber.current.value) {
+            alert("Please enter the number of mails to search.");
+            setLoading(false);
+            return;
+        }
+
+        try {
             // Fetch api to get gmail summary
-            const res = await fetch(`http://localhost:5000/mail/listup/credit_online_course?number_of_mails=${InputSearchMailNumber.current.value}&send_email_flg=${sendEmailFlg}`, {
+            const res = await fetch(`http://localhost:5000/mail/listup/${selectedScript}?number_of_mails=${InputSearchMailNumber.current.value}&send_email_flg=${sendEmailFlg}`, {
                 method: "GET",
                 headers: {"Content-Type": "application/json"}
             });
@@ -128,25 +148,38 @@ function CreditOnlineCourseMailSummaryComponent() {
             const data = await res.json();
             console.log("Response:", data);
             setResult(data);
-            
-            // Fetch api to download csv
-            const res_download = await fetch(`http://localhost:5000/mail/listup/credit_online_course/csv/download`);
-            console.log("Download Response:", res_download);
-            setDownloadLink(res_download.url);
-
-            // Fetch api to show graph
-            const res_graph = await fetch(`http://localhost:5000/mail/listup/credit_online_course/graph/show`);
-            console.log("Graph Response:", res_graph);
-            setGraphLink(res_graph.url);
-
         } catch (error) {
-            console.error("Error:", error);
+            console.error("Error in Gmail summary fetch:", error);
             setResult({error: error.message});
             setDownloadLink(null);
             setGraphLink(null);
-
-        } finally {
             setLoading(false);
+            return;
+        }
+
+        // Fetch api to download csv
+        try{
+            const res_download = await fetch(`http://localhost:5000/mail/listup/${selectedScript}/csv/download`);
+            console.log("Download Response:", res_download);
+            setDownloadLink(res_download.url);
+        } catch (error) {
+            console.error("Error in CSV download fetch:", error);
+            setDownloadLink(null);
+            setGraphLink(null);
+            setLoading(false);
+            return;
+        }
+
+        // Fetch api to show graph
+        try {
+            const res_graph = await fetch(`http://localhost:5000/mail/listup/${selectedScript}/graph/show`);
+            console.log("Graph Response:", res_graph);
+            setGraphLink(res_graph.url);
+        } catch (error) {
+            console.error("Error in Graph fetch:", error);
+            setGraphLink(null);
+            setLoading(false);
+            return;
         }
     };
 
@@ -155,7 +188,9 @@ function CreditOnlineCourseMailSummaryComponent() {
             <h2> Cost Summary </h2>
             <div>
                 <h3> Number of Mails to search</h3>
-                <input type="number" min="1" max="100000" step="1" ref={InputSearchMailNumber} />
+                <input 
+                    type="number" min="1" max="100000" step="1" defaultValue="50"
+                    ref={InputSearchMailNumber} />
                 <br />
 
                 <h3> Send Email</h3>
@@ -171,6 +206,14 @@ function CreditOnlineCourseMailSummaryComponent() {
                         Send Email
                     </label>
                 </div>
+
+                <select onChange={(e) => runScript(e.target.value)}>
+                {scripts.map(s => (
+                    <option key={s.value} value={s.value}>
+                        {s.label}
+                    </option>
+                ))}
+                </select>
 
                 <button onClick={GetCostSummary} className="btn btn-primary">Submit</button>
 

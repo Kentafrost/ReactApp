@@ -5,6 +5,23 @@ from datetime import datetime
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
+def json_recover(table_name, file_name):
+    file_path = os.path.join(current_dir, "json", file_name)
+
+    if not os.path.exists(file_path):
+        return {"status": "error", "message": "JSON file does not exist"}
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        log_insert(table_name, file_name)
+
+        return {"status": "success", "data": data}
+    except Exception as e:
+        print(f"Error reading JSON file: {e}")
+        return {"status": "error", "message": "Error reading JSON file"}
+
+
 def delete_json(file_name):
     
     file_path = os.path.join(current_dir, "json", file_name)
