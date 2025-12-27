@@ -217,7 +217,7 @@ def graph_creation(date_list, cost_list):
     plt.xticks(rotation=45)
     plt.tight_layout()
 
-    png_path = f"{current_dir}\\png\\card_cost_by_month.png"
+    png_path = f"{current_dir}\\png\\card_cost_by_date.png"
     plt.savefig(png_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
 
@@ -231,8 +231,6 @@ def write_results_to_sheet(matched_results):
     logging.info("Starting to write results to sheet...")
     db_func.append_to_json(log_json_file_name, {"status": "info", "message": "Starting to write results to sheet..."})
     
-    # Save results to CSV for debugging
-    os.makedirs(f"{current_dir}\\csv", exist_ok=True)
     csv_path = f"{current_dir}\\csv\\card_cost.csv"
     
     with open(csv_path, "w", newline='', encoding='utf-8') as f:
@@ -342,7 +340,10 @@ def gsheet_write(matched_result):
 def credit_online_course_gmail_listup(number_of_mails: int, send_email_flg: bool):
 
     db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"Scripts operation start. Script Name: {__name__}"})
-    
+
+    os.makedirs(f"{current_dir}\\png", exist_ok=True)
+    os.makedirs(f"{current_dir}\\csv", exist_ok=True)
+
     try:
         messages = retrieve_gmail_messages(number_of_mails)
         db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"Retrieved {len(messages)} Gmail messages for cost summary."})

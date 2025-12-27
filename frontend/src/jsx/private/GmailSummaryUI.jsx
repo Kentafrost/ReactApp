@@ -145,39 +145,80 @@ function GmailSummaryComponent() {
                         <></>
                     )
                 }
-                {Result && JSON.stringify(Result.status) === "success" && (
-                    <div>
-                        <h4> Summary Result: </h4>
-                        <p />
 
-                        <h4> Number of Saved Data: <span>{JSON.stringify(Result.number_of_data, null, 2)}</span></h4>
+                {Result && (
+                    <div className="mt-5">
+                        <div className="text-center mb-4">
+                            <h2 className="text-primary"> 
+                                <strong>EXECUTION RESULTS</strong>
+                            </h2>
+                        </div>
+                        
+                        <div className="d-flex justify-content-center">
+                            <table className="table table-bordered table-hover" style={{maxWidth: '600px', backgroundColor: '#f8f9fa'}}>
+                                <thead className="table-dark">
+                                    <tr>
+                                        <th scope="col" className="text-center">Item</th>
+                                        <th scope="col" className="text-center">Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td className="text-start align-middle"><strong>Number of Saved Data:</strong></td>
+                                        <td className="text-start align-middle">
+                                            <span className="badge bg-success fs-6">{JSON.stringify(Result.number_of_data, null, 2)}</span>
+                                        </td>
+                                    </tr>
+                                    {gsheet && (
+                                        <tr>
+                                            <td className="text-start align-middle"><strong>Google Sheet:</strong></td>
+                                            <td className="text-start align-middle">
+                                                <a href={gsheet} target="_blank" rel="noopener noreferrer" className="btn btn-outline-primary btn-sm">
+                                                    View Sheet
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    )}
+                                    {DownloadLink && (
+                                        <tr>
+                                            <td className="text-start align-middle"><strong>CSV Download:</strong></td>
+                                            <td className="text-start align-middle">
+                                                <a href={DownloadLink} download className="btn btn-success btn-sm">
+                                                    Download CSV
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    <tr>
+                                        <td className="text-start align-middle"><strong>Email Sent:</strong></td>
+                                        <td className="text-start align-middle">
+                                            {sendEmailFlg ?
+                                                <span className="badge bg-first fs-6">Yes</span>
+                                                :
+                                                <span className="badge bg-secondary fs-6">No</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        {GraphLink && (
+                            <div className="text-center mt-4">
+                                <h3 className="mb-3">Cost Summary Graph</h3>
+
+                                <img
+                                    src={GraphLink}
+                                    alt="Cost Summary Graph"
+                                    className="img-fluid border rounded shadow"
+                                    style={{ maxWidth: '800px', marginBottom: '20px' }}
+                                    onLoad={() => console.log('Graph image loaded successfully')}
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                            </div>
+                        )}
                     </div>
-                )}
-
-                {gsheet && (
-                    <p>
-                        GSheet Link: <a href={gsheet} target="_blank" rel="noopener noreferrer">{gsheet}</a>
-                    </p>
-                )}
-
-                {DownloadLink && (
-                    <p>
-                        <a href={DownloadLink} download className="btn btn-success">
-                            Download Cost Summary CSV
-                        </a>
-                    </p>
-                )}
-
-                {GraphLink && (
-                    <p>
-                        <img
-                            src={GraphLink}
-                            alt="Cost Summary Graph"
-                            style={{ maxWidth: '600px', height: 'auto', display: 'block', marginBottom: '10px' }}
-                            onLoad={() => console.log('Graph image loaded successfully')}
-                            onError={(e) => { e.target.style.display = 'none'; }}
-                        />
-                    </p>
                 )}
             </div>
         </div>
