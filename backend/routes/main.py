@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from login_api import login_router
 
 from private.task_api import task_router
-from backend.routes.private.gmail_api import gmail_router
+from private.gmail_api import gmail_router
 from public.rakuten_api import rakuten_router
 
 app = FastAPI()

@@ -1,18 +1,20 @@
 # !/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-""" for personal use only """
-
-import re
-import pandas as pd
-import matplotlib.pyplot as plt
-import boto3
-import logging
-import os, sys
+""" 
+for private use only
+Script Name: credit_online_course_gmail_listup.py
+Description: Retrieve Gmail messages related to credit card costs and online courses,
+"""
+import os
+import sys
 import csv
 import json
-import matplotlib
-
+import re
+import boto3
+import logging
+import pandas as pd
+import matplotlib.pyplot as plt
 
 # Add current directory to path for local imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -25,10 +27,10 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
 
 import common
+import db_func
 import google_authorization
 
-common.import_log("Specific_Gmail_Summary")
-
+log_json_file_name = "credit_online_course_gmail_listup.json"
 gmail_service = google_authorization.authorize_gmail()
 
 results = {
@@ -43,7 +45,7 @@ try:
         rules_json = json.load(f)
 except Exception as e:
     logging.error(f"Error loading rules JSON: {e}")
-    common.log_insert(f"Error loading rules JSON: {e}", status="error")
+    db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error loading rules JSON: {e}"})
     rules_json = {"rules": []}
 
 
@@ -72,7 +74,7 @@ def retrieve_gmail_messages(number_of_mails: int):
                 
         except Exception as e:
             logging.warning(f"Error with query '{query}': {e}")
-            common.log_insert(f"Error with query '{query}': {e}", status="warning")
+            db_func.append_to_json(log_json_file_name, {"status": "warning", "message": f"Error with query '{query}': {e}"})
             continue
     
     # Remove duplicates
@@ -84,7 +86,7 @@ def retrieve_gmail_messages(number_of_mails: int):
             seen_ids.add(msg['id'])
     
     logging.info(f"Total unique messages retrieved: {len(unique_messages)}")
-    common.log_insert(f"Total unique messages retrieved: {len(unique_messages)}", status="info")
+    db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"Total unique messages retrieved: {len(unique_messages)}"})
     return unique_messages[:100]  # Limit to 100 most recent
 
 
@@ -136,7 +138,7 @@ def match_rules_to_messages(messages):
                 }
             except Exception as e:
                 logging.warning(f"Error fetching message {message['id']}: {e}")
-                common.log_insert(f"Error fetching message {message['id']}: {e}", status="warning")
+                db_func.append_to_json(log_json_file_name, {"status": "warning", "message": f"Error fetching message {message['id']}: {e}"})
                 continue
     
     # Apply rules to all messages
@@ -147,9 +149,7 @@ def match_rules_to_messages(messages):
             local_results = match_rules(rule, text_to_match, local_results)
     
     logging.info(f"Matched results: costs={len(local_results['cost_list'])}, dates={len(local_results['date_list'])}")
-    common.log_insert(
-        f"Matched results: costs={len(local_results['cost_list'])}, dates={len(local_results['date_list'])}", status="info"
-    )
+    db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"Matched results: costs={len(local_results['cost_list'])}, dates={len(local_results['date_list'])}"})
     return local_results
 
 
@@ -188,12 +188,11 @@ def create_pivot_table(pivot_table, graph_title):
         plt.close(fig)  # Close figure to free memory
         
         logging.info(f"Chart saved to {pivot_png_path}")
-        common.log_insert(f"Chart saved to {pivot_png_path}", status="info")
+        db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"Chart saved to {pivot_png_path}"})
         
     except Exception as e:
         logging.error(f"Error creating chart: {e}")
-        common.log_insert(f"Error creating chart: {e}", status="error")
-
+        db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error creating chart: {e}"})
         # Create a simple text file as fallback
         with open(pivot_png_path.replace('.png', '.txt'), 'w') as f:
             f.write(f"Chart generation failed: {e}")
@@ -203,20 +202,26 @@ def create_pivot_table(pivot_table, graph_title):
     return pivot_data, pivot_png_path
 
 
-def graph_creation(df):
+def graph_creation(date_list, cost_list):
+    
+    db_func.append_to_json(log_json_file_name, {"status": "info", "message": "Starting graph creation..."})
+
     # create graph from dataframe
     plt.switch_backend('Agg')
     fig, ax = plt.subplots(figsize=(10, 6))
-    df.plot(kind='bar', title="Rakuten Card Cost by Month", ax=ax)
+    ax.bar(date_list, cost_list)
+    ax.set_title("Rakuten Card Cost by Month")
+
     ax.set_xlabel('Month')
     ax.set_ylabel('Cost (¥)')
     plt.xticks(rotation=45)
     plt.tight_layout()
+
     png_path = f"{current_dir}\\png\\rakuten_card_cost_by_month.png"
     plt.savefig(png_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
 
-    common.log_insert(f"Graph saved to {png_path}", status="info")
+    db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"Graph saved successfully"})
 
     return png_path
 
@@ -224,27 +229,31 @@ def graph_creation(df):
 # write results to sheet
 def write_results_to_sheet(matched_results):
     logging.info("Starting to write results to sheet...")
+    db_func.append_to_json(log_json_file_name, {"status": "info", "message": "Starting to write results to sheet..."})
     
     # Save results to CSV for debugging
     os.makedirs(f"{current_dir}\\csv", exist_ok=True)
     csv_path = f"{current_dir}\\csv\\cost.csv"
     
-    df = pd.DataFrame({
-        'Date': matched_results['date_list'],
-        'Cost': matched_results['cost_list']
-    })
-
-    png_path = graph_creation(df)
-
     with open(csv_path, "w", newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(['Date', 'Cost'])
         for date, cost in zip(matched_results['date_list'], matched_results['cost_list']):
             writer.writerow([date, cost])
-    logging.info(f"CSV saved with {len(matched_results['cost_list'])} cost entries")
-    common.log_insert(f"CSV saved with {len(matched_results['cost_list'])} cost entries", status="info")
 
-    return csv_path, len(matched_results['cost_list']), png_path
+    logging.info(f"CSV saved to {csv_path}")
+    db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"CSV saved to {csv_path}"})
+
+    df = pd.read_csv(csv_path)
+    date_list = df["Date"].tolist() 
+    cost_list = df["Cost"].tolist()
+
+    png_path = graph_creation(date_list, cost_list)
+
+    logging.info(f"CSV saved with {len(cost_list)} cost entries")
+    db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"CSV saved with {len(cost_list)} cost entries"})
+
+    return csv_path, len(cost_list), png_path
 
 
 def gsheet_write(matched_result):
@@ -273,7 +282,7 @@ def gsheet_write(matched_result):
             clean_dates.append(date_str)
         except (ValueError, TypeError) as e:
             logging.warning(f"Skipping invalid cost/date pair: {cost_str}, {date_str} - {e}")
-            common.log_insert(f"Skipping invalid cost/date pair: {cost_str}, {date_str} - {e}", status="warning")
+            db_func.append_to_json(log_json_file_name, {"status": "warning", "message": f"Skipping invalid cost/date pair: {cost_str}, {date_str} - {e}"})
             continue
     
     if clean_costs:
@@ -281,7 +290,7 @@ def gsheet_write(matched_result):
         data.extend(zip(clean_dates, clean_costs))
         
         logging.info("Updating Google Sheet with cost data...")
-        common.log_insert("Updating Google Sheet with cost data...", status="info")
+        db_func.append_to_json(log_json_file_name, {"status": "info", "message": "Updating Google Sheet with cost data..."})
         sheet.update(values=data, range_name='A1')
 
         # Create pivot table only if we have enough data
@@ -306,7 +315,7 @@ def gsheet_write(matched_result):
                     
                     # Create pivot table and chart
                     logging.info("Creating pivot table and chart...")
-                    common.log_insert("Creating pivot table and chart...", status="info")
+                    db_func.append_to_json(log_json_file_name, {"status": "info", "message": "Creating pivot table and chart..."})
 
                     pivot_data, pivot_png_path = create_pivot_table(pivot_table, "Rakuten Card Cost by Month")
                     sheet = sheet_definition("Pivot_tbl")
@@ -314,7 +323,7 @@ def gsheet_write(matched_result):
 
                     # Create graph from original dataframe
                     png_path = graph_creation(df)
-                    common.log_insert("Google Sheet update and graph creation completed.", status="info")
+                    db_func.append_to_json(log_json_file_name, {"status": "info", "message": "Google Sheet update and graph creation completed."})
 
                     return png_path
             except Exception as e:
@@ -332,23 +341,21 @@ def gsheet_write(matched_result):
 
 def credit_online_course_gmail_listup(number_of_mails: int, send_email_flg: bool):
 
-    logging.info(f"Scipt Name: {__name__} - Starting cost summary retrieval from Gmail")
+    db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"Scripts operation start. Script Name: {__name__}"})
     
     try:
         messages = retrieve_gmail_messages(number_of_mails)
-        common.log_insert(
-            f"Retrieved {len(messages)} Gmail messages for cost summary.", status="info"
-        )
+        db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"Retrieved {len(messages)} Gmail messages for cost summary."})
 
     except Exception as e:
         logging.error(f"Error retrieving Gmail messages: {e}")
-        common.log_insert(f"Error retrieving Gmail messages: {e}", status="error")
+        db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error retrieving Gmail messages: {e}"})
 
         return {"status": "failed", "message": "Error retrieving Gmail messages."}
     
     if not rules_json["rules"]:
         logging.error("No rules found in rules JSON.")
-        common.log_insert("No rules found in rules JSON.", status="error")
+        db_func.append_to_json(log_json_file_name, {"status": "error", "message": "No rules found in rules JSON."})
 
         return {
             "status": "failed", 
@@ -360,7 +367,7 @@ def credit_online_course_gmail_listup(number_of_mails: int, send_email_flg: bool
         matched_results = match_rules_to_messages(messages)
     except Exception as e:
         logging.error(f"Error matching rules to messages: {e}")
-        common.log_insert(f"Error matching rules to messages: {e}", status="error")
+        db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error matching rules to messages: {e}"})
         return {
             "status": "failed", 
             "message": f"Error matching rules to messages.{e}"
@@ -377,7 +384,7 @@ def credit_online_course_gmail_listup(number_of_mails: int, send_email_flg: bool
             total_cost += cost_clean
         except (ValueError, TypeError):
             logging.warning(f"Skipping invalid cost value: {cost_str}")
-            common.log_insert(f"Skipping invalid cost value: {cost_str}", status="warning")
+            db_func.append_to_json(log_json_file_name, {"status": "warning", "message": f"Skipping invalid cost value: {cost_str}"})
             continue
     
     # summary the results
@@ -387,14 +394,14 @@ def credit_online_course_gmail_listup(number_of_mails: int, send_email_flg: bool
         f"Numbers of course enrolled in Coursera: {len(matched_results['online_learning_enrolled_list'])}"
     )
     logging.info(summary_msg)
-    common.log_insert(summary_msg, status="info")
+    db_func.append_to_json(log_json_file_name, {"status": "info", "message": summary_msg})
 
     # Write results to sheet
     try:
         csv_path, number_of_data, png_path = write_results_to_sheet(matched_results)
     except Exception as e:
         logging.error(f"Error writing results to sheet: {e}")
-        common.log_insert(f"Error writing results to sheet: {e}", status="error")
+        db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error writing results to sheet: {e}"})
         return {
             "status": "failed",
             "message": "Error writing results to sheet."
@@ -407,17 +414,18 @@ def credit_online_course_gmail_listup(number_of_mails: int, send_email_flg: bool
             ssm_client = boto3.client('ssm', region_name='ap-southeast-2')
             result_msg = send_mail.sending(ssm_client, png_path)
             logging.info("Summary email sent successfully")
-            common.log_insert("Summary email sent successfully", status="info")
+            db_func.append_to_json(log_json_file_name, {"status": "info", "message": "Summary email sent successfully"})
 
             print(result_msg)
         except Exception as e:
             logging.warning(f"Failed to send email: {e}")
-            common.log_insert(f"Failed to send email: {e}", status="warning")
+            db_func.append_to_json(log_json_file_name, {"status": "warning", "message": f"Failed to send email: {e}"})
     
     # show the summary png path in the return value
-    common.log_insert(f"Script Name: {__name__} - Cost summary process completed successfully.", status="info")
+    db_func.append_to_json(log_json_file_name, {"status": "info", "message": f"Scripts operated successfully. Script Name: {__name__}"})
     return {
-        "status": "success", 
+        "status": "success",
+        "json_file_name": log_json_file_name,
         "message": summary_msg,
         "csv_path": csv_path,
         "number_of_data": number_of_data,

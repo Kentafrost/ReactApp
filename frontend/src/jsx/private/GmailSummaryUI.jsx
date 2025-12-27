@@ -118,6 +118,8 @@ function CreditOnlineCourseMailSummaryComponent() {
 
         setLoading(true);
         try {
+
+            // Fetch api to get gmail summary
             const res = await fetch(`http://localhost:5000/mail/listup/credit_online_course?number_of_mails=${InputSearchMailNumber.current.value}&send_email_flg=${sendEmailFlg}`, {
                 method: "GET",
                 headers: {"Content-Type": "application/json"}
@@ -127,10 +129,12 @@ function CreditOnlineCourseMailSummaryComponent() {
             console.log("Response:", data);
             setResult(data);
             
+            // Fetch api to download csv
             const res_download = await fetch(`http://localhost:5000/mail/listup/credit_online_course/csv/download`);
             console.log("Download Response:", res_download);
             setDownloadLink(res_download.url);
 
+            // Fetch api to show graph
             const res_graph = await fetch(`http://localhost:5000/mail/listup/credit_online_course/graph/show`);
             console.log("Graph Response:", res_graph);
             setGraphLink(res_graph.url);

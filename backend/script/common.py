@@ -1,8 +1,9 @@
-import os, logging, time
-
+import os
+import logging
+import time
 import boto3
 import botocore
-import sqlite3
+
 
 def import_log(script_name):
 
@@ -66,7 +67,8 @@ def send_mail(ssm_client, script_title, msg_list):
     except Exception as e:
         logging.error('メール送信処理でエラーが発生しました。{}'.format(e))
         print(f"メール送信処理でエラーが発生しました: {e}")
-        
+
+
 def authorize_ssm():
     session = boto3.Session()
 
@@ -80,46 +82,3 @@ def authorize_ssm():
 
     ssm_client = session.client('ssm', config=config)
     return  ssm_client
-
-
-from datetime import datetime
-
-"""
-function: log_insert
-description: Insert log data into the log_tbl table in the SQLite database.
-
-sqlite database: logs.sqlite3
-table: log_tbl
-
-database columns:
-- log (TEXT): log message
-- status (TEXT): log status (e.g., "info", "error")
-- date (DATE): date and time of the log entry
-
-parameters:
-    message: log messages(str)
-    status: log status(str), default is "info"
-
-returns: 
-    None    
-"""
-def log_insert(message, status="info"):
-    current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-
-    db_path = os.path.join(current_dir, 'log_management', 'logs.sqlite3')
-    if not os.path.exists(db_path):
-        open(db_path, 'w').close()
-
-    conn = sqlite3.connect(db_path, check_same_thread=False)
-    cursor = conn.cursor()
-
-    try:
-        cursor.execute("INSERT INTO log_tbl (log, status, date) VALUES (?, ?, ?)", (message, status, current_date))
-        conn.commit()
-        conn.close()
-        print("Log inserted successfully.")
-
-    except Exception as e:
-        print(f"Error inserting log: {e}")
