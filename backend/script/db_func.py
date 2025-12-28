@@ -2,9 +2,10 @@ import os
 import json
 import pymongo
 from datetime import datetime
+import boto3
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-
+ssm_client = boto3.client('ssm', region_name='ap-southeast-2')
 
 """
 function: json_recover
@@ -122,7 +123,7 @@ def log_insert(table_name, json_file_name):
     json_file_path = os.path.join(current_dir, "json", "log", json_file_name)
 
     try:
-        db_url = "mongodb://localhost:27017/"
+        db_url = ssm_client.get_parameter(Name='Mongo_DB_Url', WithDecryption=True)['Parameter']['Value']
         client = pymongo.MongoClient(db_url)
     except Exception as e:
         print(f"Connection Error (mongoDB): {e}")
