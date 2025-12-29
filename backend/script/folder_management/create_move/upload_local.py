@@ -8,7 +8,7 @@ import common_tool
 
 # Add parent directory to sys.path to import common_tool
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import convert_filename
+import backend.script.folder_management.old.convert_filename as convert_filename
 
 # Global SSL settings for AWS
 ssl._create_default_https_context = ssl._create_unverified_context

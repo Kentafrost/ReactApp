@@ -8,6 +8,7 @@ from login_api import login_router
 from private.task_api import task_router
 from private.gmail_api import gmail_router
 from public.rakuten_api import rakuten_router
+from public.fold_management_api import fold_management_router
 
 app = FastAPI()
 
@@ -34,3 +35,4 @@ app.include_router(login_router)
 app.include_router(task_router)
 app.include_router(gmail_router)
 app.include_router(rakuten_router)
+app.include_router(fold_management_router)

@@ -1,7 +1,4 @@
-import os
-import sys
 from fastapi import APIRouter
-
 
 login_router = APIRouter()
 

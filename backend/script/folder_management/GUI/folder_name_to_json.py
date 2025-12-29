@@ -10,7 +10,7 @@ import psutil
 
 # Add parent directory to sys.path to import convert_filename
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import convert_filename
+import backend.script.folder_management.old.convert_filename as convert_filename
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 print(f"Current directory: {current_directory}")

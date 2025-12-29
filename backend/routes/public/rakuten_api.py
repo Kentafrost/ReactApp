@@ -111,8 +111,6 @@ async def rakuten_item_graph_filter_options_endpoint(request: FilterOptionsReque
 async def rakuten_item_graph_display_endpoint():
 
     # get all data from sqlite3 database and get keyword to create graph and API routes
-    get_data_stet = "Select * from rakuten_items_list"
-
     graph_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'script', 'web_scraping', 'rakuten_item_graph', 'rakuten_item_cost_graph.png'))
 
     if not os.path.exists(graph_path):
