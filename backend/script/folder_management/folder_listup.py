@@ -76,6 +76,9 @@ def folder_listup(base_path: str):
                 count += 1
 
                 if file_size > 0:
+                    path = os.path.join(root, file)
+                    path = path.replace("/", "\\")
+
                     file_list.append(
                         {
                             "id": count,
@@ -177,9 +180,9 @@ def file_thumbnail_create(id: int, jsonPath: str):
             thumbnail_path = os.path.join(thumbnail_path, f"thumbnail_{id_str}.png")
             print(f"Thumbnail will be saved to: {thumbnail_path}")
 
-            if os.path.exists(thumbnail_path):
-                os.remove(thumbnail_path)
-                print(f"Existing thumbnail removed: {thumbnail_path}")
+            # if os.path.exists(thumbnail_path):
+            #     os.remove(thumbnail_path)
+            #     print(f"Existing thumbnail removed: {thumbnail_path}")
             os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
 
             if file_extension in ['png', 'jpg', 'jpeg', 'bmp', 'gif']:

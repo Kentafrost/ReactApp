@@ -83,7 +83,9 @@ function FileDetailsPage() {
 
         try {
             // Extract folder path from full file path
-            const folderPath = fileDetails.path.substring(0, fileDetails.path.lastIndexOf('/'));
+            const folderPath = fileDetails.path.substring(0, fileDetails.path.lastIndexOf('\\'));
+            console.log("Renaming file in folder:", folderPath);
+            console.log(`Renaming file from ${fileDetails.name} to ${afterfileName}`);
             
             const res_changename = await fetch("http://localhost:5000/file/changename", {
                 method: "POST",
@@ -91,8 +93,8 @@ function FileDetailsPage() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ 
-                    oldPath: fileDetails.path,
-                    newPath: folderPath + "/" + afterfileName 
+                    oldPath: folderPath + "\\" + fileDetails.name,
+                    newPath: folderPath + "\\" + afterfileName 
                 }),
             });
 

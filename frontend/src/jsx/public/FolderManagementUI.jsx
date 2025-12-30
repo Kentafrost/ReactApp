@@ -79,7 +79,7 @@ function FolderManagementUI() {
         const files = Array.from(e.target.files); 
         if (files.length === 0) return;
 
-        const relative = files[0].webkitRelativePath.split("/")[0]; 
+        const relative = files[0].webkitRelativePath.split("\\")[0]; 
         console.log("Selected relative path:", relative);
         setRelativePath(relative); 
     };
@@ -87,8 +87,8 @@ function FolderManagementUI() {
     // set folderPath when basePath or relativePath changes
     useEffect(() => { 
         if (basePath && relativePath) { 
-            setFolderPath(basePath + "/" + relativePath); 
-            console.log("Set folderPath to:", basePath + "/" + relativePath);
+            setFolderPath(basePath + "\\" + relativePath); 
+            console.log("Set folderPath to:", basePath + "\\" + relativePath);
         } 
     }, [basePath, relativePath]);
 
@@ -224,7 +224,6 @@ function FolderManagementUI() {
         try {
             // Extract folder path from full file path
             const folderPath = currentRenamingFile.path.substring(0, currentRenamingFile.path.lastIndexOf('/'));
-            
             const res_changename = await fetch("http://localhost:5000/file/changename", {
                 method: "POST",
                 headers: {
@@ -232,7 +231,7 @@ function FolderManagementUI() {
                 },
                 body: JSON.stringify({ 
                     oldPath: currentRenamingFile.path,
-                    newPath: folderPath + "/" + afterfileName 
+                    newPath: folderPath + "\\" + afterfileName 
                 }),
             });
 
@@ -242,6 +241,7 @@ function FolderManagementUI() {
             }
 
             const result = await res_changename.json();
+            console.log("Rename response:", result);
 
             if (result.status === "success") {
                 // Refresh folder data after renaming
