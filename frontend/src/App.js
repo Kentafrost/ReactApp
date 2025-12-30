@@ -11,6 +11,10 @@ import TaskSwitch from './js/private/TaskSwitch';
 import GmailSummary from './js/private/GmailSummary';
 import LogViewer from './jsx/public/LogViewerUI';
 
+// folder management imports
+import FolderManagementUI from './jsx/public/FolderManagementUI';
+import FileDetailsPage from './jsx/public/FileDetailsPageUI';
+
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
@@ -32,11 +36,17 @@ function App() {
             <h3 className="navbar-brand">Navigation</h3>
             <div className="collapse navbar-collapse">
               <ul className="navbar-nav me-auto">
+                
                 <li className="nav-item">
                   <Link className="nav-link" to="/login">Login</Link>
                 </li>
+
                 <li className="nav-item">
                   <Link className="nav-link" to="/rakuten-items">Rakuten Items</Link>
+                </li>
+
+                <li className="nav-item">
+                  <Link className="nav-link" to="/folder-management">Folder Management</Link>
                 </li>
               </ul>
             </div>
@@ -51,7 +61,12 @@ function App() {
             
             {/* Public Route */}
             <Route path="/rakuten-items" element={<RakutenItemUI />} />
-          
+            
+            {/* Folder Management Routes */}
+            <Route path="/folder-management" element={<FolderManagementUI />} />
+            <Route path="/file/details/:fileId" element={<FileDetailsPage />} />
+
+
             {/* Private Routes */}
             <Route path="/private-ui/*" element={<Private />}>
               <Route path="task-scheduler-switch" element={<TaskSwitch />} />

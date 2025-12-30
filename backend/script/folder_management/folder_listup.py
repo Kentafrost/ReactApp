@@ -14,7 +14,7 @@ def folder_listup(base_path: str):
     folder_file_list = {}
     file_list = []
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_json_path = os.path.join(current_dir, 'file_list.json')
+    result_json_file_path = os.path.join(current_dir, 'file_list.json')
 
     try:
         for entry in os.scandir(base_path):
@@ -32,6 +32,8 @@ def folder_listup(base_path: str):
         db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error listing folders in {base_path}: {e}"})
         return {"status": "error", "message": f"Error listing folders in {base_path}: {e}"}
 
+    count = 0
+
     try:
         for root, dirs, files in os.walk(base_path):
             for file in files:
@@ -39,9 +41,13 @@ def folder_listup(base_path: str):
                 file_extension = os.path.splitext(file)[1].lower()
                 file_extension = file_extension.replace('.', '')
 
+                count += 1
+
                 if file_size > 0:
                     file_list.append(
-                        {   "name": file,
+                        {
+                            "id": count,
+                            "name": file,
                             "path": os.path.join(root, file),
                             "size": file_size,
                             "extension": file_extension
@@ -52,9 +58,8 @@ def folder_listup(base_path: str):
         db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error listing files in {base_path}: {e}"})
         return {"status": "error", "message": f"Error listing files in {base_path}: {e}"}
 
-
     try:
-        with open(file_json_path, 'w', encoding='utf-8') as f:
+        with open(result_json_file_path, 'w', encoding='utf-8') as f:
             import json
             json.dump(file_list, f, ensure_ascii=False, indent=4)
             db_func.append_to_json(log_json_file_name, {"status": "success", "message": "File listup successful"})
@@ -65,12 +70,7 @@ def folder_listup(base_path: str):
 
     return {
         "status": "success",
-        "files": {
-            "name": [file["name"] for file in file_list],
-            "path": [file["path"] for file in file_list],
-            "size": [file["size"] for file in file_list],
-            "extension": [file["extension"] for file in file_list]
-        }
+        "json_path": result_json_file_path
     }
 
 
