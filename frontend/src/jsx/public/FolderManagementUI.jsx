@@ -274,7 +274,7 @@ function FolderManagementUI() {
                             <button
                                 onClick={() => {
                                     if (fileJsonPath) {
-                                        navigate(`/file/details/${file.id}`, { state: { json_path: fileJsonPath, file: file } });
+                                        navigate(`/file/details/${file.id}`, { state: { jsonPath: fileJsonPath, file: file } });
                                     } else {
                                         setError('JSON path is not available. Please reload the folder data.');
                                     }
@@ -362,7 +362,6 @@ function FolderManagementUI() {
                     onError={(e) => { e.target.style.display = 'none'; }}
                 />
             </div>
-
         </div>
     )
 }

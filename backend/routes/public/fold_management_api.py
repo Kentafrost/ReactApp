@@ -105,9 +105,9 @@ async def file_rename_endpoint(request: FileRenameRequest):
 API endpoint to review files in a folder
 """
 @fold_management_router.get("/file/details")
-async def get_file_details_endpoint(id: int, json_path: str):
+async def get_file_details_endpoint(id: int, jsonPath: str):
     try:
-        with open(json_path, 'r', encoding='utf-8') as f:
+        with open(jsonPath, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
         # Find the file info in the loaded json data
@@ -118,3 +118,25 @@ async def get_file_details_endpoint(id: int, json_path: str):
 
     except Exception as e:
         return {"status": "error", "message": f"Error reviewing files: {e}"}
+    
+"""
+API endpoint to get thumbnail for a file
+"""
+@fold_management_router.get("/file/thumbnail")
+async def get_file_thumbnail_endpoint(id: int, jsonPath: str):
+    from script.folder_management.folder_listup import file_thumbnail_create
+
+    print(f"Requesting thumbnail for file ID: {id} from JSON: {jsonPath}")
+    result = file_thumbnail_create(id, jsonPath)
+    if result.get("status") == "success":
+        thumbnail_path = result.get("thumbnail_path")
+        thumbnail_name = os.path.basename(thumbnail_path)
+
+        print(f"Looking for thumbnail at: {thumbnail_path}")
+
+        if not os.path.exists(thumbnail_path):
+            return {"error": "Thumbnail file does not exist. Please create the thumbnail first."}
+
+        return FileResponse(path=thumbnail_path, filename=thumbnail_name, media_type='image/png')
+    else:
+        return {"status": "error", "message": result.get("message", "Unknown error")}

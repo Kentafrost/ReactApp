@@ -7,12 +7,14 @@ function FileDetailsPage() {
     const navigate = useNavigate();
     
     // Get data passed from the previous page
-    const { json_path, file } = location.state || {};
+    const { jsonPath, file } = location.state || {};
     
     // States
     const [fileDetails, setFileDetails] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const [thumbnailData, setThumbnailData] = useState(null);
     
     // File rename state
     const [fileNameChange, setFileNameChange] = useState(false);
@@ -21,14 +23,15 @@ function FileDetailsPage() {
     // Fetch file details when component mounts
     useEffect(() => {
         const fetchFileDetails = async () => {
-            if (!fileId || !json_path) {
+            if (!fileId || !jsonPath) {
                 setError('Missing file ID or JSON path');
                 setIsLoading(false);
                 return;
             }
 
             try {
-                const res = await fetch(`http://localhost:5000/file/details?id=${fileId}&json_path=${encodeURIComponent(json_path)}`);
+                // to display file details from json file
+                const res = await fetch(`http://localhost:5000/file/details?id=${fileId}&jsonPath=${encodeURIComponent(jsonPath)}`);
                 if (!res.ok) {
                     console.error(`Error: ${res.status} ${res.statusText}`);
                     setError(`Failed to fetch file details: ${res.status} ${res.statusText}`);
@@ -41,6 +44,20 @@ function FileDetailsPage() {
                 setFileDetails(file_info);
                 setAfterFileName(file_info.name);
                 console.log("File Details:", json_file_details);
+
+                // to display thumbnail
+                const res_thumbnail = await fetch(`http://localhost:5000/file/thumbnail?id=${fileId}&jsonPath=${encodeURIComponent(jsonPath)}`);
+                
+                if (res_thumbnail.ok) {
+                    const thumbnail_blob = await res_thumbnail.blob();
+                    const thumbnail_url = URL.createObjectURL(thumbnail_blob);
+                    console.log("Thumbnail URL:", thumbnail_url);
+                    setThumbnailData({thumbnail_url});
+
+                } else {
+                    console.warn(`Thumbnail not available: ${res_thumbnail.status} ${res_thumbnail.statusText}`);
+                }
+
             } catch (err) {
                 console.error(`Fetch error: ${err.message}`);
                 setError(`Fetch error: ${err.message}`);
@@ -50,7 +67,7 @@ function FileDetailsPage() {
         };
 
         fetchFileDetails();
-    }, [fileId, json_path]);
+    }, [fileId, jsonPath]);
 
     // Handler for starting rename process
     const startRename = () => {
@@ -293,107 +310,131 @@ function FileDetailsPage() {
                                 fontWeight: 'bold',
                                 textAlign: 'left'
                             }}>
-                                Preview
+                                Actions
                             </td>
                             <td style={{ 
                                 padding: '12px',
                                 textAlign: 'left'
                             }}>
-                                {/* Thumbnail placeholder - for future implementation */}
-                                <div style={{
-                                    width: '120px',
-                                    height: '120px',
-                                    border: '2px dashed #ccc',
-                                    display: 'flex',
-                                    alignItems: 'flex-start',
-                                    justifyContent: 'flex-start',
-                                    color: '#666',
-                                    fontSize: '12px',
-                                    borderRadius: '4px',
-                                    backgroundColor: '#f8f9fa',
-                                    padding: '8px',
-                                    boxSizing: 'border-box'
-                                }}>
-                                    Thumbnail<br/>Not Available<br/>({fileDetails.extension})
-                                </div>
+                                {!fileNameChange ? (
+                                    <button
+                                        onClick={startRename}
+                                        style={{ 
+                                            padding: '12px 24px',
+                                            backgroundColor: '#28a745',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Rename File
+                                    </button>
+                                ) : (
+                                    <div style={{ 
+                                        marginTop: '20px', 
+                                        padding: '15px', 
+                                        border: '2px solid #4CAF50', 
+                                        borderRadius: '5px',
+                                        backgroundColor: '#f0f8f0'
+                                    }}>
+                                        <h3>Rename File</h3>
+                                        <p><strong>Current filename:</strong> {fileDetails.name}</p>
+                                        
+                                        <div style={{ marginBottom: '10px' }}>
+                                            <label>New File Name:</label>
+                                            <input 
+                                                type="text" 
+                                                value={afterfileName}
+                                                onChange={(e) => setAfterFileName(e.target.value)}
+                                                style={{ 
+                                                    marginLeft: '10px', 
+                                                    padding: '8px',
+                                                    width: '300px',
+                                                    borderRadius: '4px',
+                                                    border: '1px solid #ccc'
+                                                }}
+                                                placeholder="Enter new filename"
+                                            />
+                                        </div>
+
+                                        <button 
+                                            onClick={executeRename}
+                                            style={{ 
+                                                padding: '8px 16px', 
+                                                marginRight: '10px',
+                                                backgroundColor: '#4CAF50',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Execute Rename
+                                        </button>
+
+                                        <button 
+                                            onClick={cancelRename}
+                                            style={{ 
+                                                padding: '8px 16px',
+                                                backgroundColor: '#f44336',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                )}
                             </td>
                         </tr>
                     </tbody>
                 </table>
 
-                {!fileNameChange ? (
-                    <button
-                        onClick={startRename}
-                        style={{ 
-                            padding: '12px 24px',
-                            backgroundColor: '#28a745',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Rename File
-                    </button>
-                ) : (
-                    <div style={{ 
-                        marginTop: '20px', 
-                        padding: '15px', 
-                        border: '2px solid #4CAF50', 
-                        borderRadius: '5px',
-                        backgroundColor: '#f0f8f0'
-                    }}>
-                        <h3>Rename File</h3>
-                        <p><strong>Current filename:</strong> {fileDetails.name}</p>
+                {/* Thumbnail section moved to bottom */}
+                {thumbnailData && (
+                    <div style={{ marginTop: '30px', textAlign: 'center' }}>
+                        <h3 style={{ 
+                            marginBottom: '20px',
+                            color: '#333',
+                            borderBottom: '2px solid #28a745',
+                            paddingBottom: '10px',
+                            display: 'inline-block'
+                        }}>
+                            File Preview
+                        </h3>
                         
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>New File Name:</label>
-                            <input 
-                                type="text" 
-                                value={afterfileName}
-                                onChange={(e) => setAfterFileName(e.target.value)}
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            padding: '20px',
+                            backgroundColor: '#f8f9fa',
+                            borderRadius: '8px',
+                            border: '1px solid #dee2e6'
+                        }}>
+                            <img
+                                src={thumbnailData.thumbnail_url}
+                                alt="File Thumbnail"
                                 style={{ 
-                                    marginLeft: '10px', 
-                                    padding: '8px',
-                                    width: '300px',
+                                    maxWidth: '100%',
+                                    maxHeight: '400px',
                                     borderRadius: '4px',
-                                    border: '1px solid #ccc'
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                                 }}
-                                placeholder="Enter new filename"
+                                onLoad={() => console.log('Thumbnail image loaded successfully')}
+                                onError={(e) => { 
+                                    e.target.style.display = 'none';
+                                    e.target.parentNode.innerHTML = '<p style="color: #666; font-style: italic;">Preview not available</p>';
+                                }}
                             />
                         </div>
-
-                        <button 
-                            onClick={executeRename}
-                            style={{ 
-                                padding: '8px 16px', 
-                                marginRight: '10px',
-                                backgroundColor: '#4CAF50',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Execute Rename
-                        </button>
-
-                        <button 
-                            onClick={cancelRename}
-                            style={{ 
-                                padding: '8px 16px',
-                                backgroundColor: '#f44336',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Cancel
-                        </button>
                     </div>
                 )}
             </div>
+
 
             {error && (
                 <div style={{ 

@@ -2,6 +2,42 @@ import os
 import matplotlib.font_manager
 import matplotlib.pyplot as plt
 import sys
+import json
+from PIL import Image, ImageDraw, ImageFont
+import subprocess
+import shutil
+
+
+def find_ffmpeg():
+    """FFmpegの実行可能パスを検索"""
+    # 1. システムPATHから検索
+    ffmpeg_cmd = shutil.which('ffmpeg')
+    if ffmpeg_cmd:
+        return ffmpeg_cmd
+    
+    # 2. wingetインストール場所を検索
+    winget_path = os.path.join(
+        os.environ.get('LOCALAPPDATA', ''), 
+        'Microsoft', 'WinGet', 'Packages', 
+        'Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe', 
+        'ffmpeg-8.0.1-full_build', 'bin', 'ffmpeg.exe'
+    )
+    if os.path.exists(winget_path):
+        return winget_path
+    
+    # 3. 一般的なインストール場所を検索
+    common_paths = [
+        r'C:\ffmpeg\bin\ffmpeg.exe',
+        r'C:\Program Files\ffmpeg\bin\ffmpeg.exe',
+        r'C:\Program Files (x86)\ffmpeg\bin\ffmpeg.exe'
+    ]
+    
+    for path in common_paths:
+        if os.path.exists(path):
+            return path
+    
+    return None
+
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import db_func
@@ -122,4 +158,141 @@ def folder_graph_create(folder_file_list: dict):
         print(f"Error saving folder graph: {e}")
         db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error saving folder graph: {e}"})
         return {"status": "error", "message": f"Error saving folder graph: {e}"}
+
+
+# Create thumbnail for a file based on its ID from the JSON file
+def file_thumbnail_create(id: int, jsonPath: str):
     
+    with open(jsonPath, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    # Find the file info in the loaded json data
+    for item in data:
+        item_id = item.get('id')
+        if item_id == id:
+            file_path = item.get('path')
+            file_extension = item.get('extension').lower()
+
+            print(f"Creating thumbnail for file: {file_path} with extension: {file_extension}")
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+
+            id_str = str(id)
+            thumbnail_path = os.path.join(current_dir, 'thumbnails')
+            thumbnail_path = os.path.join(thumbnail_path, f"thumbnail_{id_str}.png")
+            print(f"Thumbnail will be saved to: {thumbnail_path}")
+
+            os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
+
+            if file_extension in ['png', 'jpg', 'jpeg', 'bmp', 'gif']:
+                
+                try:
+                    with Image.open(file_path) as img:
+                        img.thumbnail((128, 128))
+                        thumbnail_path = os.path.join(os.path.dirname(file_path), f"thumbnail_{os.path.basename(file_path)}")
+                        img.save(thumbnail_path)
+
+                    db_func.append_to_json(log_json_file_name, {"status": "success", "message": "Thumbnail created successfully", "thumbnail_path": thumbnail_path})
+                    return {
+                        "status": "success",
+                        "thumbnail_path": thumbnail_path
+                    }
+
+                except Exception as e:
+                    print(f"Error creating thumbnail: {e}")
+                    db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error creating thumbnail: {e}"})
+                    return {"status": "error", "message": f"Error creating thumbnail: {e}"}
+
+            elif file_extension in ['mp4', 'avi', 'mov', 'mkv']:
+                # FFmpegのパスを検索
+                ffmpeg_path = find_ffmpeg()
+                
+                if not ffmpeg_path:
+                    # FFmpegが見つからない場合、ダミーサムネイルを作成
+                    error_msg = "FFmpeg not found, creating dummy thumbnail"
+                    print(error_msg)
+                    
+                    try:
+                        # ダミーサムネイルを作成（黒い背景に白いテキスト）
+                        img = Image.new('RGB', (320, 240), color=(0, 0, 0))
+                        draw = ImageDraw.Draw(img)
+                        
+                        # デフォルトフォントを使用
+                        try:
+                            font = ImageFont.load_default()
+                        except:
+                            font = None
+                        
+                        text = "Video\nThumbnail\nNot Available"
+                        draw.text((160, 120), text, fill=(255, 255, 255), font=font, anchor="mm")
+                        img.save(thumbnail_path)
+                        
+                        db_func.append_to_json(log_json_file_name, {"status": "warning", "message": "Dummy thumbnail created (FFmpeg not available)"})
+                        return {"status": "success", "thumbnail_path": thumbnail_path, "warning": "Dummy thumbnail created"}
+                        
+                    except Exception as thumb_error:
+                        error_msg = f"Failed to create dummy thumbnail: {thumb_error}"
+                        print(error_msg)
+                        db_func.append_to_json(log_json_file_name, {"status": "error", "message": error_msg})
+                        return {"status": "error", "message": error_msg}
+                
+                cmd = [ 
+                    ffmpeg_path,
+                    "-loglevel", "error",  # エラーレベルのログのみ出力
+                    "-i",
+                    file_path, 
+                    "-ss", 
+                    "00:00:10", 
+                    "-vframes", 
+                    "1", 
+                    "-y", 
+                    thumbnail_path 
+                ]
+
+                try:
+                    # Windowsのエンコーディング問題を回避するため、バイトモードで実行
+                    # 環境変数でUTF-8を強制
+                    env = os.environ.copy()
+                    env['PYTHONIOENCODING'] = 'utf-8'
+                    
+                    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
+                                          env=env)
+                    
+                    # 手動でUTF-8デコード（エラーを無視）
+                    stdout_text = result.stdout.decode('utf-8', errors='ignore') if result.stdout else ""
+                    stderr_text = result.stderr.decode('utf-8', errors='ignore') if result.stderr else ""
+                    
+                    if result.returncode != 0:
+                        # FFmpegが失敗した場合でもサムネイルファイルが作成されることがあるので確認
+                        if os.path.exists(thumbnail_path):
+                            print(f"Thumbnail created despite FFmpeg warning: {thumbnail_path}")
+                            db_func.append_to_json(log_json_file_name, {"status": "success", "message": "Thumbnail created with warnings", "warning": stderr_text})
+                            return {"status": "success", "thumbnail_path": thumbnail_path, "warning": stderr_text}
+                        else:
+                            error_msg = f"FFmpeg failed: {stderr_text if stderr_text else 'Unknown error'}"
+                            print(error_msg)
+                            db_func.append_to_json(log_json_file_name, {"status": "error", "message": error_msg})
+                            return {"status": "error", "message": error_msg}
+                    
+                    print(f"Thumbnail created successfully at: {thumbnail_path}")
+                except Exception as e:
+                    error_msg = f"Error running FFmpeg: {str(e)}"
+                    print(error_msg)
+                    db_func.append_to_json(log_json_file_name, {"status": "error", "message": error_msg})
+                    return {"status": "error", "message": error_msg}
+
+                if os.path.exists(thumbnail_path):
+                    db_func.append_to_json(log_json_file_name, {"status": "success", "message": "Thumbnail created successfully", "thumbnail_path": thumbnail_path})
+                    return {
+                        "status": "success",
+                        "thumbnail_path": thumbnail_path
+                    }
+                else:
+                    message = "Error creating thumbnail from video."
+                    print(message)
+                    db_func.append_to_json(log_json_file_name, {"status": "error", "message": message})
+                    return {"status": "error", "message": message}
+
+            else:
+                message = "File is not an image. Thumbnail creation skipped."
+                db_func.append_to_json(log_json_file_name, {"status": "error", "message": message})
+                return {"status": "error", "message": message}
