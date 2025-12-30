@@ -52,7 +52,11 @@ async def fold_list_endpoint(folderPath: str):
         with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
-        return {"status": "success", "json_path": json_path, "files": data}
+        return {
+            "status": "success", 
+            "json_path": json_path, 
+            "files": data
+        }
     else:
         return {"status": "error", "json_path": "", "message": result.get("message", "Unknown error")}
 
@@ -140,3 +144,21 @@ async def get_file_thumbnail_endpoint(id: int, jsonPath: str):
         return FileResponse(path=thumbnail_path, filename=thumbnail_name, media_type='image/png')
     else:
         return {"status": "error", "message": result.get("message", "Unknown error")}
+    
+@fold_management_router.get("/files/page")
+async def get_files_page(jsonPath: str, page: int = 1, per_page: int = 50):
+    with open(jsonPath, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    total = len(data)
+    start = (page - 1) * per_page
+    end = start + per_page
+
+    return {
+        "status": "success",
+        "page": page,
+        "per_page": per_page,
+        "total": total,
+        "total_pages": (total + per_page - 1) // per_page,
+        "files": data[start:end]
+    }

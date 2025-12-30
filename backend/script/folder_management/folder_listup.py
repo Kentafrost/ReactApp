@@ -7,15 +7,12 @@ from PIL import Image, ImageDraw, ImageFont
 import subprocess
 import shutil
 
-
+# Function to find FFmpeg executable
 def find_ffmpeg():
-    """FFmpegの実行可能パスを検索"""
-    # 1. システムPATHから検索
     ffmpeg_cmd = shutil.which('ffmpeg')
     if ffmpeg_cmd:
         return ffmpeg_cmd
     
-    # 2. wingetインストール場所を検索
     winget_path = os.path.join(
         os.environ.get('LOCALAPPDATA', ''), 
         'Microsoft', 'WinGet', 'Packages', 
@@ -25,7 +22,6 @@ def find_ffmpeg():
     if os.path.exists(winget_path):
         return winget_path
     
-    # 3. 一般的なインストール場所を検索
     common_paths = [
         r'C:\ffmpeg\bin\ffmpeg.exe',
         r'C:\Program Files\ffmpeg\bin\ffmpeg.exe',
@@ -181,6 +177,9 @@ def file_thumbnail_create(id: int, jsonPath: str):
             thumbnail_path = os.path.join(thumbnail_path, f"thumbnail_{id_str}.png")
             print(f"Thumbnail will be saved to: {thumbnail_path}")
 
+            if os.path.exists(thumbnail_path):
+                os.remove(thumbnail_path)
+                print(f"Existing thumbnail removed: {thumbnail_path}")
             os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
 
             if file_extension in ['png', 'jpg', 'jpeg', 'bmp', 'gif']:
@@ -203,20 +202,18 @@ def file_thumbnail_create(id: int, jsonPath: str):
                     return {"status": "error", "message": f"Error creating thumbnail: {e}"}
 
             elif file_extension in ['mp4', 'avi', 'mov', 'mkv']:
-                # FFmpegのパスを検索
                 ffmpeg_path = find_ffmpeg()
                 
                 if not ffmpeg_path:
-                    # FFmpegが見つからない場合、ダミーサムネイルを作成
                     error_msg = "FFmpeg not found, creating dummy thumbnail"
                     print(error_msg)
                     
                     try:
-                        # ダミーサムネイルを作成（黒い背景に白いテキスト）
+                        # create a dummy thumbnail image
                         img = Image.new('RGB', (320, 240), color=(0, 0, 0))
                         draw = ImageDraw.Draw(img)
                         
-                        # デフォルトフォントを使用
+                        # default font
                         try:
                             font = ImageFont.load_default()
                         except:
@@ -237,11 +234,11 @@ def file_thumbnail_create(id: int, jsonPath: str):
                 
                 cmd = [ 
                     ffmpeg_path,
-                    "-loglevel", "error",  # エラーレベルのログのみ出力
+                    "-loglevel", "error",
                     "-i",
                     file_path, 
                     "-ss", 
-                    "00:00:10", 
+                    "00:03:00", 
                     "-vframes", 
                     "1", 
                     "-y", 
@@ -249,20 +246,19 @@ def file_thumbnail_create(id: int, jsonPath: str):
                 ]
 
                 try:
-                    # Windowsのエンコーディング問題を回避するため、バイトモードで実行
-                    # 環境変数でUTF-8を強制
+                    # Set environment variable for UTF-8 encoding
                     env = os.environ.copy()
                     env['PYTHONIOENCODING'] = 'utf-8'
                     
                     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
                                           env=env)
                     
-                    # 手動でUTF-8デコード（エラーを無視）
+                    # Manually decode UTF-8 (ignore errors)
                     stdout_text = result.stdout.decode('utf-8', errors='ignore') if result.stdout else ""
                     stderr_text = result.stderr.decode('utf-8', errors='ignore') if result.stderr else ""
                     
                     if result.returncode != 0:
-                        # FFmpegが失敗した場合でもサムネイルファイルが作成されることがあるので確認
+                        # Even if FFmpeg fails, check if thumbnail file was created
                         if os.path.exists(thumbnail_path):
                             print(f"Thumbnail created despite FFmpeg warning: {thumbnail_path}")
                             db_func.append_to_json(log_json_file_name, {"status": "success", "message": "Thumbnail created with warnings", "warning": stderr_text})
