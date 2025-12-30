@@ -5,18 +5,32 @@ function FolderManagementUI() {
     const navigate = useNavigate();
 
     // States for folder path to list up and file name change
-    const [basePath, setBasePath] = useState("");
-    const [relativePath, setRelativePath] = useState("");
-    const [folderPath, setFolderPath] = useState("");
+    const [basePath, setBasePath] = useState(() => {
+        return localStorage.getItem('folderManagement_basePath') || "";
+    });
+    const [relativePath, setRelativePath] = useState(() => {
+        return localStorage.getItem('folderManagement_relativePath') || "";
+    });
+    const [folderPath, setFolderPath] = useState(() => {
+        return localStorage.getItem('folderManagement_folderPath') || "";
+    });
 
-    // all folder data
-    const [folderData, setFolderData] = useState(null);
+    // all folder data - restore from localStorage if available
+    const [folderData, setFolderData] = useState(() => {
+        const cached = localStorage.getItem('folderManagement_folderData');
+        return cached ? JSON.parse(cached) : null;
+    });
 
-    // folder graph data
-    const [folderGraphData, setFolderGraphData] = useState([]);
+    // folder graph data - restore from localStorage if available
+    const [folderGraphData, setFolderGraphData] = useState(() => {
+        const cached = localStorage.getItem('folderManagement_folderGraphData');
+        return cached ? JSON.parse(cached) : [];
+    });
 
-    // JSON path for passing to file details page
-    const [fileJsonPath, setFileJsonPath] = useState(null);
+    // JSON path for passing to file details page - restore from localStorage
+    const [fileJsonPath, setFileJsonPath] = useState(() => {
+        return localStorage.getItem('folderManagement_fileJsonPath') || null;
+    });
 
     // File rename state
     const [fileNameChange, setFileNameChange] = useState(false);
@@ -26,6 +40,37 @@ function FolderManagementUI() {
     // Error state
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Save states to localStorage whenever they change
+    useEffect(() => {
+        if (basePath) localStorage.setItem('folderManagement_basePath', basePath);
+    }, [basePath]);
+
+    useEffect(() => {
+        if (relativePath) localStorage.setItem('folderManagement_relativePath', relativePath);
+    }, [relativePath]);
+
+    useEffect(() => {
+        if (folderPath) localStorage.setItem('folderManagement_folderPath', folderPath);
+    }, [folderPath]);
+
+    useEffect(() => {
+        if (folderData) {
+            localStorage.setItem('folderManagement_folderData', JSON.stringify(folderData));
+        }
+    }, [folderData]);
+
+    useEffect(() => {
+        if (folderGraphData) {
+            localStorage.setItem('folderManagement_folderGraphData', JSON.stringify(folderGraphData));
+        }
+    }, [folderGraphData]);
+
+    useEffect(() => {
+        if (fileJsonPath) {
+            localStorage.setItem('folderManagement_fileJsonPath', fileJsonPath);
+        }
+    }, [fileJsonPath]);
 
     // Handler for setting relative path from directory input
     const handlerSetRelativePath = (e) => { 
@@ -133,7 +178,8 @@ function FolderManagementUI() {
                 setIsLoading(false);
             }
         }
-        if (folderPath) {
+        // Only fetch if folderPath exists and we don't have cached data, or if this is a forced refresh
+        if (folderPath && (!folderData || folderData.length === 0)) {
             fetchFolderManagement();
         }
     }, [folderPath]);
