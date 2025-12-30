@@ -670,7 +670,12 @@ function FolderManagementUI() {
                                     color: '#666',
                                     textAlign: 'left'
                                 }}>
-                                    {file.size.toLocaleString()} bytes
+                                    {file.size === 0 ? '0 bytes' : 
+                                     file.size >= 1024 * 1024 * 1024 * 1024 ? `${(file.size / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB` :
+                                     file.size >= 1024 * 1024 * 1024 ? `${(file.size / (1024 * 1024 * 1024)).toFixed(2)} GB` :
+                                     file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` :
+                                     file.size >= 1024 ? `${(file.size / 1024).toFixed(2)} KB` :
+                                     `${file.size.toLocaleString()} bytes`}
                                 </td>
                                 <td style={{ 
                                     padding: '12px',

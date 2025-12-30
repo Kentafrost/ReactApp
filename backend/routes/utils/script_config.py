@@ -1,28 +1,30 @@
 import os
 import json
 import sys
+import boto3
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from script.retrieve_gmail.aws_related_gmail_listup import aws_related_gmail_listup
 from script.retrieve_gmail.credit_online_course_gmail_listup import credit_online_course_gmail_listup
+
 from script.folder_management.filename_convert import file_name_converter
 from script.folder_management.folder_listup import folder_listup, folder_graph_create
-
+from script.folder_management.folder_listup import file_thumbnail_create
 
 import script.db_func as db_func
 
 SCRIPT_FUNCTIONS = { 
-    "credit_online_course_gmail_listup": credit_online_course_gmail_listup, 
-    "aws_related_gmail_listup": aws_related_gmail_listup,
-
-    "file_name_converter": file_name_converter,
-    "folder_listup": folder_listup,
-    "folder_listup": folder_graph_create
+    "credit_online_course_gmail_listup": [credit_online_course_gmail_listup], 
+    "aws_related_gmail_listup": [aws_related_gmail_listup],
+    "folder_listup": [folder_listup, folder_graph_create, file_thumbnail_create],
+    "filename_convert": [file_name_converter]
 }
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(current_dir, "..", "config.json")
 
+ssm_client = boto3.client('ssm', region_name='ap-southeast-2')
+log_table_name = ssm_client.get_parameter(Name='LogTable', WithDecryption=True)['Parameter']['Value']
 
 def load_script_config(script_name: str):
     try:
@@ -47,7 +49,7 @@ def insert_log(script_name):
     if error:
         return error
 
-    table_name = config["table"]
+    table_name = log_table_name
     json_file_name = config["json_file_name"]
     print(f"Debug: Inserting log for table_name={table_name}, json_file_name={json_file_name}")
 

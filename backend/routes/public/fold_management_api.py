@@ -4,6 +4,7 @@ import json
 from fastapi import APIRouter
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from utils.script_config import insert_log
 
 # Pydantic model for file rename request
 class FileRenameRequest(BaseModel):
@@ -51,12 +52,19 @@ async def fold_list_endpoint(folderPath: str):
 
         with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        
+
+        script_name = "folder_listup"
+        print(f"Debug: Script function {script_name} executed successfully")
+
+        log_status = insert_log(script_name)
+        print(f"Debug: Log insert status: {log_status}")
+
         return {
             "status": "success", 
             "json_path": json_path, 
             "files": data
         }
+
     else:
         return {"status": "error", "json_path": "", "message": result.get("message", "Unknown error")}
 
