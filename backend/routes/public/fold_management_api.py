@@ -165,7 +165,7 @@ async def file_rename_endpoint(request: BatchFileRenameRequest):
                     rename_result = {"status": "error", "message": str(e)}
                 
                 if rename_result.get("status") == "success":
-                    item['path'] = rename_result.get("new_file_path")
+                    item['path'] = new_path
 
                     result.append({
                         "status": "success", 
@@ -176,6 +176,10 @@ async def file_rename_endpoint(request: BatchFileRenameRequest):
                 else:
                     print(f"Error renaming file ID {id}: {rename_result.get('message')}")
                 break
+
+    # update the id data in JSON file to reflect new path
+    with open(request.jsonPath, 'w', encoding='utf-8') as wf:
+        json.dump(data, wf, indent=4, ensure_ascii=False)
 
     if all(r.get("status") == "success" for r in result):
         return {

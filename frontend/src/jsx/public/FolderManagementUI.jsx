@@ -361,13 +361,12 @@ function FolderManagementUI() {
             console.log("Rename results:", renameResults);
             
             if (renameResults.status === "success") {
-                // Clear checked files after successful rename
                 setCheckedFiles({});
-                // Optionally reload the folder data
                 setShouldLoadThumbnails(true);
             } else {
                 setError(`Rename failed: ${renameResults.message}`);
             }
+            setError(null);
         } catch (error) {
             console.error("Error renaming files:", error);
             setError(`Error renaming files: ${error.message}`);
