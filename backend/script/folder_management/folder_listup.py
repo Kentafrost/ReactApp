@@ -165,6 +165,13 @@ def file_thumbnail_create(id: int, jsonPath: str):
     with open(jsonPath, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    thumbnail_json_file_name = os.path.join(current_dir, f"thumbnail_log.json")
+    os.makedirs(os.path.dirname(thumbnail_json_file_name), exist_ok=True)
+
+    thumbnail_path = os.path.join(current_dir, 'thumbnails')
+    os.makedirs(thumbnail_path, exist_ok=True)
+
     # Find the file info in the loaded json data
     for item in data:
         item_id = item.get('id')
@@ -173,16 +180,10 @@ def file_thumbnail_create(id: int, jsonPath: str):
             file_extension = item.get('extension').lower()
 
             print(f"Creating thumbnail for file: {file_path} with extension: {file_extension}")
-            current_dir = os.path.dirname(os.path.abspath(__file__))
 
             id_str = str(id)
-            thumbnail_path = os.path.join(current_dir, 'thumbnails')
             thumbnail_path = os.path.join(thumbnail_path, f"thumbnail_{id_str}.png")
             print(f"Thumbnail will be saved to: {thumbnail_path}")
-
-            # if os.path.exists(thumbnail_path):
-            #     os.remove(thumbnail_path)
-            #     print(f"Existing thumbnail removed: {thumbnail_path}")
             os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
 
             if file_extension in ['png', 'jpg', 'jpeg', 'bmp', 'gif']:
@@ -190,15 +191,25 @@ def file_thumbnail_create(id: int, jsonPath: str):
                 try:
                     with Image.open(file_path) as img:
                         img.thumbnail((128, 128))
-                        thumbnail_path = os.path.join(os.path.dirname(file_path), f"thumbnail_{os.path.basename(file_path)}")
+                        thumbnail_path = os.path.join(thumbnail_path, f"thumbnail_{os.path.basename(file_path)}")
                         img.save(thumbnail_path)
 
                     db_func.append_to_json(log_json_file_name, {"status": "success", "message": "Thumbnail created successfully", "thumbnail_path": thumbnail_path})
+
+                    # log thumbnail creation result
+                    message = {
+                        "status": "success", 
+                        "thumbnail_path": thumbnail_path,
+                        "file_name": os.path.basename(file_path)
+                    }
+
+                    with open(thumbnail_json_file_name, 'w', encoding='utf-8') as f:
+                        json.dump(message, f, ensure_ascii=False, indent=4)
+
                     return {
                         "status": "success",
                         "thumbnail_path": thumbnail_path
                     }
-
                 except Exception as e:
                     print(f"Error creating thumbnail: {e}")
                     db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error creating thumbnail: {e}"})

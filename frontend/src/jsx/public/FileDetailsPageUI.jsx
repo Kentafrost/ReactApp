@@ -13,9 +13,6 @@ function FileDetailsPage() {
     const [fileDetails, setFileDetails] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    const [thumbnailData, setThumbnailData] = useState(null);
-    
     // File rename state
     const [fileNameChange, setFileNameChange] = useState(false);
     const [afterfileName, setAfterFileName] = useState("");
@@ -44,20 +41,6 @@ function FileDetailsPage() {
                 setFileDetails(file_info);
                 setAfterFileName(file_info.name);
                 console.log("File Details:", json_file_details);
-
-                // to display thumbnail
-                const res_thumbnail = await fetch(`http://localhost:5000/file/thumbnail?id=${fileId}&jsonPath=${encodeURIComponent(jsonPath)}`);
-                
-                if (res_thumbnail.ok) {
-                    const thumbnail_blob = await res_thumbnail.blob();
-                    const thumbnail_url = URL.createObjectURL(thumbnail_blob);
-                    console.log("Thumbnail URL:", thumbnail_url);
-                    setThumbnailData({thumbnail_url});
-
-                } else {
-                    console.warn(`Thumbnail not available: ${res_thumbnail.status} ${res_thumbnail.statusText}`);
-                }
-
             } catch (err) {
                 console.error(`Fetch error: ${err.message}`);
                 setError(`Fetch error: ${err.message}`);
@@ -395,49 +378,13 @@ function FileDetailsPage() {
                     </tbody>
                 </table>
 
-                {/* Thumbnail section moved to bottom */}
-                {thumbnailData && (
-                    <div style={{ marginTop: '30px', textAlign: 'center' }}>
-                        <h3 style={{ 
-                            marginBottom: '20px',
-                            color: '#333',
-                            borderBottom: '2px solid #28a745',
-                            paddingBottom: '10px',
-                            display: 'inline-block'
-                        }}>
-                            File Preview
-                        </h3>
-                        
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            padding: '20px',
-                            backgroundColor: '#f8f9fa',
-                            borderRadius: '8px',
-                            border: '1px solid #dee2e6'
-                        }}>
-                            <img
-                                src={thumbnailData.thumbnail_url}
-                                alt="File Thumbnail"
-                                style={{ 
-                                    maxWidth: '100%',
-                                    maxHeight: '400px',
-                                    borderRadius: '4px',
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                                }}
-                                onLoad={() => console.log('Thumbnail image loaded successfully')}
-                                onError={(e) => { 
-                                    e.target.style.display = 'none';
-                                    e.target.parentNode.innerHTML = '<p style="color: #666; font-style: italic;">Preview not available</p>';
-                                }}
-                            />
-                        </div>
-                    </div>
-                )}
-
                 {/* video opening */}
-                {fileDetails.extension === 'mp4' && (
+                {(fileDetails.extension === 'mp4' || fileDetails.extension === '.mp4' || 
+                  fileDetails.extension === 'avi' || fileDetails.extension === '.avi' ||
+                  fileDetails.extension === 'mov' || fileDetails.extension === '.mov' ||
+                  fileDetails.extension === 'wmv' || fileDetails.extension === '.wmv' ||
+                  fileDetails.extension === 'flv' || fileDetails.extension === '.flv' ||
+                  fileDetails.extension === 'webm' || fileDetails.extension === '.webm') && (
                     <div style={{ marginTop: '30px', textAlign: 'center' }}>
                         <h3 style={{
                             marginBottom: '20px',
@@ -457,14 +404,20 @@ function FileDetailsPage() {
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                             }}
                         >
-                            <source src={fileDetails.file_url} type="video/mp4" />
+                            <source src={`http://localhost:5000/file/video?id=${fileDetails.id}&jsonPath=${encodeURIComponent(jsonPath)}`} type="video/mp4" />
                             Your browser does not support the video tag.
                         </video>
                     </div>
                 )}
 
                 {/* image opening */}
-                {fileDetails.extension === 'png' && (
+                {(fileDetails.extension === 'png' ||    fileDetails.extension === '.png' ||
+                  fileDetails.extension === 'jpg' || fileDetails.extension === '.jpg' ||
+                  fileDetails.extension === 'jpeg' || fileDetails.extension === '.jpeg' ||
+                  fileDetails.extension === 'gif' || fileDetails.extension === '.gif' ||
+                  fileDetails.extension === 'bmp' || fileDetails.extension === '.bmp' ||
+                  fileDetails.extension === 'webp' || fileDetails.extension === '.webp' ||
+                  fileDetails.extension === 'svg' || fileDetails.extension === '.svg') && (
                     <div style={{ marginTop: '30px', textAlign: 'center' }}>
                         <h3 style={{
                             marginBottom: '20px',
@@ -476,7 +429,7 @@ function FileDetailsPage() {
                             Image Preview
                         </h3>
                         <img 
-                            src={fileDetails.file_url}
+                            src={`http://localhost:5000/file/image?id=${fileDetails.id}&jsonPath=${encodeURIComponent(jsonPath)}`}
                             alt={fileDetails.name}
                             style={{
                                 maxWidth: '100%',

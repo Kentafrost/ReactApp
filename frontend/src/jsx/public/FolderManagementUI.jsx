@@ -33,6 +33,20 @@ function FolderManagementUI() {
     });
 
     const [fileDataGet, setFileDataGet] = useState(false);
+    const [thumbnailList, setThumbnailList] = useState({});
+    const [thumbnailLoadingState, setThumbnailLoadingState] = useState({}); // Track loading state per file
+
+    // thumbnail cache state - exclude blob URLs from persistence
+    const [thumbnailCache, setThumbnailCache] = useState(() => {
+        // Don't restore blob URLs from localStorage as they become invalid
+        return {}; // Always start with empty cache for blob URLs
+    });
+
+    const [blobUrlsToCleanup, setBlobUrlsToCleanup] = useState(new Set()); // Track blob URLs for cleanup
+
+    const [shouldLoadThumbnails, setShouldLoadThumbnails] = useState(false); // Control thumbnail loading independently
+    const [useExistingData, setUseExistingData] = useState(true); // Control whether to use existing JSON files
+    const [jsonFileCache, setJsonFileCache] = useState({}); // Cache for existing JSON file paths
 
     // Error state
     const [error, setError] = useState(null);
@@ -69,6 +83,83 @@ function FolderManagementUI() {
         }
     }, [fileJsonPath]);
 
+    // thumbnail loading function
+    const loadThumbnailsForFiles = async (files, jsonPath) => {
+        if (!files || !Array.isArray(files) || !jsonPath) {
+            console.warn('Invalid parameters for thumbnail loading:', { files: files?.length, jsonPath });
+            return;
+        }
+
+        console.log(`Loading thumbnails for ${files.length} files using JSON: ${jsonPath}`);
+        
+        const fileIds = files.map(file => file.id);
+        
+        const initialLoadingState = {};
+        fileIds.forEach(fileId => {
+            if (thumbnailCache[fileId]) {
+                setThumbnailList(prev => ({ ...prev, [fileId]: thumbnailCache[fileId] }));
+                return;
+            }
+            initialLoadingState[fileId] = true;
+        });
+        setThumbnailLoadingState(initialLoadingState);
+
+        const loadThumbnail = async (fileId) => {
+            if (thumbnailCache[fileId]) {
+                setThumbnailList(prev => ({ ...prev, [fileId]: thumbnailCache[fileId] }));
+                setThumbnailLoadingState(prev => ({ ...prev, [fileId]: false }));
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `http://localhost:5000/file/thumbnail?id=${fileId}&jsonPath=${encodeURIComponent(jsonPath)}`,
+                    { cache: 'force-cache' }
+                );
+                
+                if (response.ok) {
+                    const thumbnail_blob = await response.blob();
+                    if (thumbnail_blob && thumbnail_blob.size > 0) {
+                        const thumbnail_url = URL.createObjectURL(thumbnail_blob);
+                        setThumbnailList(prev => ({ ...prev, [fileId]: thumbnail_url }));
+                        setThumbnailCache(prev => ({ ...prev, [fileId]: thumbnail_url }));
+                        setBlobUrlsToCleanup(prev => new Set([...prev, thumbnail_url]));
+                        console.log(`Thumbnail loaded for file ${fileId}`);
+                    }
+                } else if (response.status !== 404) {
+                    console.error(`Thumbnail error for ${fileId}:`, response.status);
+                }
+            } catch (error) {
+                console.error(`Failed to load thumbnail for file ${fileId}:`, error);
+            } finally {
+                setThumbnailLoadingState(prev => ({ ...prev, [fileId]: false }));
+            }
+        };
+
+        const chunkSize = 3;
+        const filesToLoad = fileIds.filter(fileId => !thumbnailCache[fileId]);
+        
+        for (let i = 0; i < filesToLoad.length; i += chunkSize) {
+            const chunk = filesToLoad.slice(i, i + chunkSize);
+            await Promise.allSettled(chunk.map(fileId => loadThumbnail(fileId)));
+            
+            if (i + chunkSize < filesToLoad.length) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+        }
+        
+        console.log(`🎯 Thumbnail loading completed`);
+    };
+
+    // useEffect for thumbnail loading
+    useEffect(() => {
+        if (shouldLoadThumbnails && folderData && fileJsonPath) {
+            console.log('Triggering independent thumbnail loading');
+            loadThumbnailsForFiles(folderData, fileJsonPath);
+            setShouldLoadThumbnails(false);
+        }
+    }, [shouldLoadThumbnails, folderData, fileJsonPath]);
+
     // Handler for setting relative path from directory input
     const handlerSetRelativePath = (e) => { 
         const files = Array.from(e.target.files); 
@@ -95,14 +186,48 @@ function FolderManagementUI() {
     const [checkedFiles, setCheckedFiles] = useState({});
 
     useEffect(() => {
-        fetch(`http://localhost:5000/files/page?jsonPath=${encodeURIComponent(fileJsonPath)}&page=${page}&per_page=50`)
-            .then(res => res.json())
-            .then(data => {
-            setFolderData(data.files);
-            setTotalPages(data.total_pages);
-            });
-        }, [page, fileJsonPath]
-    );
+        // Only fetch if fileJsonPath is available and valid
+        if (!fileJsonPath) {
+            console.warn('No fileJsonPath available for pagination');
+            return;
+        }
+
+        const fetchPageData = async () => {
+            try {
+                console.log(`Fetching page ${page} with jsonPath: ${fileJsonPath}`);
+                const response = await fetch(`http://localhost:5000/files/page?jsonPath=${encodeURIComponent(fileJsonPath)}&page=${page}&per_page=50`);
+                
+                if (!response.ok) {
+                    console.error(`HTTP Error: ${response.status} ${response.statusText}`);
+                    setError(`Failed to fetch page data: ${response.status} ${response.statusText}`);
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('Page data response:', data);
+                
+                if (data.status === 'error') {
+                    console.error('Backend error:', data.message);
+                    setError(`Backend Error: ${data.message}`);
+                    return;
+                }
+
+                if (data.files && Array.isArray(data.files)) {
+                    setFolderData(data.files);
+                    setTotalPages(data.total_pages || 1);
+                    setError(null); // Clear any previous errors
+                } else {
+                    console.error('Invalid response format:', data);
+                    setError('Invalid response format from server');
+                }
+            } catch (error) {
+                console.error('Error fetching page data:', error);
+                setError(`Network error: ${error.message}`);
+            }
+        };
+
+        fetchPageData();
+    }, [page, fileJsonPath]);
 
     // handler for checkbox change
     const handleCheck = (fileId, checked) => {
@@ -148,11 +273,21 @@ function FolderManagementUI() {
         }
     };
     
+    const checkExistingJsonFile = async (folderPath) => {
+        const res_check = await fetch(
+            `http://localhost:5000/folder/json/check-existing?folderPath=${encodeURIComponent(folderPath)}`
+        );
+        if (!res_check.ok) {
+            console.error('Error checking existing JSON file:', res_check.status, res_check.statusText);
+        }
+        const data_check = await res_check.json();
+        console.log('Existing JSON file check result:', data_check);            
+        return data_check; // { exists: bool, json_path: string|null, source: 'server'|'local'|null }
+    };
 
     // useEffect for fetching folder data when folderPath changes
     useEffect(() => {
         async function fetchFolderManagement() {
-
             setIsLoading(true);
             if (!folderPath) {
                 setError('Folder path is not set');
@@ -166,7 +301,53 @@ function FolderManagementUI() {
             }
 
             try {
-                console.log("Fetching data for folderPath:", folderPath);
+                // Always check for existing JSON file first (unless force refresh)
+                if (useExistingData) {
+                    console.log("Checking for existing JSON file...");
+                    const existingCheck = await checkExistingJsonFile(folderPath);
+                    console.log("Existing JSON file check:", existingCheck.json_path);
+
+                    if (existingCheck.exists === true) {
+                        console.log(`Existing JSON file found (${existingCheck.source}):`, existingCheck.json_path);
+                        
+                        try {
+                            // Load existing data
+                            const response = await fetch(`http://localhost:5000/files/page?jsonPath=${encodeURIComponent(existingCheck.json_path)}&page=${page}&per_page=50`);
+                            if (response.ok) {
+                                const data = await response.json();
+                                if (data.status === 'success' && data.files) {
+                                    setFileJsonPath(existingCheck.json_path);
+                                    setFolderData(data.files);
+                                    setError(null);
+                                    setIsLoading(false);
+                                    
+                                    // Update cache if data came from server
+                                    if (existingCheck.source === 'server') {
+                                        setJsonFileCache(prev => ({
+                                            ...prev,
+                                            [folderPath]: existingCheck.json_path
+                                        }));
+                                    }
+                                    
+                                    // Trigger thumbnail loading for existing data
+                                    setShouldLoadThumbnails(true);
+                                    
+                                    console.log(`Loaded ${data.files.length} files from existing JSON (${existingCheck.source})`);
+                                    return; // Exit early, don't create new JSON
+                                }
+                            }
+                        } catch (error) {
+                            console.warn('Failed to load existing data, will create new:', error);
+                            // Remove invalid cache entry
+                            const newCache = { ...jsonFileCache };
+                            delete newCache[folderPath];
+                            setJsonFileCache(newCache);
+                        }
+                    }
+                }
+
+                // Only create new JSON if no existing file found or force refresh
+                console.log("Creating new JSON file (existing not found or force refresh)...");
 
                 // Fetch folder list data
                 console.log("Fetching folder list data...");
@@ -206,23 +387,21 @@ function FolderManagementUI() {
                 }
                 
                 const json_path = json_folder_list.json_path;
-
-                console.log("Folder list JSON path:", json_path);
-                console.log("Folder list data:", json_folder_list.files);
+                setFileJsonPath(json_path);
                 
                 if (!json_folder_list.files || !Array.isArray(json_folder_list.files)) {
                     setError('Invalid response: files data is missing or not an array');
                     setIsLoading(false);
                     return;
-                }
-                
-                setFileJsonPath(json_path);
+                }                
                 setFolderData(json_folder_list.files.slice(0, 50));
+                console.log(folderData);
 
                 // Fetch folder graph data
                 console.log("Fetching folder graph data...");
                 const res = await fetch(
-                    `http://localhost:5000/folder/graph/create?folderPath=${encodeURIComponent(folderPath)}`);
+                    `http://localhost:5000/folder/graph/create?folderPath=${encodeURIComponent(folderPath)}`
+                );
                 if (!res.ok) {
                     console.log("Graph fetch failed:", res.status, res.statusText);
                     setError(`Graph Error: ${res.status} ${res.statusText}`);
@@ -237,16 +416,21 @@ function FolderManagementUI() {
                 setIsLoading(false);
                 setError(null); // Clear previous errors
 
+                // Trigger independent thumbnail loading
+                setShouldLoadThumbnails(true);
+
             } catch (err) {
                 setError(`Fetch error: ${err.message}`);
                 setIsLoading(false);
+            } finally {
+                setUseExistingData(true);
             }
         }
-        // Fetch if folderPath exists and fileDataGet is true
+        // Fetch only when explicitly requested via fileDataGet trigger
         if (folderPath && fileDataGet) {
             fetchFolderManagement();
         }
-    }, [folderPath, fileDataGet]);
+    }, [fileDataGet]);
 
 
     // Manual search handler
@@ -256,15 +440,8 @@ function FolderManagementUI() {
             return;
         }
         
-        // Clear cached data for fresh search
-        localStorage.removeItem('folderManagement_folderData');
-        localStorage.removeItem('folderManagement_folderGraphData');
-        localStorage.removeItem('folderManagement_fileJsonPath');
-        
-        // Reset states
-        setFolderData(null);
-        setFolderGraphData([]);
-        setFileJsonPath(null);
+        console.log('Search requested - using existing data if available');
+        setUseExistingData(true); // Try to use existing data
         setError(null);
         setPage(1); // Reset pagination
         
@@ -286,163 +463,132 @@ function FolderManagementUI() {
                 borderRadius: '8px',
                 overflow: 'hidden'
             }}>
-                <thead>
-                    <tr style={{ backgroundColor: '#f8f9fa' }}>
-                        <th style={{ 
-                            padding: '12px', 
-                            textAlign: 'left',
-                            borderBottom: '2px solid #dee2e6',
-                            fontWeight: 'bold',
-                            width: '180px'
-                        }}>
-                            Setting
-                        </th>
-                        <th style={{ 
-                            padding: '12px', 
-                            textAlign: 'left',
-                            borderBottom: '2px solid #dee2e6',
-                            fontWeight: 'bold',
-                            width: '40%'
-                        }}>
-                            Input Method 1
-                        </th>
-                        <th style={{ 
-                            padding: '12px', 
-                            textAlign: 'left',
-                            borderBottom: '2px solid #dee2e6',
-                            fontWeight: 'bold',
-                            width: '40%'
-                        }}>
-                            Input Method 2
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr style={{ backgroundColor: '#ffffff' }}>
-                        <td style={{ 
-                            padding: '12px',
-                            backgroundColor: '#f8f9fa',
-                            fontWeight: 'bold',
-                            textAlign: 'left',
-                            borderBottom: '1px solid #dee2e6',
-                            verticalAlign: 'top'
-                        }}>
-                            Base Folder Path
-                        </td>
-                        <td style={{ 
-                            padding: '12px',
-                            textAlign: 'left',
-                            borderBottom: '1px solid #dee2e6',
-                            verticalAlign: 'top'
-                        }} colSpan="2">
-                            <input 
-                                type="text" 
-                                value={basePath}
-                                onChange={(e) => setBasePath(e.target.value)}
-                                style={{ 
-                                    width: '100%', 
-                                    padding: '8px',
-                                    border: '1px solid #ced4da',
-                                    borderRadius: '4px',
-                                    fontSize: '14px'
-                                }}
-                                placeholder="e.g., C:/Users/YourName/Documents"
-                            />
-                            <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                                Enter the base directory path
-                            </small>
-                        </td>
-                    </tr>
-                    <tr style={{ backgroundColor: '#f8f9fa' }}>
-                        <td style={{ 
-                            padding: '12px',
-                            backgroundColor: '#f8f9fa',
-                            fontWeight: 'bold',
-                            textAlign: 'left',
-                            borderBottom: '1px solid #dee2e6',
-                            verticalAlign: 'top'
-                        }}>
-                            Relative Path
-                        </td>
-                        <td style={{ 
-                            padding: '12px',
-                            textAlign: 'left',
-                            borderBottom: '1px solid #dee2e6',
-                            borderRight: '1px solid #dee2e6',
-                            verticalAlign: 'top'
-                        }}>
-                            <div style={{ marginBottom: '8px', fontWeight: 'bold', fontSize: '13px', color: '#495057' }}>
-                                Manual Input
-                            </div>
-                            <input 
-                                type="text" 
-                                value={relativePath}
-                                onChange={(e) => setRelativePath(e.target.value)}
-                                style={{ 
-                                    width: '100%', 
-                                    padding: '8px',
-                                    border: '1px solid #ced4da',
-                                    borderRadius: '4px',
-                                    fontSize: '14px'
-                                }}
-                                placeholder="Enter folder name"
-                            />
-                            <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                                Type folder name manually
-                            </small>
-                        </td>
-                        <td style={{ 
-                            padding: '12px',
-                            textAlign: 'left',
-                            borderBottom: '1px solid #dee2e6',
-                            verticalAlign: 'top'
-                        }}>
-                            <div style={{ marginBottom: '8px', fontWeight: 'bold', fontSize: '13px', color: '#495057' }}>
-                                Folder Browser
-                            </div>
-                            <input 
-                                type="file" 
-                                webkitdirectory="true"
-                                directory=""
-                                onChange={handlerSetRelativePath}
-                                style={{ 
-                                    width: '100%',
-                                    padding: '8px',
-                                    border: '1px solid #ced4da',
-                                    borderRadius: '4px',
-                                    fontSize: '14px',
-                                    backgroundColor: '#fff'
-                                }}
-                            />
-                            <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                                Select folder using file browser
-                            </small>
-                        </td>
-                    </tr>
-                    {basePath && relativePath && (
-                        <tr style={{ backgroundColor: '#e8f5e8' }}>
-                            <td style={{ 
-                                padding: '12px',
-                                backgroundColor: '#d4edda',
-                                fontWeight: 'bold',
-                                textAlign: 'left',
-                                color: '#155724'
-                            }}>
-                                Full Path Preview
-                            </td>
-                            <td style={{ 
-                                padding: '12px',
-                                textAlign: 'left',
-                                color: '#155724',
-                                fontFamily: 'monospace',
+            <tbody>
+                <tr style={{ backgroundColor: '#ffffff' }}>
+                    <td style={{ 
+                        padding: '12px',
+                        backgroundColor: '#f8f9fa',
+                        fontWeight: 'bold',
+                        textAlign: 'left',
+                        borderBottom: '1px solid #dee2e6',
+                        verticalAlign: 'top'
+                    }}>
+                        Base Folder Path
+                    </td>
+                    <td style={{ 
+                        padding: '12px',
+                        textAlign: 'left',
+                        borderBottom: '1px solid #dee2e6',
+                        verticalAlign: 'top'
+                    }} colSpan="2">
+                        <input 
+                            type="text" 
+                            value={basePath}
+                            onChange={(e) => setBasePath(e.target.value)}
+                            style={{ 
+                                width: '100%', 
+                                padding: '8px',
+                                border: '1px solid #ced4da',
+                                borderRadius: '4px',
+                                fontSize: '14px'
+                            }}
+                            placeholder="e.g., C:/Users/YourName/Documents"
+                        />
+                        <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                            Enter the base directory path
+                        </small>
+                    </td>
+                </tr>
+                <tr style={{ backgroundColor: '#f8f9fa' }}>
+                    <td style={{ 
+                        padding: '12px',
+                        backgroundColor: '#f8f9fa',
+                        fontWeight: 'bold',
+                        textAlign: 'left',
+                        borderBottom: '1px solid #dee2e6',
+                        verticalAlign: 'top'
+                    }}>
+                        Relative Path
+                    </td>
+                    <td style={{ 
+                        padding: '12px',
+                        textAlign: 'left',
+                        borderBottom: '1px solid #dee2e6',
+                        borderRight: '1px solid #dee2e6',
+                        verticalAlign: 'top'
+                    }}>
+                        <div style={{ marginBottom: '8px', fontWeight: 'bold', fontSize: '13px', color: '#495057' }}>
+                            Manual Input
+                        </div>
+                        <input 
+                            type="text" 
+                            value={relativePath}
+                            onChange={(e) => setRelativePath(e.target.value)}
+                            style={{ 
+                                width: '100%', 
+                                padding: '8px',
+                                border: '1px solid #ced4da',
+                                borderRadius: '4px',
+                                fontSize: '14px'
+                            }}
+                            placeholder="Enter folder name"
+                        />
+                        <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                            Type folder name manually
+                        </small>
+                    </td>
+                    <td style={{ 
+                        padding: '12px',
+                        textAlign: 'left',
+                        borderBottom: '1px solid #dee2e6',
+                        verticalAlign: 'top'
+                    }}>
+                        <div style={{ marginBottom: '8px', fontWeight: 'bold', fontSize: '13px', color: '#495057' }}>
+                            Folder Browser
+                        </div>
+                        <input 
+                            type="file" 
+                            webkitdirectory="true"
+                            directory=""
+                            onChange={handlerSetRelativePath}
+                            style={{ 
+                                width: '100%',
+                                padding: '8px',
+                                border: '1px solid #ced4da',
+                                borderRadius: '4px',
                                 fontSize: '14px',
-                                wordBreak: 'break-all'
-                            }} colSpan="2">
-                                <strong>{basePath}/{relativePath}</strong>
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
+                                backgroundColor: '#fff'
+                            }}
+                        />
+                        <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                            Select folder using file browser
+                        </small>
+                    </td>
+                </tr>
+                {basePath && relativePath && (
+                    <tr style={{ backgroundColor: '#e8f5e8' }}>
+                        <td style={{ 
+                            padding: '12px',
+                            backgroundColor: '#d4edda',
+                            fontWeight: 'bold',
+                            textAlign: 'left',
+                            color: '#155724'
+                        }}>
+                            Full Path Preview
+                        </td>
+                        <td style={{ 
+                            padding: '12px',
+                            textAlign: 'left',
+                            color: '#155724',
+                            fontFamily: 'monospace',
+                            fontSize: '14px',
+                            wordBreak: 'break-all'
+                        }} colSpan="2">
+                            <strong>{basePath}/{relativePath}</strong>
+                        </td>
+                    </tr>
+                )}
+            </tbody>
             </table>
 
             {/* Search Controls */}
@@ -461,7 +607,7 @@ function FolderManagementUI() {
                     flexWrap: 'wrap'
                 }}>
                     <button 
-                        onClick={handleSearch}
+                        onClick={() => handleSearch(false)}
                         disabled={isLoading || !basePath || !relativePath}
                         style={{ 
                             padding: '12px 24px',
@@ -477,26 +623,10 @@ function FolderManagementUI() {
                             gap: '8px'
                         }}
                     >
-                        🔍 {isLoading ? 'Searching...' : 'Search Folder'}
+                        {isLoading ? 'Searching...' : 'Search'}
                     </button>
                     
-                    <button 
-                        onClick={() => setFileDataGet(true)}
-                        disabled={isLoading}
-                        style={{ 
-                            padding: '12px 24px',
-                            backgroundColor: isLoading ? '#6c757d' : '#007bff',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: isLoading ? 'not-allowed' : 'pointer',
-                            fontSize: '16px',
-                            fontWeight: 'bold'
-                        }}
-                    >
-                        📁 {isLoading ? 'Loading...' : 'Load Cached Data'}
-                    </button>
-                    
+
                     {folderData && (
                         <span style={{ 
                             color: '#28a745', 
@@ -521,11 +651,44 @@ function FolderManagementUI() {
                         💡 Please set both Base Path and Relative Path to enable searching
                     </div>
                 )}
+                
+                {/* Search Mode Explanation */}
+                <div style={{
+                    marginTop: '10px',
+                    padding: '12px',
+                    backgroundColor: '#d1ecf1',
+                    border: '1px solid #bee5eb',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                }}>
+                    <div style={{ marginBottom: '8px' }}>
+                        <strong>Search:</strong> Checks for existing JSON files first, creates new one only if needed
+                    </div>
+                </div>
             </div>
 
-            {error && <p style={{ color: 'red' }}>{error}</p>}
+            {/* Loading Indicator */}
+            {isLoading && 
+                <p style={{ color: '#007bff', fontWeight: 'bold' }}>
+                    Loading folder data...
+                </p>
+            }
 
-            {isLoading && <p>Loading folder data...</p>}
+            {/* Error Display */}
+            {error && (
+                <div style={{ 
+                    marginTop: '20px', 
+                    padding: '10px', 
+                    backgroundColor: '#f8d7da', 
+                    color: '#721c24',
+                    border: '1px solid #f5c6cb',
+                    borderRadius: '4px'
+                }}>
+                    {error}
+                </div>
+            )}
+
+            <br />
 
             {/* Folder List Data */}
             {folderData && (
@@ -586,101 +749,157 @@ function FolderManagementUI() {
 
                     <h3>Files in Folder Data</h3>
 
-                    <table style={{
-                    width: '100%',
-                    borderCollapse: 'collapse',
-                    marginTop: '20px',
-                    backgroundColor: 'white',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                    borderRadius: '8px',
-                    overflow: 'hidden'
-                }}>
-                    <thead>
-                        <tr style={{ backgroundColor: '#f8f9fa' }}>
-                            <th style={{ 
-                                padding: '12px', 
-                                textAlign: 'left',
-                                borderBottom: '2px solid #dee2e6',
-                                fontWeight: 'bold'
-                            }}>
-                                File Path
-                            </th>
-                            <th style={{ 
-                                padding: '12px', 
-                                textAlign: 'left',
-                                borderBottom: '2px solid #dee2e6',
-                                fontWeight: 'bold',
-                                width: '120px'
-                            }}>
-                                Size
-                            </th>
-                            <th style={{ 
-                                padding: '12px', 
-                                textAlign: 'left',
-                                borderBottom: '2px solid #dee2e6',
-                                fontWeight: 'bold',
-                                width: '100px'
-                            }}>
-                                Extension
-                            </th>
-                            <th style={{ 
-                                padding: '12px', 
-                                textAlign: 'center',
-                                borderBottom: '2px solid #dee2e6',
-                                fontWeight: 'bold',
-                                width: '200px'
-                            }}>
-                                Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    
-                    <tbody>
+                    {/* File Cards Display */}
+                    <div style={{ 
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+                        gap: '20px',
+                        padding: '20px 0'
+                    }}>
                         {folderData.map((file, index) => (
-                            <tr key={file.path} style={{ 
-                                backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8f9fa',
-                                borderBottom: '1px solid #dee2e6'
-                            }}>
-                                <td style={{ 
-                                    padding: '12px',
-                                    wordBreak: 'break-word',
-                                    fontSize: '14px',
-                                    textAlign: 'left'
+                            <div key={file.path} style={{
+                                backgroundColor: '#ffffff',
+                                border: '1px solid #dee2e6',
+                                borderRadius: '12px',
+                                padding: '20px',
+                                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                                transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.15)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                            }}
+                            >
+                                {/* Header with file name and extension */}
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: '15px',
+                                    borderBottom: '1px solid #e9ecef',
+                                    paddingBottom: '10px'
                                 }}>
-                                    {file.path}
-                                </td>
-                                <td style={{ 
-                                    padding: '12px',
-                                    fontSize: '14px',
-                                    color: '#666',
-                                    textAlign: 'left'
-                                }}>
-                                    {file.size === 0 ? '0 bytes' : 
-                                     file.size >= 1024 * 1024 * 1024 * 1024 ? `${(file.size / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB` :
-                                     file.size >= 1024 * 1024 * 1024 ? `${(file.size / (1024 * 1024 * 1024)).toFixed(2)} GB` :
-                                     file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` :
-                                     file.size >= 1024 ? `${(file.size / 1024).toFixed(2)} KB` :
-                                     `${file.size.toLocaleString()} bytes`}
-                                </td>
-                                <td style={{ 
-                                    padding: '12px',
-                                    fontSize: '14px',
-                                    textAlign: 'left'
-                                }}>
+                                    <h4 style={{
+                                        margin: 0,
+                                        fontSize: '16px',
+                                        fontWeight: 'bold',
+                                        color: '#2c3e50',
+                                        wordBreak: 'break-word',
+                                        flex: 1
+                                    }}>
+                                        {file.name || 'Unknown File'}
+                                    </h4>
                                     <span style={{
                                         backgroundColor: '#e9ecef',
-                                        padding: '2px 8px',
+                                        padding: '4px 8px',
                                         borderRadius: '12px',
                                         fontSize: '12px',
                                         fontWeight: 'bold',
-                                        color: '#495057'
+                                        color: '#495057',
+                                        marginLeft: '10px'
                                     }}>
                                         {file.extension || 'none'}
                                     </span>
-                                </td>
-                                <td style={{ 
-                                    padding: '12px',
-                                    textAlign: 'center'
+                                </div>
+
+                                {/* Thumbnail - Much Larger */}
+                                <div style={{
+                                    textAlign: 'center',
+                                    marginBottom: '15px'
+                                }}>
+                                    {thumbnailLoadingState[file.id] ? (
+                                        <div style={{ 
+                                            width: '200px',
+                                            height: '200px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            backgroundColor: '#f1f3f5',
+                                            borderRadius: '8px',
+                                            border: '1px solid #dee2e6',
+                                            color: '#6c757d',
+                                            fontSize: '14px',
+                                            margin: '0 auto'
+                                        }}>
+                                            Loading...
+                                        </div>
+                                    ) : thumbnailList[file.id] ? (
+                                        <img
+                                            src={thumbnailList[file.id]}
+                                            alt="Thumbnail"
+                                            style={{ 
+                                                width: '200px',
+                                                height: '200px',
+                                                objectFit: 'cover',
+                                                borderRadius: '8px',
+                                                border: '1px solid #dee2e6',
+                                                cursor: 'pointer'
+                                            }}
+                                            onClick={() => {
+                                                if (fileJsonPath) {
+                                                    navigate(`/file/details/${file.id}`, { state: { jsonPath: fileJsonPath, file: file } });
+                                                } else {
+                                                    setError('JSON path is not available. Please reload the folder data.');
+                                                }
+                                            }}
+                                        />
+                                    ) : (
+                                        <div style={{ 
+                                            width: '200px',
+                                            height: '200px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            backgroundColor: '#f1f3f5',
+                                            borderRadius: '8px',
+                                            border: '1px solid #dee2e6',
+                                            color: '#6c757d',
+                                            fontSize: '14px',
+                                            margin: '0 auto'
+                                        }}>
+                                            No Thumbnail
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* File Info */}
+                                <div style={{
+                                    marginBottom: '15px'
+                                }}>
+                                    <div style={{ 
+                                        fontSize: '14px',
+                                        color: '#666',
+                                        marginBottom: '8px'
+                                    }}>
+                                        <strong>Size:</strong> {file.size === 0 ? '0 bytes' : 
+                                            file.size >= 1024 * 1024 * 1024 * 1024 ? `${(file.size / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB` :
+                                            file.size >= 1024 * 1024 * 1024 ? `${(file.size / (1024 * 1024 * 1024)).toFixed(2)} GB` :
+                                            file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` :
+                                            file.size >= 1024 ? `${(file.size / 1024).toFixed(2)} KB` :
+                                            `${file.size.toLocaleString()} bytes`}
+                                    </div>
+                                    <div style={{
+                                        fontSize: '12px',
+                                        color: '#888',
+                                        wordBreak: 'break-word',
+                                        backgroundColor: '#f8f9fa',
+                                        padding: '8px',
+                                        borderRadius: '4px'
+                                    }}>
+                                        <strong>Path:</strong> {file.path}
+                                    </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    gap: '10px'
                                 }}>
                                     <button
                                         onClick={() => {
@@ -691,53 +910,63 @@ function FolderManagementUI() {
                                             }
                                         }}
                                         style={{ 
-                                            padding: "8px 12px", 
-                                            marginRight: "8px",
+                                            padding: "10px 16px", 
                                             backgroundColor: '#007bff',
                                             color: 'white',
                                             border: 'none',
-                                            borderRadius: '4px',
+                                            borderRadius: '6px',
                                             cursor: 'pointer',
-                                            fontSize: '12px'
+                                            fontSize: '14px',
+                                            fontWeight: 'bold',
+                                            flex: 1
                                         }}
                                     >
-                                        Review File
+                                        View Details
                                     </button>
 
-                                    <th style={
-                                        { 
-                                            padding: '12px', 
-                                            textAlign: 'center',
-                                            borderBottom: '2px solid #dee2e6',
-                                            fontWeight: 'bold',
-                                            width: '150px'
+                                    {/* Rename Check */}
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px'
+                                    }}>
+                                        <label style={{
+                                            fontSize: '12px',
+                                            color: '#666',
+                                            cursor: 'pointer'
                                         }}>
-                                        <input type="checkbox" 
-                                            onChange={(e) => handleCheck(file.id, e.target.checked)}
-                                        />
-                                        Rename Check
-                                    </th>
+                                            <input 
+                                                type="checkbox" 
+                                                onChange={(e) => handleCheck(file.id, e.target.checked)}
+                                                style={{ marginRight: '4px' }}
+                                            />
+                                            Rename
+                                        </label>
+                                    </div>
+                                </div>
 
-                                    {/* Rename input field along the checkbox if it's checked */}
-                                    {checkedFiles[file.id] && (
+                                {/* Rename Input */}
+                                {checkedFiles[file.id] !== undefined && (
+                                    <div style={{ marginTop: '15px' }}>
                                         <input
                                             type="text"
-                                            value={file.id}
+                                            value={checkedFiles[file.id]}
                                             onChange={(e) => renameInputChange(file.id, e.target.value)}
                                             style={{ 
-                                                marginLeft: '10px',
-                                                padding: '4px',
-                                                fontSize: '12px',
-                                                width: '120px'
+                                                width: '100%',
+                                                padding: '8px 12px',
+                                                fontSize: '14px',
+                                                border: '1px solid #ddd',
+                                                borderRadius: '4px',
+                                                backgroundColor: '#f8f9fa'
                                             }}
                                             placeholder={file.name}
-                                        ></input>
-                                    )}
-                                </td>
-                            </tr>
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         ))}
-                    </tbody>
-                </table>
+                    </div>
                 </div>
             )}
 
@@ -764,22 +993,8 @@ function FolderManagementUI() {
                     />
                 </div>
             )}
-
-            {/* Error Display */}
-            {error && (
-                <div style={{ 
-                    marginTop: '20px', 
-                    padding: '10px', 
-                    backgroundColor: '#f8d7da', 
-                    color: '#721c24',
-                    border: '1px solid #f5c6cb',
-                    borderRadius: '4px'
-                }}>
-                    {error}
-                </div>
-            )}
         </div>
-    )
+    );
 }
 
 export default FolderManagementUI;

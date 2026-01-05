@@ -1,9 +1,10 @@
 import os
 import sys
 import json
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from pathlib import Path
 from utils.script_config import insert_log
 
 # Pydantic model for file rename request
@@ -19,6 +20,28 @@ from script.folder_management.filename_convert import file_name_converter
 from script.folder_management.folder_listup import folder_listup, folder_graph_create
 
 fold_management_router = APIRouter()
+
+@fold_management_router.get("/folder/json/check-existing")
+async def check_existing_json_file(folderPath: str):
+    
+    try:
+        grand_parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        json_file = os.path.join(grand_parent_dir, 'script', 'folder_management', 'file_list.json')
+        if os.path.exists(json_file):
+            return {
+                "status": "success", 
+                "exists": True,
+                "json_path": json_file
+            }
+        else:
+            return {
+                "status": "success", 
+                "exists": False,
+                "json_path": ""
+            }
+    except Exception as e:
+        insert_log(f"Error checking existing JSON file for {folderPath}: {e}")
+        return {"status": "error", "message": str(e), "exists": False}
 
 """ 
 API endpoint to list up all folders and their contents 
@@ -148,6 +171,80 @@ async def get_file_details_endpoint(id: int, jsonPath: str):
         return {"status": "error", "message": f"Error reviewing files: {e}"}
     
 """
+API endpoint to get existing thumbnail for a file from folder
+"""
+@fold_management_router.get("/file/thumbnail/existing")
+async def get_existing_thumbnail_endpoint(id: str, jsonPath: str):
+    """
+    Try to get an existing thumbnail file from the folder before generating a new one.
+    This improves performance by reusing existing thumbnails when available.
+    """
+    try:
+        # Load the JSON file to get file information
+        with open(jsonPath, 'r', encoding='utf-8') as f:
+            json_data = json.load(f)
+        
+        # Find the file with the given ID
+        target_file = None
+        for file in json_data.get('files', []):
+            if str(file.get('id')) == str(id):
+                target_file = file
+                break
+        
+        if not target_file:
+            insert_log(f"File with ID {id} not found in JSON")
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        file_path = Path(target_file.get('path', ''))
+        if not file_path.exists():
+            insert_log(f"Original file does not exist: {file_path}")
+            raise HTTPException(status_code=404, detail="Original file not found")
+        
+        # Check for existing thumbnail files in the same directory
+        file_stem = file_path.stem
+        file_dir = file_path.parent
+        
+        # Common thumbnail naming patterns and extensions
+        thumbnail_patterns = [
+            f"{file_stem}_thumb.*",
+            f"{file_stem}_thumbnail.*", 
+            f"thumb_{file_stem}.*",
+            f"thumbnail_{file_stem}.*",
+            f"{file_stem}.thumb.*"
+        ]
+        
+        thumbnail_extensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp']
+        
+        # Search for existing thumbnails
+        existing_thumbnail = None
+        for pattern in thumbnail_patterns:
+            for ext in thumbnail_extensions:
+                search_pattern = pattern.replace('.*', ext)
+                matches = list(file_dir.glob(search_pattern))
+                if matches:
+                    existing_thumbnail = matches[0]  # Take the first match
+                    break
+            if existing_thumbnail:
+                break
+        
+        if existing_thumbnail and existing_thumbnail.exists():
+            insert_log(f"Found and serving existing thumbnail: {existing_thumbnail}")
+            return FileResponse(
+                path=str(existing_thumbnail),
+                media_type=f"image/{existing_thumbnail.suffix[1:]}"
+            )
+        else:
+            insert_log(f"No existing thumbnail found for file: {file_path.name}")
+            raise HTTPException(status_code=404, detail="No existing thumbnail available")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        insert_log(f"Error checking existing thumbnail for ID {id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+"""
 API endpoint to get thumbnail for a file
 """
 @fold_management_router.get("/file/thumbnail")
@@ -168,21 +265,170 @@ async def get_file_thumbnail_endpoint(id: int, jsonPath: str):
         return FileResponse(path=thumbnail_path, filename=thumbnail_name, media_type='image/png')
     else:
         return {"status": "error", "message": result.get("message", "Unknown error")}
+
+"""
+API endpoint to serve video files
+"""
+@fold_management_router.get("/file/video")
+async def serve_video_file(id: int, jsonPath: str):
+    try:
+        with open(jsonPath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        # Find the file info in the loaded json data
+        for item in data:
+            if item['id'] == id:
+                file_path = item['path']
+                file_name = os.path.basename(file_path)
+                
+                print(f"Serving video file: {file_path}")
+                
+                if not os.path.exists(file_path):
+                    return {"error": "Video file does not exist"}
+                
+                # Determine media type based on file extension
+                _, ext = os.path.splitext(file_name)
+                media_type_map = {
+                    '.mp4': 'video/mp4',
+                    '.avi': 'video/x-msvideo',
+                    '.mov': 'video/quicktime',
+                    '.wmv': 'video/x-ms-wmv',
+                    '.flv': 'video/x-flv',
+                    '.webm': 'video/webm'
+                }
+                media_type = media_type_map.get(ext.lower(), 'video/mp4')
+                
+                return FileResponse(path=file_path, filename=file_name, media_type=media_type)
+        
+        return {"error": "File not found in the listed data"}
     
+    except Exception as e:
+        return {"status": "error", "message": f"Error serving video file: {e}"}
+
+"""
+API endpoint to serve image files
+"""
+@fold_management_router.get("/file/image")
+async def serve_image_file(id: int, jsonPath: str):
+    try:
+        with open(jsonPath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        # Find the file info in the loaded json data
+        for item in data:
+            if item['id'] == id:
+                file_path = item['path']
+                file_name = os.path.basename(file_path)
+                
+                print(f"Serving image file: {file_path}")
+                
+                if not os.path.exists(file_path):
+                    return {"error": "Image file does not exist"}
+                
+                # Determine media type based on file extension
+                _, ext = os.path.splitext(file_name)
+                media_type_map = {
+                    '.png': 'image/png',
+                    '.jpg': 'image/jpeg',
+                    '.jpeg': 'image/jpeg',
+                    '.gif': 'image/gif',
+                    '.bmp': 'image/bmp',
+                    '.webp': 'image/webp',
+                    '.svg': 'image/svg+xml'
+                }
+                media_type = media_type_map.get(ext.lower(), 'image/png')
+                
+                return FileResponse(path=file_path, filename=file_name, media_type=media_type)
+        
+        return {"error": "File not found in the listed data"}
+    except Exception as e:
+        return {"status": "error", "message": f"Error serving image file: {e}"}
+
+"""
+API endpoint to serve thumbnail image files
+"""
+@fold_management_router.get("/file/thumbnail")
+async def serve_image_file(path: str):
+    try:
+        print(f"Serving thumbnail file: {path}")
+        
+        if not os.path.exists(path):
+            return {"error": "Thumbnail file does not exist"}
+        return FileResponse(path=path, filename=os.path.basename(path), media_type='image/png')
+    except Exception as e:
+        return {"status": "error", "message": f"Error serving thumbnail file: {e}"}
+
+
 @fold_management_router.get("/files/page")
 async def get_files_page(jsonPath: str, page: int = 1, per_page: int = 50):
-    with open(jsonPath, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    print(f"Fetching page {page} with {per_page} files per page from {jsonPath}")
+    
+    try:
+        # Check if the JSON file exists
+        if not os.path.exists(jsonPath):
+            error_msg = f"JSON file does not exist: {jsonPath}"
+            print(f"Error: {error_msg}")
+            return {
+                "status": "error",
+                "message": error_msg
+            }
+        
+        # Check if the path is a file (not a directory)
+        if not os.path.isfile(jsonPath):
+            error_msg = f"Path is not a file: {jsonPath}"
+            print(f"Error: {error_msg}")
+            return {
+                "status": "error", 
+                "message": error_msg
+            }
+        
+        # Try to open and parse the JSON file
+        try:
+            with open(jsonPath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except json.JSONDecodeError as e:
+            error_msg = f"Invalid JSON format in file {jsonPath}: {str(e)}"
+            print(f"Error: {error_msg}")
+            return {
+                "status": "error",
+                "message": error_msg
+            }
+        except UnicodeDecodeError as e:
+            error_msg = f"Unable to read file due to encoding issues: {str(e)}"
+            print(f"Error: {error_msg}")
+            return {
+                "status": "error",
+                "message": error_msg
+            }
 
-    total = len(data)
-    start = (page - 1) * per_page
-    end = start + per_page
+        # Validate that data is a list
+        if not isinstance(data, list):
+            error_msg = f"JSON file does not contain a list of files: {jsonPath}"
+            print(f"Error: {error_msg}")
+            return {
+                "status": "error",
+                "message": error_msg
+            }
 
-    return {
-        "status": "success",
-        "page": page,
-        "per_page": per_page,
-        "total": total,
-        "total_pages": (total + per_page - 1) // per_page,
-        "files": data[start:end]
-    }
+        total = len(data)
+        start = (page - 1) * per_page
+        end = start + per_page
+
+        print(f"Successfully loaded {total} files from {jsonPath}, returning page {page}")
+
+        return {
+            "status": "success",
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": (total + per_page - 1) // per_page,
+            "files": data[start:end]
+        }
+        
+    except Exception as e:
+        error_msg = f"Unexpected error while processing {jsonPath}: {str(e)}"
+        print(f"Error: {error_msg}")
+        return {
+            "status": "error",
+            "message": error_msg
+        }
