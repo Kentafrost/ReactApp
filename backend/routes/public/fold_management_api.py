@@ -10,6 +10,7 @@ from utils.script_config import insert_log
 class FileRenameRequest(BaseModel):
     oldPath: str
     newPath: str
+    newfiles: dict = None  # For batch rename
 
 grand_parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(grand_parent_dir)
@@ -112,6 +113,21 @@ async def file_rename_endpoint(request: FileRenameRequest):
     else:
         return {"status": "error", "message": result.get("message", "Unknown error")}
 
+@fold_management_router.post("/file/changenames")
+async def file_rename_endpoint(request: FileRenameRequest):
+    result = file_name_converter(request.renameMap)
+    
+    for id, new_name in request.renameMap.items():
+        print(f"Renaming file ID {id} to new name: {new_name}")
+        id = int(id)
+
+    # to get old folder path from ids in newfiles
+    # to get new folder path from newPath
+
+    if result.get("status") == "success":
+        return {"status": "success", "new_file_path": result.get("new_file_path")}
+    else:
+        return {"status": "error", "message": result.get("message", "Unknown error")}
 
 """
 API endpoint to review files in a folder

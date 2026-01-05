@@ -435,21 +435,73 @@ function FileDetailsPage() {
                         </div>
                     </div>
                 )}
+
+                {/* video opening */}
+                {fileDetails.extension === 'mp4' && (
+                    <div style={{ marginTop: '30px', textAlign: 'center' }}>
+                        <h3 style={{
+                            marginBottom: '20px',
+                            color: '#333',
+                            borderBottom: '2px solid #28a745',
+                            paddingBottom: '10px',
+                            display: 'inline-block'
+                        }}>
+                            Video Preview
+                        </h3>
+                        <video
+                            controls
+                            style={{
+                                maxWidth: '100%',
+                                maxHeight: '400px',
+                                borderRadius: '4px',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            }}
+                        >
+                            <source src={fileDetails.file_url} type="video/mp4" />
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                )}
+
+                {/* image opening */}
+                {fileDetails.extension === 'png' && (
+                    <div style={{ marginTop: '30px', textAlign: 'center' }}>
+                        <h3 style={{
+                            marginBottom: '20px',
+                            color: '#333',
+                            borderBottom: '2px solid #28a745',
+                            paddingBottom: '10px',
+                            display: 'inline-block'
+                        }}>
+                            Image Preview
+                        </h3>
+                        <img 
+                            src={fileDetails.file_url}
+                            alt={fileDetails.name}
+                            style={{
+                                maxWidth: '100%',
+                                maxHeight: '400px',
+                                borderRadius: '4px',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            }}
+                        />
+                    </div>
+                )}
+
+                {error && (
+                    <div style={{ 
+                        marginTop: '20px', 
+                        padding: '10px', 
+                        backgroundColor: '#f8d7da', 
+                        color: '#721c24',
+                        border: '1px solid #f5c6cb',
+                        borderRadius: '4px'
+                    }}>
+                        {error}
+                    </div>
+                    )
+                }
             </div>
-
-
-            {error && (
-                <div style={{ 
-                    marginTop: '20px', 
-                    padding: '10px', 
-                    backgroundColor: '#f8d7da', 
-                    color: '#721c24',
-                    border: '1px solid #f5c6cb',
-                    borderRadius: '4px'
-                }}>
-                    {error}
-                </div>
-            )}
         </div>
     );
 }

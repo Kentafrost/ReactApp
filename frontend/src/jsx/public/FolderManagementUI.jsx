@@ -34,11 +34,6 @@ function FolderManagementUI() {
 
     const [fileDataGet, setFileDataGet] = useState(false);
 
-    // File rename state
-    const [fileNameChange, setFileNameChange] = useState(false);
-    const [currentRenamingFile, setCurrentRenamingFile] = useState(null);
-    const [afterfileName, setAfterFileName] = useState("");
-
     // Error state
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -96,6 +91,9 @@ function FolderManagementUI() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
+    // Rename check state
+    const [checkedFiles, setCheckedFiles] = useState({});
+
     useEffect(() => {
         fetch(`http://localhost:5000/files/page?jsonPath=${encodeURIComponent(fileJsonPath)}&page=${page}&per_page=50`)
             .then(res => res.json())
@@ -106,6 +104,50 @@ function FolderManagementUI() {
         }, [page, fileJsonPath]
     );
 
+    // handler for checkbox change
+    const handleCheck = (fileId, checked) => {
+        if (checked) {
+            setCheckedFiles(prev => ({
+                ...prev,
+                [fileId]: ''
+            }));
+        } else {
+            setCheckedFiles(prev => {
+                const updated = { ...prev };
+                delete updated[fileId];
+                return updated;
+            });
+        }
+    };
+
+    // to add all ids to checkedFiles when renameCheck is true
+    const renameInputChange = (fileId, newName) => {
+        setCheckedFiles(prev => ({
+            ...prev,
+            [fileId]: newName
+        }));
+    };
+
+    // rename execute function
+    const renameExecute = async () => {
+        console.log("files to rename:", checkedFiles);
+
+        try {
+            const res_rename = await fetch("http://localhost:5000//file/changenames", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(checkedFiles),
+            });
+            const renameResults = await res_rename.json();
+            console.log("Batch rename results:", renameResults);
+        } catch (error) {
+            console.error("Error renaming files:", error);
+            setError(`Error renaming files: ${error.message}`);
+        }
+    };
+    
 
     // useEffect for fetching folder data when folderPath changes
     useEffect(() => {
@@ -200,65 +242,12 @@ function FolderManagementUI() {
                 setIsLoading(false);
             }
         }
-        // Only fetch if folderPath exists and we don't have cached data, or if this is a forced refresh
-        if (folderPath && (!folderData || folderData.length === 0)) {
+        // Fetch if folderPath exists and fileDataGet is true
+        if (folderPath && fileDataGet) {
             fetchFolderManagement();
         }
-    }, [folderPath, fileDataGet, folderData]);
+    }, [folderPath, fileDataGet]);
 
-
-    // Handler for starting rename process
-    const startRename = (file) => {
-        setCurrentRenamingFile(file);
-        setAfterFileName(file.name);
-        setFileNameChange(true);
-    };
-
-    // Handler for executing file rename
-    const executeRename = async () => {
-        if (!currentRenamingFile || !afterfileName.trim()) {
-            setError('Please enter a valid file name');
-            return;
-        }
-
-        try {
-            // Extract folder path from full file path
-            const folderPath = currentRenamingFile.path.substring(0, currentRenamingFile.path.lastIndexOf('/'));
-            const res_changename = await fetch("http://localhost:5000/file/changename", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ 
-                    oldPath: currentRenamingFile.path,
-                    newPath: folderPath + "\\" + afterfileName 
-                }),
-            });
-
-            if (!res_changename.ok) {
-                setError(`Error: ${res_changename.status} ${res_changename.statusText}`);
-                return;
-            }
-
-            const result = await res_changename.json();
-            console.log("Rename response:", result);
-
-            if (result.status === "success") {
-                // Refresh folder data after renaming
-                setFolderPath(prev => prev + ''); // Trigger useEffect to refetch data
-                // Clear rename state
-                setFileNameChange(false);
-                setCurrentRenamingFile(null);
-                setAfterFileName('');
-                setError(null);
-            } else {
-                setError(`Rename failed: ${result.message}`);
-            }
-
-        } catch (err) {
-            setError(`Rename error: ${err.message}`);
-        }
-    };
 
     // Manual search handler
     const handleSearch = async () => {
@@ -277,16 +266,11 @@ function FolderManagementUI() {
         setFolderGraphData([]);
         setFileJsonPath(null);
         setError(null);
+        setPage(1); // Reset pagination
         
         // Trigger search
         setFileDataGet(true);
     };
-    const cancelRename = () => {
-        setFileNameChange(false);
-        setCurrentRenamingFile(null);
-        setAfterFileName('');
-    };
-
 
     return (
         <div>
@@ -650,6 +634,7 @@ function FolderManagementUI() {
                             </th>
                         </tr>
                     </thead>
+                    
                     <tbody>
                         {folderData.map((file, index) => (
                             <tr key={file.path} style={{ 
@@ -718,81 +703,52 @@ function FolderManagementUI() {
                                     >
                                         Review File
                                     </button>
-                                    <button
-                                        onClick={() => startRename(file)}
-                                        style={{ 
-                                            padding: "8px 12px",
-                                            backgroundColor: '#28a745',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '4px',
-                                            cursor: 'pointer',
-                                            fontSize: '12px'
-                                        }}
-                                    >
-                                        Rename
-                                    </button>
+
+                                    <th style={
+                                        { 
+                                            padding: '12px', 
+                                            textAlign: 'center',
+                                            borderBottom: '2px solid #dee2e6',
+                                            fontWeight: 'bold',
+                                            width: '150px'
+                                        }}>
+                                        <input type="checkbox" 
+                                            onChange={(e) => handleCheck(file.id, e.target.checked)}
+                                        />
+                                        Rename Check
+                                    </th>
+
+                                    {/* Rename input field along the checkbox if it's checked */}
+                                    {checkedFiles[file.id] && (
+                                        <input
+                                            type="text"
+                                            value={file.id}
+                                            onChange={(e) => renameInputChange(file.id, e.target.value)}
+                                            style={{ 
+                                                marginLeft: '10px',
+                                                padding: '4px',
+                                                fontSize: '12px',
+                                                width: '120px'
+                                            }}
+                                            placeholder={file.name}
+                                        ></input>
+                                    )}
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
-
-                    {/* File rename display */}
-                    {fileNameChange && currentRenamingFile && (
-                        <div style={{ 
-                            marginTop: '20px', 
-                            padding: '15px', 
-                            border: '2px solid #4CAF50', 
-                            borderRadius: '5px',
-                            backgroundColor: '#f9f9f9'
-                        }}>
-                            <h4>Rename File</h4>
-                            <p><strong>Current filename:</strong> {currentRenamingFile.name}</p>
-                            <p><strong>File path:</strong> {currentRenamingFile.path}</p>
-                            
-                            <div style={{ marginBottom: '10px' }}>
-                                <label>New File Name:</label>
-                                <input 
-                                    type="text" 
-                                    value={afterfileName}
-                                    onChange={(e) => setAfterFileName(e.target.value)}
-                                    style={{ marginLeft: '10px', padding: '4px' }}
-                                    placeholder="Enter new filename"
-                                />
-                            </div>
-
-                            <button 
-                                onClick={executeRename}
-                                style={{ 
-                                    padding: '8px 16px', 
-                                    marginRight: '10px',
-                                    backgroundColor: '#4CAF50',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '3px'
-                                }}
-                            >
-                                Execute Rename
-                            </button>
-
-                            <button 
-                                onClick={cancelRename}
-                                style={{ 
-                                    padding: '8px 16px',
-                                    backgroundColor: '#f44336',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '3px'
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    )}
                 </div>
             )}
 
+            {/* Rename Execution Button */}
+            {Object.keys(checkedFiles).length > 0 && (
+                <button onClick={() => renameExecute()}> 
+                    Rename checked files
+                </button>
+                )
+            }
+            
             {/* Folder Graph */}
             {folderGraphData && folderGraphData.graphUrl && (
                 <div className="text-center mt-4">
