@@ -11,7 +11,11 @@ from utils.script_config import insert_log
 class FileRenameRequest(BaseModel):
     oldPath: str
     newPath: str
-    newfiles: dict = None  # For batch rename
+
+class BatchFileRenameRequest(BaseModel):
+    checkedFileIds: list = None  # For batch rename
+    checkedFileName: list = None  # For batch rename
+    jsonPath: str = None  # For batch rename
 
 grand_parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(grand_parent_dir)
@@ -127,7 +131,7 @@ async def fold_graph_create_endpoint(folderPath: str):
 """
 API endpoint to change file name in a folder(POST method)
 """
-@fold_management_router.post("/file/changename")
+@fold_management_router.post("/file/changename/single")
 async def file_rename_endpoint(request: FileRenameRequest):
     result = file_name_converter(request.oldPath, request.newPath)
     
@@ -136,19 +140,48 @@ async def file_rename_endpoint(request: FileRenameRequest):
     else:
         return {"status": "error", "message": result.get("message", "Unknown error")}
 
-@fold_management_router.post("/file/changenames")
-async def file_rename_endpoint(request: FileRenameRequest):
-    result = file_name_converter(request.renameMap)
+
+@fold_management_router.post("/file/changename/several")
+async def file_rename_endpoint(request: BatchFileRenameRequest):
     
-    for id, new_name in request.renameMap.items():
+    with open(request.jsonPath, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    result = []
+
+    for id, new_name in zip(request.checkedFileIds, request.checkedFileName):
         print(f"Renaming file ID {id} to new name: {new_name}")
         id = int(id)
 
-    # to get old folder path from ids in newfiles
-    # to get new folder path from newPath
+        for item in data:
+            if item['id'] == id:
+                old_path = item['path']
+                new_path = os.path.join(os.path.dirname(old_path), new_name)
+                print(f"Old path: {old_path}, New path: {new_path}")
 
-    if result.get("status") == "success":
-        return {"status": "success", "new_file_path": result.get("new_file_path")}
+                try:
+                    rename_result = file_name_converter(old_path, new_path)
+                except Exception as e:
+                    rename_result = {"status": "error", "message": str(e)}
+                
+                if rename_result.get("status") == "success":
+                    item['path'] = rename_result.get("new_file_path")
+
+                    result.append({
+                        "status": "success", 
+                        "new_file_path": new_path
+                        }
+                    )
+                    print(f"Successfully renamed to: {new_path}")
+                else:
+                    print(f"Error renaming file ID {id}: {rename_result.get('message')}")
+                break
+
+    if all(r.get("status") == "success" for r in result):
+        return {
+            "status": "success", 
+            "new_file_path": [r.get("new_file_path") for r in result]
+        }
     else:
         return {"status": "error", "message": result.get("message", "Unknown error")}
 

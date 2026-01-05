@@ -300,8 +300,8 @@ function FolderManagementUI() {
     // handler for checkbox change
     const handleCheck = (fileId, checked) => {
         if (checked) {
-            setCheckedFiles(prev => ({
-                ...prev,
+             setCheckedFiles(prev => ({
+               ...prev,
                 [fileId]: ''
             }));
         } else {
@@ -323,18 +323,51 @@ function FolderManagementUI() {
 
     // rename execute function
     const renameExecute = async () => {
-        console.log("files to rename:", checkedFiles);
+        console.log("checkedFiles raw:", checkedFiles);
+        console.log("fileJsonPath:", fileJsonPath);
+
+        if (!fileJsonPath) {
+            setError("JSON path is not available. Please reload the folder data.");
+            return;
+        }
+
+        // Validate data before sending
+        const fileIds = Object.keys(checkedFiles);
+        const fileNames = Object.values(checkedFiles);
+        
+        const requestData = {
+            checkedFileIds: fileIds,
+            checkedFileName: fileNames,
+            jsonPath: fileJsonPath
+        };
 
         try {
-            const res_rename = await fetch("http://localhost:5000//file/changenames", {
+            const res_rename = await fetch("http://localhost:5000/file/changename/several", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(checkedFiles),
+                body: JSON.stringify(requestData),
             });
+            
+            if (!res_rename.ok) {
+                const errorText = await res_rename.text();
+                console.error("Server error response:", errorText);
+                setError(`Server error (${res_rename.status}): ${errorText}`);
+                return;
+            }
+            
             const renameResults = await res_rename.json();
-            console.log("Batch rename results:", renameResults);
+            console.log("Rename results:", renameResults);
+            
+            if (renameResults.status === "success") {
+                // Clear checked files after successful rename
+                setCheckedFiles({});
+                // Optionally reload the folder data
+                setShouldLoadThumbnails(true);
+            } else {
+                setError(`Rename failed: ${renameResults.message}`);
+            }
         } catch (error) {
             console.error("Error renaming files:", error);
             setError(`Error renaming files: ${error.message}`);
@@ -1017,6 +1050,7 @@ function FolderManagementUI() {
                                         }}>
                                             <input 
                                                 type="checkbox" 
+                                                checked={checkedFiles[file.id] !== undefined}
                                                 onChange={(e) => handleCheck(file.id, e.target.checked)}
                                                 style={{ marginRight: '4px' }}
                                             />
@@ -1030,7 +1064,7 @@ function FolderManagementUI() {
                                     <div style={{ marginTop: '15px' }}>
                                         <input
                                             type="text"
-                                            value={checkedFiles[file.id]}
+                                            value={checkedFiles[file.id] || ''}
                                             onChange={(e) => renameInputChange(file.id, e.target.value)}
                                             style={{ 
                                                 width: '100%',
@@ -1040,24 +1074,78 @@ function FolderManagementUI() {
                                                 borderRadius: '4px',
                                                 backgroundColor: '#f8f9fa'
                                             }}
-                                            placeholder={file.name}
+                                            placeholder={file.name || ''}
                                         />
                                     </div>
                                 )}
                             </div>
                         ))}
                     </div>
+                    <button 
+                        disabled={page === 1} 
+                        onClick={() => setPage(page - 1)}
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: page === 1 ? '#e9ecef' : '#007bff',
+                            color: page === 1 ? '#6c757d' : 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: page === 1 ? 'not-allowed' : 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 'bold'
+                        }}
+                    > 
+                        ← 前へ 
+                    </button>
+
+                    <span style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#f8f9fa',
+                        borderRadius: '4px',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        color: '#495057'
+                    }}>
+                        {page} Page / {totalPages} Pages
+                    </span> 
+                    
+                    <button 
+                        disabled={page === totalPages} 
+                        onClick={() => setPage(page + 1)}
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: page === totalPages ? '#e9ecef' : '#007bff',
+                            color: page === totalPages ? '#6c757d' : 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: page === totalPages ? 'not-allowed' : 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 'bold'
+                        }}
+                    > 
+                        次へ → 
+                    </button>
                 </div>
             )}
 
             {/* Rename Execution Button */}
             {Object.keys(checkedFiles).length > 0 && (
-                <button onClick={() => renameExecute()}> 
+                <button onClick={() => renameExecute()} style={{ 
+                    padding: '8px 16px',
+                    backgroundColor: '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                }}>
                     Rename checked files
                 </button>
                 )
             }
-            
+
+            <br />
             {/* Folder Graph */}
             {folderGraphData && folderGraphData.graphUrl && (
                 <div className="text-center mt-4">

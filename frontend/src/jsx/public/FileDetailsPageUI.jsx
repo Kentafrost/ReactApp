@@ -70,7 +70,7 @@ function FileDetailsPage() {
             console.log("Renaming file in folder:", folderPath);
             console.log(`Renaming file from ${fileDetails.name} to ${afterfileName}`);
             
-            const res_changename = await fetch("http://localhost:5000/file/changename", {
+            const res_changename = await fetch("http://localhost:5000/file/changename/single", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

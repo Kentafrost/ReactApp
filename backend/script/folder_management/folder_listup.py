@@ -144,9 +144,9 @@ def folder_graph_create(folder_file_list: dict):
             autopct=make_autopct(values),
             startangle=140
         )
-        plt.xlabel('Folders')
-        plt.ylabel('Number of Files')
-        plt.title('Number of Files in Each Folder')
+        plt.xlabel('Folders', fontsize=16)
+        plt.ylabel('Number of Files', fontsize=16)
+        plt.title('Number of Files in Each Folder', fontsize=20)
         plt.xticks(rotation=45)
         plt.tight_layout()
         plt.savefig(graph_path)
