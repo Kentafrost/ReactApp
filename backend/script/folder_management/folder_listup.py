@@ -48,6 +48,9 @@ def folder_listup(base_path: str):
     current_dir = os.path.dirname(os.path.abspath(__file__))
     result_json_file_path = os.path.join(current_dir, 'file_list.json')
 
+    if os.path.exists(result_json_file_path):
+        os.remove(result_json_file_path)
+
     try:
         for entry in os.scandir(base_path):
             if entry.is_dir():
@@ -85,9 +88,11 @@ def folder_listup(base_path: str):
                             "name": file,
                             "path": os.path.join(root, file),
                             "size": file_size,
-                            "extension": file_extension
+                            "extension": file_extension,
+                            "created_time": os.path.getmtime(os.path.join(root, file))
                         }
                     )
+        file_list.sort(key=lambda x: x['name'].lower())
     except Exception as e:
         print(f"Error listing files in {base_path}: {e}")
         db_func.append_to_json(log_json_file_name, {"status": "error", "message": f"Error listing files in {base_path}: {e}"})
@@ -160,16 +165,16 @@ def folder_graph_create(folder_file_list: dict):
 
 
 # Create thumbnail for a file based on its ID from the JSON file
-def file_thumbnail_create(id: int, jsonPath: str):
+def file_thumbnail_create(id: int, jsonPath: str, relativePath: str = ""):
     
     with open(jsonPath, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    thumbnail_json_file_name = os.path.join(current_dir, f"thumbnail_log.json")
+    thumbnail_json_file_name = os.path.join(current_dir, "thumbnail_log.json")
     os.makedirs(os.path.dirname(thumbnail_json_file_name), exist_ok=True)
 
-    thumbnail_path = os.path.join(current_dir, 'thumbnails')
+    thumbnail_path = os.path.join(current_dir, 'thumbnails', relativePath)
     os.makedirs(thumbnail_path, exist_ok=True)
 
     # Find the file info in the loaded json data

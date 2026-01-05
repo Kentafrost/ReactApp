@@ -248,11 +248,12 @@ async def get_existing_thumbnail_endpoint(id: str, jsonPath: str):
 API endpoint to get thumbnail for a file
 """
 @fold_management_router.get("/file/thumbnail")
-async def get_file_thumbnail_endpoint(id: int, jsonPath: str):
+async def get_file_thumbnail_endpoint(id: int, jsonPath: str, relativePath: str = ""):
     from script.folder_management.folder_listup import file_thumbnail_create
 
     print(f"Requesting thumbnail for file ID: {id} from JSON: {jsonPath}")
-    result = file_thumbnail_create(id, jsonPath)
+    result = file_thumbnail_create(id, jsonPath, relativePath)
+
     if result.get("status") == "success":
         thumbnail_path = result.get("thumbnail_path")
         thumbnail_name = os.path.basename(thumbnail_path)
@@ -358,10 +359,9 @@ async def serve_image_file(path: str):
     except Exception as e:
         return {"status": "error", "message": f"Error serving thumbnail file: {e}"}
 
-
-@fold_management_router.get("/files/page")
-async def get_files_page(jsonPath: str, page: int = 1, per_page: int = 50):
-    print(f"Fetching page {page} with {per_page} files per page from {jsonPath}")
+@fold_management_router.get("/files/all")
+async def get_files_page(jsonPath: str):
+    print(f"Fetching all files from {jsonPath}")
     
     try:
         # Check if the JSON file exists
@@ -411,18 +411,12 @@ async def get_files_page(jsonPath: str, page: int = 1, per_page: int = 50):
             }
 
         total = len(data)
-        start = (page - 1) * per_page
-        end = start + per_page
-
-        print(f"Successfully loaded {total} files from {jsonPath}, returning page {page}")
+        print(f"Successfully loaded {total} files from {jsonPath}")
 
         return {
             "status": "success",
-            "page": page,
-            "per_page": per_page,
-            "total": total,
-            "total_pages": (total + per_page - 1) // per_page,
-            "files": data[start:end]
+            "files": data,
+            "total": total
         }
         
     except Exception as e:

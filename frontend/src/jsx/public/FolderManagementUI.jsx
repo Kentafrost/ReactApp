@@ -21,6 +21,12 @@ function FolderManagementUI() {
         return cached ? JSON.parse(cached) : null;
     });
 
+    // all files data (complete dataset) - restore from localStorage if available
+    const [allFilesData, setAllFilesData] = useState(() => {
+        const cached = localStorage.getItem('folderManagement_allFilesData');
+        return cached ? JSON.parse(cached) : null;
+    });
+
     // folder graph data - restore from localStorage if available
     const [folderGraphData, setFolderGraphData] = useState(() => {
         const cached = localStorage.getItem('folderManagement_folderGraphData');
@@ -36,17 +42,21 @@ function FolderManagementUI() {
     const [thumbnailList, setThumbnailList] = useState({});
     const [thumbnailLoadingState, setThumbnailLoadingState] = useState({}); // Track loading state per file
 
-    // thumbnail cache state - exclude blob URLs from persistence
+    // thumbnail cache state - restore from localStorage with Base64 data
     const [thumbnailCache, setThumbnailCache] = useState(() => {
-        // Don't restore blob URLs from localStorage as they become invalid
-        return {}; // Always start with empty cache for blob URLs
+        try {
+            const cached = localStorage.getItem('folderManagement_thumbnailCache');
+            return cached ? JSON.parse(cached) : {};
+        } catch (error) {
+            console.warn('Failed to restore thumbnail cache:', error);
+            return {};
+        }
     });
 
-    const [blobUrlsToCleanup, setBlobUrlsToCleanup] = useState(new Set()); // Track blob URLs for cleanup
-
-    const [shouldLoadThumbnails, setShouldLoadThumbnails] = useState(false); // Control thumbnail loading independently
     const [useExistingData, setUseExistingData] = useState(true); // Control whether to use existing JSON files
     const [jsonFileCache, setJsonFileCache] = useState({}); // Cache for existing JSON file paths
+    const [shouldLoadThumbnails, setShouldLoadThumbnails] = useState(false); // Control thumbnail loading independently
+    const [jsonDataLength, setJsonDataLength] = useState(0); // Length of current JSON data
 
     // Error state
     const [error, setError] = useState(null);
@@ -72,6 +82,24 @@ function FolderManagementUI() {
     }, [folderData]);
 
     useEffect(() => {
+        if (allFilesData) {
+            localStorage.setItem('folderManagement_allFilesData', JSON.stringify(allFilesData));
+        }
+    }, [allFilesData]);
+
+    useEffect(() => {
+        if (allFilesData) {
+            localStorage.setItem('folderManagement_allFilesData', JSON.stringify(allFilesData));
+        }
+    }, [allFilesData]);
+
+    useEffect(() => {
+        if (allFilesData) {
+            localStorage.setItem('folderManagement_allFilesData', JSON.stringify(allFilesData));
+        }
+    }, [allFilesData]);
+
+    useEffect(() => {
         if (folderGraphData) {
             localStorage.setItem('folderManagement_folderGraphData', JSON.stringify(folderGraphData));
         }
@@ -83,6 +111,20 @@ function FolderManagementUI() {
         }
     }, [fileJsonPath]);
 
+    // Save thumbnail cache to localStorage
+    useEffect(() => {
+        try {
+            localStorage.setItem('folderManagement_thumbnailCache', JSON.stringify(thumbnailCache));
+        } catch (error) {
+            console.warn('Failed to save thumbnail cache:', error);
+            // If storage is full, clear old cache
+            if (error.name === 'QuotaExceededError') {
+                localStorage.removeItem('folderManagement_thumbnailCache');
+                setThumbnailCache({});
+            }
+        }
+    }, [thumbnailCache]);
+
     // thumbnail loading function
     const loadThumbnailsForFiles = async (files, jsonPath) => {
         if (!files || !Array.isArray(files) || !jsonPath) {
@@ -90,30 +132,63 @@ function FolderManagementUI() {
             return;
         }
 
-        console.log(`Loading thumbnails for ${files.length} files using JSON: ${jsonPath}`);
+        console.log(`Loading thumbnails for ${files.length} files (Page ${page || 'unknown'}) using JSON: ${jsonPath}`);
         
         const fileIds = files.map(file => file.id);
         
         const initialLoadingState = {};
         fileIds.forEach(fileId => {
+            // Check if we have cached Base64 data
             if (thumbnailCache[fileId]) {
-                setThumbnailList(prev => ({ ...prev, [fileId]: thumbnailCache[fileId] }));
-                return;
+                // Convert Base64 back to blob URL for display
+                try {
+                    const byteCharacters = atob(thumbnailCache[fileId]);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: 'image/jpeg' });
+                    const blobUrl = URL.createObjectURL(blob);
+                    setThumbnailList(prev => ({ ...prev, [fileId]: blobUrl }));
+                    return;
+                } catch (error) {
+                    console.warn(`Failed to restore cached thumbnail for ${fileId}:`, error);
+                    // Remove invalid cache entry
+                    setThumbnailCache(prev => {
+                        const updated = { ...prev };
+                        delete updated[fileId];
+                        return updated;
+                    });
+                }
             }
             initialLoadingState[fileId] = true;
         });
         setThumbnailLoadingState(initialLoadingState);
 
         const loadThumbnail = async (fileId) => {
+            // Check cached Base64 data first
             if (thumbnailCache[fileId]) {
-                setThumbnailList(prev => ({ ...prev, [fileId]: thumbnailCache[fileId] }));
-                setThumbnailLoadingState(prev => ({ ...prev, [fileId]: false }));
-                return;
+                try {
+                    const byteCharacters = atob(thumbnailCache[fileId]);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: 'image/jpeg' });
+                    const blobUrl = URL.createObjectURL(blob);
+                    setThumbnailList(prev => ({ ...prev, [fileId]: blobUrl }));
+                    setThumbnailLoadingState(prev => ({ ...prev, [fileId]: false }));
+                    return;
+                } catch (error) {
+                    console.warn(`Failed to use cached thumbnail for ${fileId}:`, error);
+                }
             }
 
             try {
                 const response = await fetch(
-                    `http://localhost:5000/file/thumbnail?id=${fileId}&jsonPath=${encodeURIComponent(jsonPath)}`,
+                    `http://localhost:5000/file/thumbnail?id=${fileId}&jsonPath=${encodeURIComponent(jsonPath)}&relativePath=${relativePath}`,
                     { cache: 'force-cache' }
                 );
                 
@@ -122,9 +197,16 @@ function FolderManagementUI() {
                     if (thumbnail_blob && thumbnail_blob.size > 0) {
                         const thumbnail_url = URL.createObjectURL(thumbnail_blob);
                         setThumbnailList(prev => ({ ...prev, [fileId]: thumbnail_url }));
-                        setThumbnailCache(prev => ({ ...prev, [fileId]: thumbnail_url }));
-                        setBlobUrlsToCleanup(prev => new Set([...prev, thumbnail_url]));
-                        console.log(`Thumbnail loaded for file ${fileId}`);
+                        
+                        // Convert blob to Base64 for caching
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const base64data = reader.result.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+                            setThumbnailCache(prev => ({ ...prev, [fileId]: base64data }));
+                        };
+                        reader.readAsDataURL(thumbnail_blob);
+                        
+                        console.log(`Thumbnail loaded and cached for file ${fileId}`);
                     }
                 } else if (response.status !== 404) {
                     console.error(`Thumbnail error for ${fileId}:`, response.status);
@@ -139,6 +221,8 @@ function FolderManagementUI() {
         const chunkSize = 3;
         const filesToLoad = fileIds.filter(fileId => !thumbnailCache[fileId]);
         
+        console.log(`Loading ${filesToLoad.length} new thumbnails (${fileIds.length - filesToLoad.length} from cache)`);
+        
         for (let i = 0; i < filesToLoad.length; i += chunkSize) {
             const chunk = filesToLoad.slice(i, i + chunkSize);
             await Promise.allSettled(chunk.map(fileId => loadThumbnail(fileId)));
@@ -148,13 +232,13 @@ function FolderManagementUI() {
             }
         }
         
-        console.log(`🎯 Thumbnail loading completed`);
+        console.log(`Thumbnail loading completed`);
     };
 
     // useEffect for thumbnail loading
     useEffect(() => {
         if (shouldLoadThumbnails && folderData && fileJsonPath) {
-            console.log('Triggering independent thumbnail loading');
+            console.log(`Triggering thumbnail loading for ${folderData.length} files on page ${page}`);
             loadThumbnailsForFiles(folderData, fileJsonPath);
             setShouldLoadThumbnails(false);
         }
@@ -186,48 +270,32 @@ function FolderManagementUI() {
     const [checkedFiles, setCheckedFiles] = useState({});
 
     useEffect(() => {
-        // Only fetch if fileJsonPath is available and valid
-        if (!fileJsonPath) {
-            console.warn('No fileJsonPath available for pagination');
+        // Only process pagination if we have all files data
+        if (!allFilesData || !Array.isArray(allFilesData)) {
+            console.warn('No allFilesData available for pagination');
             return;
         }
 
-        const fetchPageData = async () => {
-            try {
-                console.log(`Fetching page ${page} with jsonPath: ${fileJsonPath}`);
-                const response = await fetch(`http://localhost:5000/files/page?jsonPath=${encodeURIComponent(fileJsonPath)}&page=${page}&per_page=50`);
-                
-                if (!response.ok) {
-                    console.error(`HTTP Error: ${response.status} ${response.statusText}`);
-                    setError(`Failed to fetch page data: ${response.status} ${response.statusText}`);
-                    return;
-                }
+        // Calculate pagination
+        const perPage = 50;
+        const startIndex = (page - 1) * perPage;
+        const endIndex = startIndex + perPage;
+        const pageData = allFilesData.slice(startIndex, endIndex);
+        const totalPages = Math.ceil(allFilesData.length / perPage);
 
-                const data = await response.json();
-                console.log('Page data response:', data);
-                
-                if (data.status === 'error') {
-                    console.error('Backend error:', data.message);
-                    setError(`Backend Error: ${data.message}`);
-                    return;
-                }
-
-                if (data.files && Array.isArray(data.files)) {
-                    setFolderData(data.files);
-                    setTotalPages(data.total_pages || 1);
-                    setError(null); // Clear any previous errors
-                } else {
-                    console.error('Invalid response format:', data);
-                    setError('Invalid response format from server');
-                }
-            } catch (error) {
-                console.error('Error fetching page data:', error);
-                setError(`Network error: ${error.message}`);
-            }
-        };
-
-        fetchPageData();
-    }, [page, fileJsonPath]);
+        console.log(`Displaying page ${page}: items ${startIndex + 1}-${Math.min(endIndex, allFilesData.length)} of ${allFilesData.length}`);
+        
+        // Update folder data with current page
+        setFolderData(pageData);
+        setTotalPages(totalPages);
+        
+        // Clear previous page thumbnails and loading states
+        setThumbnailLoadingState({});
+        
+        // Trigger thumbnail loading for new page data
+        setShouldLoadThumbnails(true);
+        
+    }, [page, allFilesData]);
 
     // handler for checkbox change
     const handleCheck = (fileId, checked) => {
@@ -393,9 +461,20 @@ function FolderManagementUI() {
                     setError('Invalid response: files data is missing or not an array');
                     setIsLoading(false);
                     return;
-                }                
-                setFolderData(json_folder_list.files.slice(0, 50));
-                console.log(folderData);
+                }
+                
+                // Store all files data
+                setAllFilesData(json_folder_list.files);
+                
+                // Calculate first page data (50 items)
+                const firstPageData = json_folder_list.files.slice(0, 50);
+                setFolderData(firstPageData);
+                
+                // Calculate total pages
+                const totalPages = Math.ceil(json_folder_list.files.length / 50);
+                setTotalPages(totalPages);
+                
+                console.log(`Loaded ${json_folder_list.files.length} total files, showing first ${firstPageData.length} items, ${totalPages} total pages`);
 
                 // Fetch folder graph data
                 console.log("Fetching folder graph data...");
@@ -415,6 +494,7 @@ function FolderManagementUI() {
                 }
                 setIsLoading(false);
                 setError(null); // Clear previous errors
+                setPage(1); // Reset to first page
 
                 // Trigger independent thumbnail loading
                 setShouldLoadThumbnails(true);
@@ -752,7 +832,7 @@ function FolderManagementUI() {
                     {/* File Cards Display */}
                     <div style={{ 
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(490px, 1fr))',
                         gap: '20px',
                         padding: '20px 0'
                     }}>
@@ -813,8 +893,8 @@ function FolderManagementUI() {
                                 }}>
                                     {thumbnailLoadingState[file.id] ? (
                                         <div style={{ 
-                                            width: '200px',
-                                            height: '200px',
+                                            width: '450px',
+                                            height: '270px',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
@@ -832,8 +912,8 @@ function FolderManagementUI() {
                                             src={thumbnailList[file.id]}
                                             alt="Thumbnail"
                                             style={{ 
-                                                width: '200px',
-                                                height: '200px',
+                                                width: '450px',
+                                                height: '270px',
                                                 objectFit: 'cover',
                                                 borderRadius: '8px',
                                                 border: '1px solid #dee2e6',
@@ -849,8 +929,8 @@ function FolderManagementUI() {
                                         />
                                     ) : (
                                         <div style={{ 
-                                            width: '200px',
-                                            height: '200px',
+                                            width: '450px',
+                                            height: '270px',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
