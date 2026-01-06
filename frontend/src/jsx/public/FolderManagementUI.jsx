@@ -1203,7 +1203,17 @@ function FolderManagementUI() {
                                                     marginLeft: '4px',
                                                     marginRight: '2px'
                                                 }}>
-                                                    {tag}
+                                                    <button onClick={() => tagsFilter(tag)} style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        padding: 0,
+                                                        margin: 0,
+                                                        fontSize: '12px',
+                                                        color: '#155724',
+                                                        cursor: 'pointer'
+                                                    }}>
+                                                        {tag}
+                                                    </button>
                                                 </span>
                                             ))
                                         }
