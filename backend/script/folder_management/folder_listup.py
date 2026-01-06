@@ -74,8 +74,12 @@ def folder_listup(base_path: str):
             for file in files:
                 file_size = os.path.getsize(os.path.join(root, file))
                 file_extension = os.path.splitext(file)[1].lower()
-                file_extension = file_extension.replace('.', '')
 
+                basename_tag = file.replace(" - Made with Clipchamp", "")
+                basename_tag = basename_tag.replace(file_extension, "")
+                tags = basename_tag.split("-")
+
+                file_extension = file_extension.replace('.', '')
                 count += 1
 
                 if file_size > 0:
@@ -89,7 +93,8 @@ def folder_listup(base_path: str):
                             "path": os.path.join(root, file),
                             "size": file_size,
                             "extension": file_extension,
-                            "created_time": os.path.getmtime(os.path.join(root, file))
+                            "created_time": os.path.getmtime(os.path.join(root, file)),
+                            "tags": tags
                         }
                     )
         file_list.sort(key=lambda x: x['name'].lower())

@@ -111,16 +111,46 @@ function FolderManagementUI() {
         }
     }, [fileJsonPath]);
 
-    // Save thumbnail cache to localStorage
+    // Save thumbnail cache to localStorage with size management
     useEffect(() => {
         try {
-            localStorage.setItem('folderManagement_thumbnailCache', JSON.stringify(thumbnailCache));
+            // Limit cache size to prevent quota exceeded errors
+            const maxCacheSize = 50; // Maximum number of cached thumbnails
+            const cacheKeys = Object.keys(thumbnailCache);
+            
+            if (cacheKeys.length > maxCacheSize) {
+                console.log(`Cache size (${cacheKeys.length}) exceeds limit (${maxCacheSize}), cleaning up...`);
+                
+                // Keep only the most recent entries (simple approach)
+                const sortedKeys = cacheKeys.sort((a, b) => b - a); // Sort by fileId (assuming higher ids are newer)
+                const keysToKeep = sortedKeys.slice(0, maxCacheSize);
+                
+                const cleanedCache = {};
+                keysToKeep.forEach(key => {
+                    cleanedCache[key] = thumbnailCache[key];
+                });
+                
+                setThumbnailCache(cleanedCache);
+                localStorage.setItem('folderManagement_thumbnailCache', JSON.stringify(cleanedCache));
+                console.log(`Cache cleaned: kept ${keysToKeep.length} entries`);
+            } else {
+                localStorage.setItem('folderManagement_thumbnailCache', JSON.stringify(thumbnailCache));
+            }
         } catch (error) {
             console.warn('Failed to save thumbnail cache:', error);
-            // If storage is full, clear old cache
+            // If storage is still full, clear all cache
             if (error.name === 'QuotaExceededError') {
+                console.log('Storage quota exceeded, clearing all thumbnail cache');
                 localStorage.removeItem('folderManagement_thumbnailCache');
                 setThumbnailCache({});
+                
+                // Also clear other large localStorage items if needed
+                try {
+                    const usage = JSON.stringify(thumbnailCache).length;
+                    console.log(`Attempted cache size: ${(usage / 1024 / 1024).toFixed(2)} MB`);
+                } catch (e) {
+                    console.log('Could not calculate cache size');
+                }
             }
         }
     }, [thumbnailCache]);
@@ -198,11 +228,51 @@ function FolderManagementUI() {
                         const thumbnail_url = URL.createObjectURL(thumbnail_blob);
                         setThumbnailList(prev => ({ ...prev, [fileId]: thumbnail_url }));
                         
-                        // Convert blob to Base64 for caching
+                        // Convert blob to compressed Base64 for caching
                         const reader = new FileReader();
                         reader.onloadend = () => {
-                            const base64data = reader.result.split(',')[1]; // Remove data:image/jpeg;base64, prefix
-                            setThumbnailCache(prev => ({ ...prev, [fileId]: base64data }));
+                            try {
+                                // Create a smaller, compressed version for caching
+                                const img = new Image();
+                                img.onload = () => {
+                                    const canvas = document.createElement('canvas');
+                                    const ctx = canvas.getContext('2d');
+                                    
+                                    // Use smaller dimensions for cache (reduce size significantly)
+                                    const maxSize = 150; // Smaller than display size (450x270)
+                                    const aspectRatio = img.width / img.height;
+                                    
+                                    if (aspectRatio > 1) {
+                                        canvas.width = maxSize;
+                                        canvas.height = maxSize / aspectRatio;
+                                    } else {
+                                        canvas.width = maxSize * aspectRatio;
+                                        canvas.height = maxSize;
+                                    }
+                                    
+                                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                                    
+                                    // Convert to compressed JPEG with lower quality
+                                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6); // 60% quality
+                                    const compressedBase64 = compressedDataUrl.split(',')[1];
+                                    
+                                    // Check compressed size before caching
+                                    const sizeKB = (compressedBase64.length * 0.75) / 1024; // Rough Base64 size calculation
+                                    console.log(`Compressed thumbnail size: ${sizeKB.toFixed(1)}KB for file ${fileId}`);
+                                    
+                                    if (sizeKB < 100) { // Only cache if smaller than 100KB
+                                        setThumbnailCache(prev => ({ ...prev, [fileId]: compressedBase64 }));
+                                    } else {
+                                        console.log(`Skipping cache for file ${fileId}: too large (${sizeKB.toFixed(1)}KB)`);
+                                    }
+                                };
+                                img.src = reader.result;
+                            } catch (error) {
+                                console.warn(`Failed to compress thumbnail for caching:`, error);
+                                // Fallback to original method
+                                const base64data = reader.result.split(',')[1];
+                                setThumbnailCache(prev => ({ ...prev, [fileId]: base64data }));
+                            }
                         };
                         reader.readAsDataURL(thumbnail_blob);
                         
@@ -385,6 +455,71 @@ function FolderManagementUI() {
         return data_check; // { exists: bool, json_path: string|null, source: 'server'|'local'|null }
     };
 
+    // function to create folder graph
+    const createFolderGraph = async () => {
+        // Fetch folder graph data
+        console.log("Fetching folder graph data...");
+        const res = await fetch(
+            `http://localhost:5000/folder/graph/create?folderPath=${encodeURIComponent(folderPath)}`
+        );
+        if (!res.ok) {
+            console.log("Graph fetch failed:", res.status, res.statusText);
+            setError(`Graph Error: ${res.status} ${res.statusText}`);
+            // Continue without graph instead of returning
+            setFolderGraphData(null);
+        } else {
+            const graphBlob = await res.blob();
+            const graphUrl = URL.createObjectURL(graphBlob);
+            console.log("Graph URL:", graphUrl);
+            setFolderGraphData({ graphUrl });
+        }
+        setIsLoading(false);
+        setError(null); // Clear previous errors
+        setPage(1); // Reset to first page
+
+        // Trigger independent thumbnail loading
+        setShouldLoadThumbnails(true);
+    };
+
+    const [tagsList, setTagsList] = useState([]); // List of all tags available
+
+
+    // tag filter function based on tags array in each file data
+    const tagsFilter = async (tag) => {
+        if (!allFilesData || !Array.isArray(allFilesData)) { 
+            console.warn('No allFilesData available for tag filtering');
+            return;
+        };
+        const filteredFiles = allFilesData.filter(file => file.tags && file.tags.includes(tag));
+        setFolderData(filteredFiles);
+    };
+
+    const clearTagFilter = async () => {
+        if (!allFilesData || !Array.isArray(allFilesData)) {
+            console.warn('No allFilesData available for clearing tag filter');
+            return;
+        };
+        setFolderData(allFilesData.slice(0, 50)); // Reset to first page
+    };
+
+    // tag listup function to use as options in tag filter
+    const tagsListup = async() => {
+        const allTagsList = [];
+
+        if (allFilesData && Array.isArray(allFilesData)) {
+            allFilesData.forEach(file => {
+                if (file.tags && Array.isArray(file.tags)) {
+                    file.tags.forEach(tag => {
+                        if (!allTagsList.includes(tag)) {
+                            allTagsList.push(tag);
+                        }
+                    });
+                }
+            });
+        }
+        setTagsList(allTagsList);
+    };
+
     // useEffect for fetching folder data when folderPath changes
     useEffect(() => {
         async function fetchFolderManagement() {
@@ -431,7 +566,9 @@ function FolderManagementUI() {
                                     
                                     // Trigger thumbnail loading for existing data
                                     setShouldLoadThumbnails(true);
-                                    
+                                    createFolderGraph(); // Fetch folder graph data
+                                    tagsListup(); // Update tag list
+
                                     console.log(`Loaded ${data.files.length} files from existing JSON (${existingCheck.source})`);
                                     return; // Exit early, don't create new JSON
                                 }
@@ -507,30 +644,11 @@ function FolderManagementUI() {
                 setTotalPages(totalPages);
                 
                 console.log(`Loaded ${json_folder_list.files.length} total files, showing first ${firstPageData.length} items, ${totalPages} total pages`);
+                createFolderGraph(); // Fetch folder graph data
+                tagsListup(); // Update tag list
 
-                // Fetch folder graph data
-                console.log("Fetching folder graph data...");
-                const res = await fetch(
-                    `http://localhost:5000/folder/graph/create?folderPath=${encodeURIComponent(folderPath)}`
-                );
-                if (!res.ok) {
-                    console.log("Graph fetch failed:", res.status, res.statusText);
-                    setError(`Graph Error: ${res.status} ${res.statusText}`);
-                    // Continue without graph instead of returning
-                    setFolderGraphData(null);
-                } else {
-                    const graphBlob = await res.blob();
-                    const graphUrl = URL.createObjectURL(graphBlob);
-                    console.log("Graph URL:", graphUrl);
-                    setFolderGraphData({ graphUrl });
-                }
-                setIsLoading(false);
-                setError(null); // Clear previous errors
-                setPage(1); // Reset to first page
-
-                // Trigger independent thumbnail loading
-                setShouldLoadThumbnails(true);
-
+                setError(null);
+                setIsLoading(false);            
             } catch (err) {
                 setError(`Fetch error: ${err.message}`);
                 setIsLoading(false);
@@ -861,6 +979,66 @@ function FolderManagementUI() {
 
                     <h3>Files in Folder Data</h3>
 
+                    {/* Tag Filter Dropdown */}
+                    <label htmlFor="tagFilter" style={{ fontWeight: 'bold', marginRight: '10px' }}>Filter by Tag:</label>
+
+                    {folderData.length === 0 && tagsList.length === 0 && (
+                        <span style={{ color: '#6c757d', fontSize: '14px' }}>No tags available</span>
+                    )}
+
+                    {tagsList.length > 0 && (
+                        <>
+                            <select
+                                id="tagFilter"
+                                style={{
+                                    padding: '6px 12px',
+                                    border: '1px solid #ced4da',
+                                    borderRadius: '4px',
+                                    fontSize: '14px'
+                                }}  
+                            >
+                            
+                            <option value="">-- Select Tag --</option>
+                            {tagsList.map((tag, index) => (
+                                <option key={index} value={tag}>{tag}</option>
+                            ))}
+                        
+                            </select>
+
+                            <button 
+                                onClick={() => tagsFilter(document.getElementById('tagFilter').value)}
+                                style={{ 
+                                    marginLeft: '10px',
+                                    padding: '6px 12px',
+                                    backgroundColor: '#17a2b8',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                Apply Filter
+                            </button>
+
+                            <button
+                                onClick={() => clearTagFilter()}
+                                style={{ 
+                                    marginLeft: '10px',
+                                    padding: '6px 12px',
+                                    backgroundColor: '#6c757d',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                Clear Filter
+                            </button>
+                        </>
+                    )}
+
                     {/* File Cards Display */}
                     <div style={{ 
                         display: 'grid',
@@ -1003,6 +1181,32 @@ function FolderManagementUI() {
                                         borderRadius: '4px'
                                     }}>
                                         <strong>Path:</strong> {file.path}
+                                    </div>
+
+                                    <div style={{
+                                        fontSize: '12px',
+                                        color: '#888',
+                                        marginTop: '8px',
+                                        backgroundColor: '#f8f9fa',
+                                        padding: '8px',
+                                        borderRadius: '4px'
+                                    }}>
+                                        <strong>Tags:</strong>
+                                        {file.tags.length === 0 ? ' None' : 
+                                            file.tags.map((tag, index) => (
+                                                <span key={index} style={{ 
+                                                    marginTop: '4px',
+                                                    backgroundColor: '#90EE90',
+                                                    padding: '4px 8px',
+                                                    borderRadius: '4px',
+                                                    display: 'inline-block',
+                                                    marginLeft: '4px',
+                                                    marginRight: '2px'
+                                                }}>
+                                                    {tag}
+                                                </span>
+                                            ))
+                                        }
                                     </div>
                                 </div>
 
@@ -1148,8 +1352,6 @@ function FolderManagementUI() {
             {/* Folder Graph */}
             {folderGraphData && folderGraphData.graphUrl && (
                 <div className="text-center mt-4">
-                    <h3 className="mb-3">Folder Graph</h3>
-
                     <img
                         src={folderGraphData.graphUrl}
                         alt="Folder Graph"

@@ -68,7 +68,9 @@ async def fold_list_endpoint(folderPath: str):
         "name": "XXXX.mp4",
         "path": "C:/XXXX.mp4",
         "size": XXXXX,
-        "extension": ".mp4"
+        "extension": ".mp4",
+        "created_time": "2023-10-01 12:00:00",
+        "tags": []
     }
     ]
 
