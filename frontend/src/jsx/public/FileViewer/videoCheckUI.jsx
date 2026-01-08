@@ -407,9 +407,12 @@ function VideoCheckPage() {
     // handler for checkbox change
     const handleCheck = (fileId, checked) => {
         if (checked) {
+            // Find the file to get its name
+            const file = folderData.find(f => f.id === fileId);
+            const fileName = file ? file.name : '';
              setCheckedFiles(prev => ({
                ...prev,
-                [fileId]: ''
+                [fileId]: fileName
             }));
         } else {
             setCheckedFiles(prev => {
@@ -427,6 +430,8 @@ function VideoCheckPage() {
             [fileId]: newName
         }));
     };
+
+    const [renameCheck, setRenameCheck] = useState(false);
 
     // rename execute function
     const renameExecute = async () => {
@@ -465,11 +470,16 @@ function VideoCheckPage() {
             }
             
             const renameResults = await res_rename.json();
-            console.log("Rename results:", renameResults);
             
             if (renameResults.status === "success") {
+                console.log("======================");
+                console.log("Rename success");
+                console.log({checkedFiles});
+                console.log("======================");
+            
                 setCheckedFiles({});
                 setShouldLoadThumbnails(true);
+                setRenameCheck(true);
             } else {
                 setError(`Rename failed: ${renameResults.message}`);
             }
@@ -1078,7 +1088,8 @@ function VideoCheckPage() {
                                         📂 Choose from available folders in base directory
                                         {allDirs.length > 0 && (
                                             <span style={{ color: '#28a745', fontWeight: 'bold' }}>
-                                                {` (${allDirs.length} folders found)`}
+                                                <p />
+                                                    {` (${allDirs.length} folders found)`}
                                             </span>
                                         )}
                                     </small>
@@ -1722,7 +1733,7 @@ function VideoCheckPage() {
                                 </div>
 
                                 {/* Rename Input */}
-                                {checkedFiles[file.id] !== undefined && (
+                                {checkedFiles && checkedFiles[file.id] !== undefined && (
                                     <div style={{ marginTop: '12px' }}>
                                         <input
                                             type="text"
@@ -1796,6 +1807,23 @@ function VideoCheckPage() {
                     )}
                         </div>
                     )}
+
+                    {renameCheck === true && (
+                        <div style={{
+                            textAlign: 'center',
+                            marginTop: '20px',
+                            padding: '15px',
+                            backgroundColor: '#d4edda',
+                            border: '1px solid #c3e6cb',
+                            borderRadius: '8px',
+                            color: '#155724',
+                            fontSize: '16px',
+                            fontWeight: '600'
+                        }}>
+                            Rename operation completed successfully!
+                        </div>
+                    )    
+                    }
 
                     {/* Folder Graph */}
                     {folderGraphData && folderGraphData.graphUrl && (

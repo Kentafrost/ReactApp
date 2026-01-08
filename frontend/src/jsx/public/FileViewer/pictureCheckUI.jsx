@@ -84,6 +84,57 @@ function PictureViewerPage() {
         }
     }, [fileJsonPath]);
 
+
+
+    const [allDirs, setAllDirs] = useState(() => {
+        const stored = localStorage.getItem('pictureViewer_allDirs');
+        return stored ? JSON.parse(stored) : [];
+    });
+
+    // Save allDirs to localStorage when it changes
+    useEffect(() => {
+        if (allDirs.length > 0) {
+            localStorage.setItem('pictureViewer_allDirs', JSON.stringify(allDirs));
+        }
+    }, [allDirs]);
+
+    // Handler for folder selection from dropdown
+    const handleFolderSelect = (selectedFolder) => {
+        setRelativePath(selectedFolder);
+    };
+    
+    // Auto-fetch folders when basePath changes
+    useEffect(() => {
+        const fetchFolders = async () => {
+            if (basePath) {
+                try {
+                    console.log('Fetching folders for basePath:', basePath);
+                    const response = await fetch(`http://localhost:5000/files/relativePath?basePath=${encodeURIComponent(basePath)}`);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('Received folder data:', data);
+                        if (data.folders && Array.isArray(data.folders)) {
+                            setAllDirs(data.folders);
+                        } else {
+                            setAllDirs([]);
+                        }
+                    } else {
+                        console.error('Failed to fetch folders');
+                        setAllDirs([]);
+                    }
+                } catch (error) {
+                    console.error('Error fetching folders:', error);
+                    setAllDirs([]);
+                }
+            } else {
+                setAllDirs([]);
+            }
+        };
+        
+        fetchFolders();
+    }, [basePath]);
+
     // Handler for setting relative path from directory input
     const handlerSetRelativePath = (e) => { 
         const files = Array.from(e.target.files); 
@@ -702,7 +753,7 @@ function PictureViewerPage() {
                                     color: '#495057',
                                     fontSize: '14px'
                                 }}>
-                                    Relative Path - Manual Input
+                                    Relative Path - Select Folder
                                 </td>
                             </tr>
                             <tr>
@@ -711,10 +762,10 @@ function PictureViewerPage() {
                                     textAlign: 'left',
                                     borderBottom: '1px solid #dee2e6'
                                 }}>
-                                    <input 
-                                        type="text" 
+                                    <select 
                                         value={relativePath}
-                                        onChange={(e) => setRelativePath(e.target.value)}
+                                        onChange={(e) => handleFolderSelect(e.target.value)}
+                                        disabled={!basePath || allDirs.length === 0}
                                         style={{ 
                                             width: '100%', 
                                             padding: '12px',
@@ -722,56 +773,36 @@ function PictureViewerPage() {
                                             borderRadius: '8px',
                                             fontSize: '14px',
                                             transition: 'border-color 0.3s ease',
-                                            outline: 'none'
+                                            outline: 'none',
+                                            backgroundColor: (!basePath || allDirs.length === 0) ? '#f8f9fa' : '#fff',
+                                            cursor: (!basePath || allDirs.length === 0) ? 'not-allowed' : 'pointer'
                                         }}
-                                        placeholder="Enter folder name"
                                         onFocus={(e) => e.target.style.borderColor = '#28a745'}
                                         onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
-                                    />
+                                    >
+                                        <option value="">
+                                            {!basePath ? 'Please set base path first' : 
+                                             allDirs.length === 0 ? 'No folders available' : 
+                                             'Select a folder...'}
+                                        </option>
+                                        {allDirs.map((folder, index) => (
+                                            <option key={index} value={folder}>
+                                                📁 {folder}
+                                            </option>
+                                        ))}
+                                    </select>
                                     <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
-                                        ✏️ Type folder name manually
+                                        📂 Choose from available folders in base directory
+                                        {allDirs.length > 0 && (
+                                            <span style={{ color: '#28a745', fontWeight: 'bold' }}>
+                                                <p />
+                                                {` (${allDirs.length} folders found)`}
+                                            </span>
+                                        )}
                                     </small>
                                 </td>
                             </tr>
-                            <tr>
-                                <td style={{ 
-                                    padding: '15px',
-                                    backgroundColor: '#f8f9fa',
-                                    fontWeight: 'bold',
-                                    textAlign: 'left',
-                                    borderBottom: '1px solid #dee2e6',
-                                    color: '#495057',
-                                    fontSize: '14px'
-                                }}>
-                                    Relative Path - Folder Browser
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style={{ 
-                                    padding: '15px',
-                                    textAlign: 'left',
-                                    borderBottom: '1px solid #dee2e6'
-                                }}>
-                                    <input 
-                                        type="file" 
-                                        webkitdirectory="true"
-                                        directory=""
-                                        onChange={handlerSetRelativePath}
-                                        style={{ 
-                                            width: '100%',
-                                            padding: '12px',
-                                            border: '2px solid #e9ecef',
-                                            borderRadius: '8px',
-                                            fontSize: '14px',
-                                            backgroundColor: '#fff',
-                                            cursor: 'pointer'
-                                        }}
-                                    />
-                                    <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
-                                        📁 Select folder using file browser
-                                    </small>
-                                </td>
-                            </tr>
+
                             {basePath && relativePath && (
                                 <tr style={{ backgroundColor: '#e8f5e8' }}>
                                     <td style={{ 

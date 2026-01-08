@@ -183,6 +183,12 @@ async def file_rename_endpoint(request: BatchFileRenameRequest):
     with open(request.jsonPath, 'w', encoding='utf-8') as wf:
         json.dump(data, wf, indent=4, ensure_ascii=False)
 
+    print("◆◆◆◆ Batch rename operation completed ◆◆◆")
+    print("")
+    print(f"Batch rename result: {result}")
+    print("◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆◆")
+    print("")
+
     if all(r.get("status") == "success" for r in result):
         return {
             "status": "success", 
