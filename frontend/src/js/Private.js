@@ -7,10 +7,9 @@ function Private() {
     <div>
       <h2> Access Granted! </h2>
 
-      {/* ナビゲーション */}
+      {/* private navigation */}
       <nav className="navbar navbar-expand-lg navbar-light bg-light mb-4">
         <div className="container">
-          <h3 className="navbar-brand"> Choose private options </h3>
           <div className="collapse navbar-collapse">
             <ul className="navbar-nav me-auto">
               <li className="nav-item">

@@ -26,11 +26,6 @@ function App() {
     <Router>
       {/* Header */}
       <div style={{ textAlign: 'center' }}>
-        {/* <header className="bg-info py-3 mb-4">
-          <div className="container">
-            <h1 className="h3">My React App</h1>
-          </div>
-        </header> */}
 
         {/* Navigation */}
         <h4>

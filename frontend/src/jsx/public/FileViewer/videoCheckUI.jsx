@@ -492,6 +492,13 @@ function VideoCheckPage() {
         }
     });
 
+    // Filter states
+    const [extensionFilter, setExtensionFilter] = useState('all');
+    const [sizeFilter, setSizeFilter] = useState('all');
+    const [searchKeyword, setSearchKeyword] = useState('');
+    const [selectedTag, setSelectedTag] = useState('');
+    const [filteredData, setFilteredData] = useState(null);
+
     // Save tagsList to localStorage when it changes
     useEffect(() => {
         if (tagsList && tagsList.length > 0) {
@@ -499,6 +506,70 @@ function VideoCheckPage() {
         }
     }, [tagsList]);
 
+
+    // Enhanced filtering function
+    const applyFilters = () => {
+        if (!allFilesData || !Array.isArray(allFilesData)) return;
+        
+        let filtered = [...allFilesData];
+        
+        // Extension filter
+        if (extensionFilter && extensionFilter !== 'all') {
+            filtered = filtered.filter(file => 
+                file.extension && file.extension.toLowerCase() === extensionFilter.toLowerCase()
+            );
+        }
+        
+        // Size filter
+        if (sizeFilter && sizeFilter !== 'all') {
+            filtered = filtered.filter(file => {
+                const sizeInMB = file.size / (1024 * 1024);
+                switch(sizeFilter) {
+                    case 'small': return sizeInMB < 100;
+                    case 'medium': return sizeInMB >= 100 && sizeInMB < 500;
+                    case 'large': return sizeInMB >= 500 && sizeInMB < 1000;
+                    case 'xlarge': return sizeInMB >= 1000;
+                    default: return true;
+                }
+            });
+        }
+        
+        // Search keyword filter
+        if (searchKeyword && searchKeyword.trim()) {
+            const keyword = searchKeyword.toLowerCase().trim();
+            filtered = filtered.filter(file => 
+                file.name && file.name.toLowerCase().includes(keyword)
+            );
+        }
+        
+        // Tag filter
+        if (selectedTag && selectedTag !== '') {
+            filtered = filtered.filter(file => 
+                file.tags && Array.isArray(file.tags) && file.tags.includes(selectedTag)
+            );
+        }
+        
+        setFilteredData(filtered);
+        setFolderData(filtered.slice(0, 50));
+        setTotalPages(Math.ceil(filtered.length / 50));
+        setPage(1);
+        setShouldLoadThumbnails(true);
+    };
+    
+    // Clear all filters
+    const clearAllFilters = () => {
+        setExtensionFilter('all');
+        setSizeFilter('all');
+        setSearchKeyword('');
+        setSelectedTag('');
+        setFilteredData(null);
+        setPage(1);
+    };
+    
+    // Apply filters when filter states change
+    useEffect(() => {
+        applyFilters();
+    }, [extensionFilter, sizeFilter, searchKeyword, selectedTag, allFilesData]);
 
     // tag filter function based on tags array in each file data
     const tagsFilter = async (tag) => {
@@ -514,10 +585,6 @@ function VideoCheckPage() {
         setShouldLoadThumbnails(true);
     };
 
-    const clearTagFilter = async () => {
-        console.log('Clearing tag filter, resetting to page 1');
-        setPage(1); // This will trigger the pagination useEffect to reload properly
-    };
 
     // tag listup function to use as options in tag filter
     const tagsListup = async() => {
@@ -713,105 +780,122 @@ function VideoCheckPage() {
     };
 
     return (
-        <div style={{
-            minHeight: '100vh',
-            backgroundColor: '#f8f9fa',
-            fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+        <div style={{ 
+            minHeight: '100vh', 
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            fontFamily: 'Arial, sans-serif',
+            display: 'flex',
+            flexDirection: 'column'
         }}>
-            {/* Header */}
-            <div style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                padding: '2rem 0',
-                marginBottom: '2rem',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+            {/* Modern Header with Navigation */}
+            <header style={{
+                background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #4b79a1 100%)',
+                padding: '30px 40px',
+                borderRadius: '0 0 25px 25px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                position: 'relative',
+                overflow: 'hidden'
             }}>
-                <div style={{ width: '100%', margin: '0 auto', padding: '0 2rem' }}>
+                {/* Decorative Background Elements */}
+                <div style={{
+                    position: 'absolute',
+                    top: '-50px',
+                    right: '-50px',
+                    width: '200px',
+                    height: '200px',
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.1)',
+                    zIndex: 1
+                }}></div>
+                <div style={{
+                    position: 'absolute',
+                    bottom: '-30px',
+                    left: '-30px',
+                    width: '150px',
+                    height: '150px',
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.05)',
+                    zIndex: 1
+                }}></div>
+                
+                <div style={{ position: 'relative', zIndex: 2 }}>
                     <div style={{
                         display: 'flex',
-                        alignItems: 'center',
                         justifyContent: 'space-between',
-                        width: '100%'
+                        alignItems: 'center',
+                        marginBottom: '20px'
                     }}>
-                        <div style={{ textAlign: 'center', flex: 1 }}>
-                            <h1 style={{
-                                color: 'white',
-                                fontSize: '2.5rem',
-                                fontWeight: '700',
-                                margin: 0,
-                                textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                        <div>
+                            <h1 style={{ 
+                                color: 'white', 
+                                margin: '0 0 10px 0', 
+                                fontSize: '36px',
+                                fontWeight: '300',
+                                letterSpacing: '2px',
+                                textShadow: '0 2px 10px rgba(0,0,0,0.3)'
                             }}>
                                 📹 Video Viewer
                             </h1>
                             <p style={{
-                                color: 'rgba(255,255,255,0.9)',
-                                fontSize: '1.1rem',
-                                margin: '0.5rem 0 0 0',
+                                color: 'rgba(255,255,255,0.8)',
+                                margin: 0,
+                                fontSize: '16px',
                                 fontWeight: '300'
                             }}>
                                 Browse and manage your video files with ease
                             </p>
                         </div>
                         
-                        {/* Navigation Buttons */}
-                        <div style={{
-                            display: 'flex',
-                            gap: '1rem',
-                            alignItems: 'center'
-                        }}>
+                        {/* Navigation Buttons Integrated in Header */}
+                        <div style={{ display: 'flex', gap: '15px' }}>
                             <button 
                                 onClick={() => navigate("/file/video/list")}
                                 style={{
-                                    padding: '0.75rem 1.5rem',
-                                    background: 'rgba(255,255,255,0.2)',
+                                    padding: '15px 25px',
+                                    background: 'linear-gradient(135deg, #6f42c1, #8e44ad)',
                                     color: 'white',
-                                    border: '2px solid rgba(255,255,255,0.3)',
-                                    borderRadius: '12px',
+                                    border: 'none',
+                                    borderRadius: '25px',
                                     cursor: 'pointer',
-                                    fontSize: '1rem',
+                                    fontSize: '16px',
                                     fontWeight: '600',
-                                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
                                     transition: 'all 0.3s ease',
-                                    transform: 'translateY(0)',
-                                    minWidth: '140px',
+                                    boxShadow: '0 4px 15px rgba(111, 66, 193, 0.3)',
                                     backdropFilter: 'blur(10px)'
                                 }}
                                 onMouseEnter={(e) => {
-                                    e.target.style.background = 'rgba(255,255,255,0.3)';
                                     e.target.style.transform = 'translateY(-2px)';
-                                    e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
+                                    e.target.style.boxShadow = '0 6px 20px rgba(111, 66, 193, 0.4)';
                                 }}
                                 onMouseLeave={(e) => {
-                                    e.target.style.background = 'rgba(255,255,255,0.2)';
                                     e.target.style.transform = 'translateY(0)';
-                                    e.target.style.boxShadow = '0 4px 16px rgba(0,0,0,0.2)';
+                                    e.target.style.boxShadow = '0 4px 15px rgba(111, 66, 193, 0.3)';
                                 }}
                             >
                                 📹 Video Viewer
                             </button>
-                            
                             <button 
                                 onClick={() => navigate("/file/picture/list")}
                                 style={{
-                                    padding: '0.75rem 1.5rem',
-                                    background: 'linear-gradient(135deg, #4fd1c7 0%, #38b2ac 100%)',
+                                    padding: '15px 25px',
+                                    background: 'linear-gradient(135deg, #20c997, #17a2b8)',
                                     color: 'white',
                                     border: 'none',
-                                    borderRadius: '12px',
+                                    borderRadius: '25px',
                                     cursor: 'pointer',
-                                    fontSize: '1rem',
+                                    fontSize: '16px',
                                     fontWeight: '600',
-                                    boxShadow: '0 4px 16px rgba(79, 209, 199, 0.4)',
                                     transition: 'all 0.3s ease',
-                                    transform: 'translateY(0)',
-                                    minWidth: '140px'
+                                    boxShadow: '0 4px 15px rgba(32, 201, 151, 0.3)',
+                                    backdropFilter: 'blur(10px)'
                                 }}
                                 onMouseEnter={(e) => {
                                     e.target.style.transform = 'translateY(-2px)';
-                                    e.target.style.boxShadow = '0 8px 25px rgba(79, 209, 199, 0.6)';
+                                    e.target.style.boxShadow = '0 6px 20px rgba(32, 201, 151, 0.4)';
                                 }}
                                 onMouseLeave={(e) => {
                                     e.target.style.transform = 'translateY(0)';
-                                    e.target.style.boxShadow = '0 4px 16px rgba(79, 209, 199, 0.4)';
+                                    e.target.style.boxShadow = '0 4px 15px rgba(32, 201, 151, 0.3)';
                                 }}
                             >
                                 🖼️ Picture Viewer
@@ -819,412 +903,495 @@ function VideoCheckPage() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </header>
 
-            {/* Main Container with Left Sidebar Layout */}
+            {/* Main Content with Sidebar Layout */}
             <div style={{ 
-                width: '100%',
-                margin: '0', 
-                padding: '0 2rem',
-                display: 'flex',
-                gap: '2rem',
-                alignItems: 'flex-start',
-                boxSizing: 'border-box'
+                display: 'flex', 
+                flex: 1,
+                gap: '30px',
+                padding: '30px',
+                minHeight: 'calc(100vh - 200px)'
             }}>
-                
                 {/* Left Sidebar - Path Configuration */}
-                <div style={{
-                    width: '350px',
-                    flexShrink: 0,
-                    minWidth: '320px'
+                <aside style={{
+                    width: '400px',
+                    minWidth: '400px',
+                    background: 'rgba(255,255,255,0.95)',
+                    borderRadius: '20px',
+                    padding: '25px',
+                    height: 'fit-content',
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,255,255,0.2)'
                 }}>
-                    <div style={{
+                    <h3 style={{
+                        color: '#2c3e50',
+                        marginBottom: '20px',
+                        fontSize: '20px',
+                        fontWeight: '600',
+                        textAlign: 'center',
+                        padding: '10px 0',
+                        borderBottom: '2px solid #e9ecef'
+                    }}>
+                        📁 Path Configuration
+                    </h3>
+
+                    {/* Path Configuration Table */}
+                    <table style={{
+                        width: '100%',
+                        borderCollapse: 'collapse',
                         backgroundColor: 'white',
                         borderRadius: '12px',
-                        padding: '1.5rem',
-                        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-                        border: '1px solid rgba(0,0,0,0.05)'
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
                     }}>
-                        <h4 style={{
-                            color: '#2d3748',
+                        <tbody>
+                            <tr>
+                                <td style={{ 
+                                    padding: '15px',
+                                    backgroundColor: '#f8f9fa',
+                                    fontWeight: 'bold',
+                                    textAlign: 'left',
+                                    borderBottom: '1px solid #dee2e6',
+                                    color: '#495057',
+                                    fontSize: '14px'
+                                }}>
+                                    Base Folder Path
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style={{ 
+                                    padding: '15px',
+                                    textAlign: 'left',
+                                    borderBottom: '1px solid #dee2e6'
+                                }}>
+                                    <input 
+                                        type="text" 
+                                        value={basePath}
+                                        onChange={(e) => setBasePath(e.target.value)}
+                                        style={{ 
+                                            width: '100%', 
+                                            padding: '12px',
+                                            border: '2px solid #e9ecef',
+                                            borderRadius: '8px',
+                                            fontSize: '14px',
+                                            transition: 'border-color 0.3s ease',
+                                            outline: 'none'
+                                        }}
+                                        placeholder="e.g., C:/Users/YourName/Documents"
+                                        onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                                        onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
+                                    />
+                                    <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
+                                        📂 Enter the base directory path
+                                    </small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style={{ 
+                                    padding: '15px',
+                                    backgroundColor: '#f8f9fa',
+                                    fontWeight: 'bold',
+                                    textAlign: 'left',
+                                    borderBottom: '1px solid #dee2e6',
+                                    color: '#495057',
+                                    fontSize: '14px'
+                                }}>
+                                    Relative Path - Manual Input
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style={{ 
+                                    padding: '15px',
+                                    textAlign: 'left',
+                                    borderBottom: '1px solid #dee2e6'
+                                }}>
+                                    <input 
+                                        type="text" 
+                                        value={relativePath}
+                                        onChange={(e) => setRelativePath(e.target.value)}
+                                        style={{ 
+                                            width: '100%', 
+                                            padding: '12px',
+                                            border: '2px solid #e9ecef',
+                                            borderRadius: '8px',
+                                            fontSize: '14px',
+                                            transition: 'border-color 0.3s ease',
+                                            outline: 'none'
+                                        }}
+                                        placeholder="Enter folder name"
+                                        onFocus={(e) => e.target.style.borderColor = '#28a745'}
+                                        onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
+                                    />
+                                    <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
+                                        ✏️ Type folder name manually
+                                    </small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style={{ 
+                                    padding: '15px',
+                                    backgroundColor: '#f8f9fa',
+                                    fontWeight: 'bold',
+                                    textAlign: 'left',
+                                    borderBottom: '1px solid #dee2e6',
+                                    color: '#495057',
+                                    fontSize: '14px'
+                                }}>
+                                    Relative Path - Folder Browser
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style={{ 
+                                    padding: '15px',
+                                    textAlign: 'left',
+                                    borderBottom: '1px solid #dee2e6'
+                                }}>
+                                    <input 
+                                        type="file" 
+                                        webkitdirectory="true"
+                                        directory=""
+                                        onChange={handlerSetRelativePath}
+                                        style={{ 
+                                            width: '100%',
+                                            padding: '12px',
+                                            border: '2px solid #e9ecef',
+                                            borderRadius: '8px',
+                                            fontSize: '14px',
+                                            backgroundColor: '#fff',
+                                            cursor: 'pointer'
+                                        }}
+                                    />
+                                    <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
+                                        📁 Select folder using file browser
+                                    </small>
+                                </td>
+                            </tr>
+                            {basePath && relativePath && (
+                                <tr style={{ backgroundColor: '#e8f5e8' }}>
+                                    <td style={{ 
+                                        padding: '15px',
+                                        textAlign: 'left',
+                                        color: '#155724',
+                                        fontFamily: 'monospace',
+                                        fontSize: '13px',
+                                        wordBreak: 'break-all',
+                                        backgroundColor: '#d4edda',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        <div style={{ marginBottom: '5px', color: '#155724' }}>
+                                            ✅ Full Path Preview:
+                                        </div>
+                                        {basePath}/{relativePath}
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                    {/* Search Controls */}
+                    <div style={{ 
+                        marginTop: '25px',
+                        padding: '20px',
+                        background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)',
+                        borderRadius: '15px',
+                        border: '1px solid #dee2e6'
+                    }}>
+                        <button 
+                            onClick={() => handleSearch()}
+                            disabled={isLoading || !basePath || !relativePath}
+                            style={{ 
+                                width: '100%',
+                                padding: '15px 25px',
+                                background: isLoading || !basePath || !relativePath 
+                                    ? 'linear-gradient(135deg, #6c757d, #5a6268)' 
+                                    : 'linear-gradient(135deg, #28a745, #20c997)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '12px',
+                                cursor: isLoading || !basePath || !relativePath ? 'not-allowed' : 'pointer',
+                                fontSize: '16px',
+                                fontWeight: 'bold',
+                                transition: 'all 0.3s ease',
+                                boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)'
+                            }}
+                            onMouseEnter={(e) => {
+                                if (!isLoading && basePath && relativePath) {
+                                    e.target.style.transform = 'translateY(-2px)';
+                                    e.target.style.boxShadow = '0 6px 20px rgba(40, 167, 69, 0.4)';
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.transform = 'translateY(0)';
+                                e.target.style.boxShadow = '0 4px 15px rgba(40, 167, 69, 0.3)';
+                            }}
+                        >
+                            {isLoading ? '🔍 Searching...' : '🔍 Search Videos'}
+                        </button>
+                        
+                        {folderData && (
+                            <div style={{
+                                marginTop: '15px',
+                                textAlign: 'center',
+                                padding: '10px',
+                                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(40, 167, 69, 0.2)'
+                            }}>
+                                <span style={{ 
+                                    color: '#155724', 
+                                    fontSize: '14px',
+                                    fontWeight: 'bold'
+                                }}>
+                                    ✅ {folderData.length} videos loaded successfully
+                                </span>
+                            </div>
+                        )}
+                        
+                        {(!basePath || !relativePath) && (
+                            <div style={{
+                                marginTop: '15px',
+                                padding: '12px 15px',
+                                backgroundColor: '#fff3cd',
+                                border: '1px solid #ffeaa7',
+                                borderRadius: '8px',
+                                color: '#856404',
+                                fontSize: '14px'
+                            }}>
+                                💡 Please set both Base Path and Relative Path to enable searching
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Loading Indicator */}
+                    {isLoading && (
+                        <div style={{
+                            marginTop: '20px',
+                            textAlign: 'center',
+                            padding: '15px',
+                            background: 'linear-gradient(135deg, #007bff, #0056b3)',
+                            borderRadius: '12px',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            fontSize: '16px'
+                        }}>
+                            🔄 Loading folder data...
+                        </div>
+                    )}
+
+                    {/* Error Display */}
+                    {error && (
+                        <div style={{ 
+                            marginTop: '20px', 
+                            padding: '15px', 
+                            backgroundColor: '#f8d7da', 
+                            color: '#721c24',
+                            border: '1px solid #f5c6cb',
+                            borderRadius: '12px',
+                            fontWeight: 'bold'
+                        }}>
+                            ❌ {error}
+                        </div>
+                    )}
+                </aside>
+
+                    {/* Folder data list */}
+                    {folderData && folderData.length > 0 && (
+                <div>
+                    {/* Filtering Options */}
+                    <div style={{
+                        backgroundColor: '#f8f9fa',
+                        border: '2px solid #e9ecef',
+                        borderRadius: '12px',
+                        padding: '1.5rem',
+                        marginBottom: '1rem',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                    }}>
+                        <h3 style={{
+                            color: '#495057',
                             fontSize: '1.1rem',
                             fontWeight: '600',
-                            margin: '0 0 1rem 0',
-                            textAlign: 'left',
+                            marginBottom: '1rem',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.5rem'
+                            gap: '8px'
                         }}>
-                            📂 Path Configuration
-                        </h4>
-
-                        {/* Compact Table Style */}
-                        <table style={{
-                            width: '100%',
-                            borderCollapse: 'separate',
-                            borderSpacing: '0'
+                            🔍 Filtering Options
+                        </h3>
+                        
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '1rem',
+                            alignItems: 'end'
                         }}>
-                            <tbody>
-                                {/* Base Folder Path Row */}
-                                <tr>
-                                    <td style={{
-                                        padding: '0.75rem 0',
-                                        verticalAlign: 'top',
-                                        textAlign: 'left'
+                            {/* Search Input */}
+                            <div>
+                                <label style={{ 
+                                    display: 'block', 
+                                    marginBottom: '5px', 
+                                    fontWeight: '500',
+                                    color: '#495057',
+                                    fontSize: '14px'
+                                }}>
+                                    📝 File Name Search
+                                </label>
+                                <input
+                                    type="text"
+                                    value={searchKeyword}
+                                    onChange={(e) => setSearchKeyword(e.target.value)}
+                                    placeholder="Enter file name..."
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px 12px',
+                                        border: '2px solid #dee2e6',
+                                        borderRadius: '6px',
+                                        fontSize: '14px',
+                                        backgroundColor: '#fff'
+                                    }}
+                                />
+                            </div>
+                            
+                            {/* Extension Filter */}
+                            <div>
+                                <label style={{ 
+                                    display: 'block', 
+                                    marginBottom: '5px', 
+                                    fontWeight: '500',
+                                    color: '#495057',
+                                    fontSize: '14px'
+                                }}>
+                                    📄 Extension Filter
+                                </label>
+                                <select
+                                    value={extensionFilter}
+                                    onChange={(e) => setExtensionFilter(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px 12px',
+                                        border: '2px solid #dee2e6',
+                                        borderRadius: '6px',
+                                        fontSize: '14px',
+                                        backgroundColor: '#fff'
+                                    }}
+                                >
+                                    <option value="all">All</option>
+                                    <option value="mp4">MP4</option>
+                                    <option value="avi">AVI</option>
+                                    <option value="mkv">MKV</option>
+                                    <option value="mov">MOV</option>
+                                    <option value="wmv">WMV</option>
+                                    <option value="flv">FLV</option>
+                                </select>
+                            </div>
+                            
+                            {/* Size Filter */}
+                            <div>
+                                <label style={{ 
+                                    display: 'block', 
+                                    marginBottom: '5px', 
+                                    fontWeight: '500',
+                                    color: '#495057',
+                                    fontSize: '14px'
+                                }}>
+                                    📊 Size Filter
+                                </label>
+                                <select
+                                    value={sizeFilter}
+                                    onChange={(e) => setSizeFilter(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px 12px',
+                                        border: '2px solid #dee2e6',
+                                        borderRadius: '6px',
+                                        fontSize: '14px',
+                                        backgroundColor: '#fff'
+                                    }}
+                                >
+                                    <option value="all">All</option>
+                                    <option value="small">Small (&lt;100MB)</option>
+                                    <option value="medium">Medium (100-500MB)</option>
+                                    <option value="large">Large (500MB-1GB)</option>
+                                    <option value="xlarge">Extra Large (&gt;1GB)</option>
+                                </select>
+                            </div>
+                            
+                            {/* Tag Filter */}
+                            {tagsList && tagsList.length > 0 && (
+                                <div>
+                                    <label style={{ 
+                                        display: 'block', 
+                                        marginBottom: '5px', 
+                                        fontWeight: '500',
+                                        color: '#495057',
+                                        fontSize: '14px'
                                     }}>
-                                        <label style={{
-                                            display: 'block',
-                                            color: '#4a5568',
-                                            fontSize: '0.85rem',
-                                            fontWeight: '600',
-                                            marginBottom: '0.5rem',
-                                            textAlign: 'left'
-                                        }}>
-                                            Base Path
-                                        </label>
-                                        <input 
-                                            type="text" 
-                                            value={basePath}
-                                            onChange={(e) => setBasePath(e.target.value)}
-                                            style={{ 
-                                                width: '100%',
-                                                padding: '0.6rem 0.8rem',
-                                                border: '1px solid #e2e8f0',
-                                                borderRadius: '8px',
-                                                fontSize: '0.85rem',
-                                                backgroundColor: '#f7fafc',
-                                                transition: 'all 0.2s ease',
-                                                outline: 'none',
-                                                boxSizing: 'border-box',
-                                                textAlign: 'left'
-                                            }}
-                                            placeholder="C:/Users/YourName/Documents"
-                                            onFocus={(e) => e.target.style.borderColor = '#667eea'}
-                                            onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
-                                        />
-                                    </td>
-                                </tr>
-                                
-                                {/* Relative Path Row */}
-                                <tr>
-                                    <td style={{
-                                        padding: '0.75rem 0',
-                                        verticalAlign: 'top',
-                                        textAlign: 'left'
-                                    }}>
-                                        <label style={{
-                                            display: 'block',
-                                            color: '#4a5568',
-                                            fontSize: '0.85rem',
-                                            fontWeight: '600',
-                                            marginBottom: '0.5rem',
-                                            textAlign: 'left'
-                                        }}>
-                                            Relative Path (Manual)
-                                        </label>
-                                        <input 
-                                            type="text" 
-                                            value={relativePath}
-                                            onChange={(e) => setRelativePath(e.target.value)}
-                                            style={{ 
-                                                width: '100%',
-                                                padding: '0.6rem 0.8rem',
-                                                border: '1px solid #e2e8f0',
-                                                borderRadius: '8px',
-                                                fontSize: '0.85rem',
-                                                backgroundColor: '#f7fafc',
-                                                transition: 'all 0.2s ease',
-                                                outline: 'none',
-                                                boxSizing: 'border-box',
-                                                textAlign: 'left'
-                                            }}
-                                            placeholder="folder-name"
-                                            onFocus={(e) => e.target.style.borderColor = '#667eea'}
-                                            onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
-                                        />
-                                    </td>
-                                </tr>
-                                
-                                {/* Folder Browser Row */}
-                                <tr>
-                                    <td style={{
-                                        padding: '0.75rem 0',
-                                        verticalAlign: 'top',
-                                        textAlign: 'left'
-                                    }}>
-                                        <label style={{
-                                            display: 'block',
-                                            color: '#4a5568',
-                                            fontSize: '0.85rem',
-                                            fontWeight: '600',
-                                            marginBottom: '0.5rem',
-                                            textAlign: 'left'
-                                        }}>
-                                            Browse Folder
-                                        </label>
-                                        <input 
-                                            type="file" 
-                                            webkitdirectory="true"
-                                            directory=""
-                                            onChange={handlerSetRelativePath}
-                                            style={{ 
-                                                width: '100%',
-                                                padding: '0.6rem 0.8rem',
-                                                border: '1px solid #e2e8f0',
-                                                borderRadius: '8px',
-                                                fontSize: '0.85rem',
-                                                backgroundColor: '#f7fafc',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s ease',
-                                                boxSizing: 'border-box'
-                                            }}
-                                            onFocus={(e) => e.target.style.borderColor = '#764ba2'}
-                                            onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
-                                        />
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    {/* Full Path Preview */}
-                                    {basePath && relativePath && (
-                                        <div style={{
-                                            backgroundColor: '#f0fff4',
-                                            border: '1px solid #68d391',
-                                            borderRadius: '8px',
-                                            padding: '0.75rem',
-                                            marginTop: '1rem'
-                                        }}>
-                                            <div style={{ 
-                                                fontSize: '0.8rem', 
-                                                fontWeight: '600', 
-                                                color: '#22543d',
-                                                marginBottom: '0.25rem',
-                                                textAlign: 'left'
-                                            }}>
-                                                Full Path:
-                                            </div>
-                                            <div style={{ 
-                                                color: '#22543d',
-                                                fontFamily: 'Monaco, Consolas, monospace',
-                                                fontSize: '0.75rem',
-                                                wordBreak: 'break-all',
-                                                textAlign: 'left'
-                                            }}>
-                                                {basePath}/{relativePath}
-                                            </div>
-                                        </div>
-                                    )}
-                                </tr>
-                                
-                                <br/>
-                                <tr>
-                                    <button 
-                                        onClick={() => handleSearch(false)}
-                                        disabled={isLoading || !basePath || !relativePath}
-                                        style={{ 
-                                            padding: '0.875rem 2rem',
-                                            background: isLoading || !basePath || !relativePath 
-                                                ? 'linear-gradient(135deg, #a0a0a0 0%, #808080 100%)' 
-                                                : 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '12px',
-                                            cursor: isLoading || !basePath || !relativePath ? 'not-allowed' : 'pointer',
-                                            fontSize: '1rem',
-                                            fontWeight: '600',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.5rem',
-                                            boxShadow: isLoading || !basePath || !relativePath 
-                                                ? 'none' 
-                                                : '0 4px 16px rgba(72, 187, 120, 0.4)',
-                                            transition: 'all 0.3s ease',
-                                            transform: 'translateY(0)',
-                                            minWidth: '120px'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            if (!isLoading && basePath && relativePath) {
-                                                e.target.style.transform = 'translateY(-2px)';
-                                                e.target.style.boxShadow = '0 8px 25px rgba(72, 187, 120, 0.6)';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (!isLoading && basePath && relativePath) {
-                                                e.target.style.transform = 'translateY(0)';
-                                                e.target.style.boxShadow = '0 4px 16px rgba(72, 187, 120, 0.4)';
-                                            }
+                                        🏷️ Tag Filter   
+                                    </label>
+                                    <select
+                                        value={selectedTag}
+                                        onChange={(e) => setSelectedTag(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '8px 12px',
+                                            border: '2px solid #dee2e6',
+                                            borderRadius: '6px',
+                                            fontSize: '14px',
+                                            backgroundColor: '#fff'
                                         }}
                                     >
-                                        {isLoading ? '🔍 Searching...' : '🚀 Search'}
-                                    </button>
-                                </tr>
-                            </tbody>
-                        </table>
+                                        <option value="">Select a tag...</option>
+                                        {tagsList.map(tag => (
+                                            <option key={tag} value={tag}>{tag}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                            
+                            {/* Clear Filters Button */}
+                            <div>
+                                <button
+                                    onClick={clearAllFilters}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px 16px',
+                                        backgroundColor: '#6c757d',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.2s ease'
+                                    }}
+                                    onMouseOver={(e) => e.target.style.backgroundColor = '#5a6268'}
+                                    onMouseOut={(e) => e.target.style.backgroundColor = '#6c757d'}
+                                >
+                                    🗑️ Clear Filtering options
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {/* Filter Results Summary */}
+                        {(extensionFilter !== 'all' || sizeFilter !== 'all' || searchKeyword || selectedTag) && (
+                            <div style={{
+                                marginTop: '1rem',
+                                padding: '8px 12px',
+                                backgroundColor: '#d1ecf1',
+                                border: '1px solid #bee5eb',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                color: '#0c5460'
+                            }}>
+                                📋 フィルタ適用中: {filteredData ? filteredData.length : 0}件の結果が見つかりました
+                                {extensionFilter !== 'all' && ` | 拡張子: ${extensionFilter}`}
+                                {sizeFilter !== 'all' && ` | サイズ: ${sizeFilter}`}
+                                {searchKeyword && ` | 検索: "${searchKeyword}"`}
+                                {selectedTag && ` | タグ: ${selectedTag}`}
+                            </div>
+                        )}
                     </div>
-                </div>
 
-                {/* Right Content Area */}
-                <div style={{ flex: 1 }}>
-
-            {/* Search Controls Card */}
-            <div style={{
-                backgroundColor: 'white',
-                borderRadius: '16px',
-                padding: '1.5rem',
-                marginBottom: '2rem',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                border: '1px solid rgba(0,0,0,0.05)'
-            }}>
-                
-                {(!basePath || !relativePath) && (
-                    <div style={{
-                        marginTop: '1rem',
-                        padding: '1rem',
-                        backgroundColor: '#fef5e7',
-                        border: '2px solid #f6e05e',
-                        borderRadius: '12px',
-                        color: '#744210',
-                        fontSize: '0.9rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem'
-                    }}>
-                        💡 Please set both Base Path and Relative Path to enable searching
-                    </div>
-                )}
-            </div>
-
-            {/* Error Display */}
-            {error && (
-                <div style={{
-                    backgroundColor: '#fed7d7',
-                    border: '2px solid #fc8181',
-                    borderRadius: '16px',
-                    padding: '1.5rem',
-                    marginBottom: '2rem',
-                    color: '#742a2a',
-                    fontSize: '0.95rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem'
-                }}>
-                    <div style={{
-                        fontSize: '1.5rem',
-                        flexShrink: 0
-                    }}>
-                        ⚠️
-                    </div>
-                    <div>
-                        <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>Error</div>
-                        {error}
-                    </div>
-                </div>
-            )}
-
-            {folderData && folderData.length === 0 && (
-                <div style={{
-                    backgroundColor: '#fef5e7',
-                    border: '2px solid #f6e05e',
-                    borderRadius: '16px',
-                    padding: '2rem',
-                    marginBottom: '2rem',
-                    textAlign: 'center',
-                    color: '#744210'
-                }}>
-                    <div style={{
-                        fontSize: '3rem',
-                        marginBottom: '1rem'
-                    }}>
-                        📹
-                    </div>
-                    <div style={{
-                        fontSize: '1.25rem',
-                        fontWeight: '600',
-                        marginBottom: '0.5rem'
-                    }}>
-                        No video files found
-                    </div>
-                    <div style={{ fontSize: '0.95rem' }}>
-                        Folder: <strong>{relativePath}</strong>
-                    </div>
-                </div>
-            )}
-
-            {/* Tag Filter Controls */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-start',
-                marginBottom: '20px',
-                gap: '10px',
-                padding: '1rem',
-                backgroundColor: 'white',
-                borderRadius: '12px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-            }}>
-                <label htmlFor="tagFilter" style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Filter by Tag:</label>
-
-                {(!allFilesData || allFilesData.length === 0) && (
-                    <span style={{ color: '#6c757d', fontSize: '14px' }}>No video files available</span>
-                )}
-                
-                {allFilesData && allFilesData.length > 0 && tagsList.length === 0 && (
-                    <span style={{ color: '#6c757d', fontSize: '14px' }}>No tags available for video files</span>
-                )}
-
-                {tagsList.length > 0 && (
-                    <>
-                        <select
-                            id="tagFilter"
-                            style={{
-                                padding: '6px 12px',
-                                border: '1px solid #ced4da',
-                                borderRadius: '4px',
-                                fontSize: '14px'
-                            }}  
-                        >
-                            <option value="">-- Select Tag --</option>
-                            {tagsList.sort((a, b) => a.localeCompare(b, 'ja', { numeric: true })).map((tag, index) => (
-                                <option key={index} value={tag}>{tag}</option>
-                            ))}
-                        </select>
-
-                        <button 
-                            onClick={() => tagsFilter(document.getElementById('tagFilter').value)}
-                            style={{ 
-                                padding: '6px 12px',
-                                backgroundColor: '#17a2b8',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '14px'
-                            }}
-                        >
-                            Apply Filter
-                        </button>
-
-                        <button
-                            onClick={() => clearTagFilter()}
-                            style={{ 
-                                padding: '6px 12px',
-                                backgroundColor: '#6c757d',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '14px'
-                            }}
-                        >
-                            Clear Filter
-                        </button>
-                    </>
-                )}
-            </div>
-
-            {/* Folder data list */}
-            {folderData && folderData.length > 0 && (
-                <div>
                     {/* Status and Results with Pagination */}
                     <div style={{
                         backgroundColor: '#f0fff4',
@@ -1306,7 +1473,7 @@ function VideoCheckPage() {
                     {/* File Cards Display */}
                     <div style={{ 
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(490px, 1fr))',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
                         gap: '20px',
                         padding: '20px 0'
                     }}>
@@ -1315,7 +1482,7 @@ function VideoCheckPage() {
                                 backgroundColor: '#ffffff',
                                 border: '1px solid #dee2e6',
                                 borderRadius: '12px',
-                                padding: '20px',
+                                padding: '15px',
                                 boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
                                 transition: 'transform 0.2s ease, box-shadow 0.2s ease'
                             }}
@@ -1333,13 +1500,13 @@ function VideoCheckPage() {
                                     display: 'flex',
                                     justifyContent: 'space-between',
                                     alignItems: 'center',
-                                    marginBottom: '15px',
+                                    marginBottom: '12px',
                                     borderBottom: '1px solid #e9ecef',
-                                    paddingBottom: '10px'
+                                    paddingBottom: '8px'
                                 }}>
                                     <h4 style={{
                                         margin: 0,
-                                        fontSize: '16px',
+                                        fontSize: '14px',
                                         fontWeight: 'bold',
                                         color: '#2c3e50',
                                         wordBreak: 'break-word',
@@ -1349,26 +1516,26 @@ function VideoCheckPage() {
                                     </h4>
                                     <span style={{
                                         backgroundColor: '#e9ecef',
-                                        padding: '4px 8px',
-                                        borderRadius: '12px',
-                                        fontSize: '12px',
+                                        padding: '3px 6px',
+                                        borderRadius: '8px',
+                                        fontSize: '10px',
                                         fontWeight: 'bold',
                                         color: '#495057',
-                                        marginLeft: '10px'
+                                        marginLeft: '8px'
                                     }}>
                                         {file.extension || 'none'}
                                     </span>
                                 </div>
 
-                                {/* Thumbnail - Much Larger */}
+                                {/* Thumbnail - Responsive Size */}
                                 <div style={{
                                     textAlign: 'center',
-                                    marginBottom: '15px'
+                                    marginBottom: '12px'
                                 }}>
                                     {thumbnailLoadingState[file.id] ? (
                                         <div style={{ 
-                                            width: '450px',
-                                            height: '270px',
+                                            width: '100%',
+                                            height: '160px',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
@@ -1376,8 +1543,7 @@ function VideoCheckPage() {
                                             borderRadius: '8px',
                                             border: '1px solid #dee2e6',
                                             color: '#6c757d',
-                                            fontSize: '14px',
-                                            margin: '0 auto'
+                                            fontSize: '12px'
                                         }}>
                                             Loading...
                                         </div>
@@ -1386,8 +1552,8 @@ function VideoCheckPage() {
                                             src={thumbnailList[file.id]}
                                             alt="Thumbnail"
                                             style={{ 
-                                                width: '450px',
-                                                height: '270px',
+                                                width: '100%',
+                                                height: '160px',
                                                 objectFit: 'cover',
                                                 borderRadius: '8px',
                                                 border: '1px solid #dee2e6',
@@ -1403,8 +1569,8 @@ function VideoCheckPage() {
                                         />
                                     ) : (
                                         <div style={{ 
-                                            width: '450px',
-                                            height: '270px',
+                                            width: '100%',
+                                            height: '160px',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
@@ -1412,8 +1578,7 @@ function VideoCheckPage() {
                                             borderRadius: '8px',
                                             border: '1px solid #dee2e6',
                                             color: '#6c757d',
-                                            fontSize: '14px',
-                                            margin: '0 auto'
+                                            fontSize: '12px'
                                         }}>
                                             No Thumbnail
                                         </div>
@@ -1489,7 +1654,7 @@ function VideoCheckPage() {
                                     display: 'flex',
                                     justifyContent: 'space-between',
                                     alignItems: 'center',
-                                    gap: '10px'
+                                    gap: '6px'
                                 }}>
                                     <button
                                         onClick={() => {
@@ -1500,13 +1665,13 @@ function VideoCheckPage() {
                                             }
                                         }}
                                         style={{ 
-                                            padding: "10px 16px", 
+                                            padding: "6px 10px", 
                                             backgroundColor: '#007bff',
                                             color: 'white',
                                             border: 'none',
-                                            borderRadius: '6px',
+                                            borderRadius: '4px',
                                             cursor: 'pointer',
-                                            fontSize: '14px',
+                                            fontSize: '10px',
                                             fontWeight: 'bold',
                                             flex: 1
                                         }}
@@ -1515,41 +1680,42 @@ function VideoCheckPage() {
                                     </button>
 
                                     {/* Rename Check */}
-                                    <div style={{
+                                    <label style={{
+                                        fontSize: '10px',
+                                        color: '#666',
+                                        cursor: 'pointer',
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '8px'
+                                        gap: '3px'
                                     }}>
-                                        <label style={{
-                                            fontSize: '12px',
-                                            color: '#666',
-                                            cursor: 'pointer'
-                                        }}>
-                                            <input 
-                                                type="checkbox" 
-                                                checked={checkedFiles[file.id] !== undefined}
-                                                onChange={(e) => handleCheck(file.id, e.target.checked)}
-                                                style={{ marginRight: '4px' }}
-                                            />
-                                            Rename
-                                        </label>
-                                    </div>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={checkedFiles[file.id] !== undefined}
+                                            onChange={(e) => handleCheck(file.id, e.target.checked)}
+                                            style={{ width: '12px', height: '12px' }}
+                                        />
+                                        Rename
+                                    </label>
                                 </div>
 
                                 {/* Rename Input */}
                                 {checkedFiles[file.id] !== undefined && (
-                                    <div style={{ marginTop: '15px' }}>
+                                    <div style={{ marginTop: '12px' }}>
                                         <input
                                             type="text"
                                             value={checkedFiles[file.id] || ''}
                                             onChange={(e) => renameInputChange(file.id, e.target.value)}
                                             style={{ 
                                                 width: '100%',
+                                                height: '35px',
                                                 padding: '8px 12px',
-                                                fontSize: '14px',
-                                                border: '1px solid #ddd',
-                                                borderRadius: '4px',
-                                                backgroundColor: '#f8f9fa'
+                                                fontSize: '12px',
+                                                border: '2px solid #ddd',
+                                                borderRadius: '6px',
+                                                backgroundColor: '#fff',
+                                                boxSizing: 'border-box',
+                                                fontWeight: '500',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                                             }}
                                             placeholder={file.name || ''}
                                         />
@@ -1561,19 +1727,49 @@ function VideoCheckPage() {
 
                     {/* Rename Execution Button */}
                     {Object.keys(checkedFiles).length > 0 && (
-                        <button onClick={() => renameExecute()} style={{ 
-                            padding: '8px 16px',
-                            backgroundColor: '#28a745',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            fontWeight: 'bold',
-                            marginBottom: '20px'
+                        <div style={{ 
+                            textAlign: 'center', 
+                            margin: '30px 0',
+                            padding: '20px',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            borderRadius: '10px',
+                            border: '2px dashed #28a745'
                         }}>
-                            Rename checked files
-                        </button>
+                            <button onClick={() => renameExecute()} style={{ 
+                                padding: '15px 30px',
+                                backgroundColor: '#28a745',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontSize: '18px',
+                                fontWeight: 'bold',
+                                boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                                transform: 'scale(1)',
+                                transition: 'all 0.2s ease',
+                                minWidth: '200px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px'
+                            }}
+                            onMouseOver={(e) => {
+                                e.target.style.transform = 'scale(1.05)';
+                                e.target.style.backgroundColor = '#218838';
+                            }}
+                            onMouseOut={(e) => {
+                                e.target.style.transform = 'scale(1)';
+                                e.target.style.backgroundColor = '#28a745';
+                            }}>
+                                🔄 RENAME CHECKED FILES
+                            </button>
+                            <div style={{
+                                marginTop: '10px',
+                                fontSize: '14px',
+                                color: '#666',
+                                fontStyle: 'italic'
+                            }}>
+                                {Object.keys(checkedFiles).length} files selected for renaming
+                            </div>
+                        </div>
                     )}
                 </div>
             )}
@@ -1592,7 +1788,6 @@ function VideoCheckPage() {
                     />
                 </div>
             )}
-                </div>
             </div>
         </div>
     );

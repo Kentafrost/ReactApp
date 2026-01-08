@@ -434,681 +434,1027 @@ function PictureViewerPage() {
     const currentImageFile = imageFiles[index];
 
     return (
-        <div>
-            <h1>Folder Management UI</h1>
-
-            {/* Path Configuration Table */}
-            <table style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                marginBottom: '20px',
-                backgroundColor: 'white',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                borderRadius: '8px',
+        <div style={{ 
+            minHeight: '100vh', 
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            fontFamily: 'Arial, sans-serif',
+            display: 'flex',
+            flexDirection: 'column'
+        }}>
+            {/* Modern Header with Navigation */}
+            <header style={{
+                background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #4b79a1 100%)',
+                padding: '30px 40px',
+                borderRadius: '0 0 25px 25px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                position: 'relative',
                 overflow: 'hidden'
             }}>
-            <tbody>
-                <tr style={{ backgroundColor: '#ffffff' }}>
-                    <td style={{ 
-                        padding: '12px',
-                        backgroundColor: '#f8f9fa',
-                        fontWeight: 'bold',
-                        textAlign: 'left',
-                        borderBottom: '1px solid #dee2e6',
-                        verticalAlign: 'top'
+                {/* Decorative Background Elements */}
+                <div style={{
+                    position: 'absolute',
+                    top: '-50px',
+                    right: '-50px',
+                    width: '200px',
+                    height: '200px',
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.1)',
+                    zIndex: 1
+                }}></div>
+                <div style={{
+                    position: 'absolute',
+                    bottom: '-30px',
+                    left: '-30px',
+                    width: '150px',
+                    height: '150px',
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.05)',
+                    zIndex: 1
+                }}></div>
+                
+                <div style={{ position: 'relative', zIndex: 2 }}>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '20px'
                     }}>
-                        Base Folder Path
-                    </td>
-                    <td style={{ 
-                        padding: '12px',
-                        textAlign: 'left',
-                        borderBottom: '1px solid #dee2e6',
-                        verticalAlign: 'top'
-                    }} colSpan="2">
-                        <input 
-                            type="text" 
-                            value={basePath}
-                            onChange={(e) => setBasePath(e.target.value)}
-                            style={{ 
-                                width: '100%', 
-                                padding: '8px',
-                                border: '1px solid #ced4da',
-                                borderRadius: '4px',
-                                fontSize: '14px'
-                            }}
-                            placeholder="e.g., C:/Users/YourName/Documents"
-                        />
-                        <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                            Enter the base directory path
-                        </small>
-                    </td>
-                </tr>
-                <tr style={{ backgroundColor: '#f8f9fa' }}>
-                    <td style={{ 
-                        padding: '12px',
-                        backgroundColor: '#f8f9fa',
-                        fontWeight: 'bold',
-                        textAlign: 'left',
-                        borderBottom: '1px solid #dee2e6',
-                        verticalAlign: 'top'
-                    }}>
-                        Relative Path
-                    </td>
-                    <td style={{ 
-                        padding: '12px',
-                        textAlign: 'left',
-                        borderBottom: '1px solid #dee2e6',
-                        borderRight: '1px solid #dee2e6',
-                        verticalAlign: 'top'
-                    }}>
-                        <div style={{ marginBottom: '8px', fontWeight: 'bold', fontSize: '13px', color: '#495057' }}>
-                            Manual Input
+                        <div>
+                            <h1 style={{ 
+                                color: 'white', 
+                                margin: '0 0 10px 0', 
+                                fontSize: '36px',
+                                fontWeight: '300',
+                                letterSpacing: '2px',
+                                textShadow: '0 2px 10px rgba(0,0,0,0.3)'
+                            }}>
+                                🖼️ Picture Viewer
+                            </h1>
+                            <p style={{
+                                color: 'rgba(255,255,255,0.8)',
+                                margin: 0,
+                                fontSize: '16px',
+                                fontWeight: '300'
+                            }}>
+                                Browse and manage your image files with style
+                            </p>
                         </div>
-                        <input 
-                            type="text" 
-                            value={relativePath}
-                            onChange={(e) => setRelativePath(e.target.value)}
-                            style={{ 
-                                width: '100%', 
-                                padding: '8px',
-                                border: '1px solid #ced4da',
-                                borderRadius: '4px',
-                                fontSize: '14px'
-                            }}
-                            placeholder="Enter folder name"
-                        />
-                        <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                            Type folder name manually
-                        </small>
-                    </td>
-                    <td style={{ 
-                        padding: '12px',
-                        textAlign: 'left',
-                        borderBottom: '1px solid #dee2e6',
-                        verticalAlign: 'top'
-                    }}>
-                        <div style={{ marginBottom: '8px', fontWeight: 'bold', fontSize: '13px', color: '#495057' }}>
-                            Folder Browser
+                        
+                        {/* Navigation Buttons Integrated in Header */}
+                        <div style={{ display: 'flex', gap: '15px' }}>
+                            <button 
+                                onClick={() => navigate("/file/video/list")}
+                                style={{
+                                    padding: '15px 25px',
+                                    background: 'linear-gradient(135deg, #6f42c1, #8e44ad)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '25px',
+                                    cursor: 'pointer',
+                                    fontSize: '16px',
+                                    fontWeight: '600',
+                                    transition: 'all 0.3s ease',
+                                    boxShadow: '0 4px 15px rgba(111, 66, 193, 0.3)',
+                                    backdropFilter: 'blur(10px)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.transform = 'translateY(-2px)';
+                                    e.target.style.boxShadow = '0 6px 20px rgba(111, 66, 193, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.transform = 'translateY(0)';
+                                    e.target.style.boxShadow = '0 4px 15px rgba(111, 66, 193, 0.3)';
+                                }}
+                            >
+                                📹 Video Viewer
+                            </button>
+                            <button 
+                                onClick={() => navigate("/file/picture/list")}
+                                style={{
+                                    padding: '15px 25px',
+                                    background: 'linear-gradient(135deg, #20c997, #17a2b8)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '25px',
+                                    cursor: 'pointer',
+                                    fontSize: '16px',
+                                    fontWeight: '600',
+                                    transition: 'all 0.3s ease',
+                                    boxShadow: '0 4px 15px rgba(32, 201, 151, 0.3)',
+                                    backdropFilter: 'blur(10px)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.transform = 'translateY(-2px)';
+                                    e.target.style.boxShadow = '0 6px 20px rgba(32, 201, 151, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.transform = 'translateY(0)';
+                                    e.target.style.boxShadow = '0 4px 15px rgba(32, 201, 151, 0.3)';
+                                }}
+                            >
+                                🖼️ Picture Viewer
+                            </button>
                         </div>
-                        <input 
-                            type="file" 
-                            webkitdirectory="true"
-                            directory=""
-                            onChange={handlerSetRelativePath}
+                    </div>
+                </div>
+            </header>
+
+            {/* Main Content with Sidebar Layout */}
+            <div style={{ 
+                display: 'flex', 
+                flex: 1,
+                gap: '30px',
+                padding: '30px',
+                minHeight: 'calc(100vh - 200px)'
+            }}>
+                {/* Left Sidebar - Path Configuration */}
+                <aside style={{
+                    width: '400px',
+                    minWidth: '400px',
+                    background: 'rgba(255,255,255,0.95)',
+                    borderRadius: '20px',
+                    padding: '25px',
+                    height: 'fit-content',
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,255,255,0.2)'
+                }}>
+                    <h3 style={{
+                        color: '#2c3e50',
+                        marginBottom: '20px',
+                        fontSize: '20px',
+                        fontWeight: '600',
+                        textAlign: 'center',
+                        padding: '10px 0',
+                        borderBottom: '2px solid #e9ecef'
+                    }}>
+                        📁 Path Configuration
+                    </h3>
+
+                    {/* Path Configuration Table */}
+                    <table style={{
+                        width: '100%',
+                        borderCollapse: 'collapse',
+                        backgroundColor: 'white',
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+                    }}>
+                        <tbody>
+                            <tr>
+                                <td style={{ 
+                                    padding: '15px',
+                                    backgroundColor: '#f8f9fa',
+                                    fontWeight: 'bold',
+                                    textAlign: 'left',
+                                    borderBottom: '1px solid #dee2e6',
+                                    color: '#495057',
+                                    fontSize: '14px'
+                                }}>
+                                    Base Folder Path
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style={{ 
+                                    padding: '15px',
+                                    textAlign: 'left',
+                                    borderBottom: '1px solid #dee2e6'
+                                }}>
+                                    <input 
+                                        type="text" 
+                                        value={basePath}
+                                        onChange={(e) => setBasePath(e.target.value)}
+                                        style={{ 
+                                            width: '100%', 
+                                            padding: '12px',
+                                            border: '2px solid #e9ecef',
+                                            borderRadius: '8px',
+                                            fontSize: '14px',
+                                            transition: 'border-color 0.3s ease',
+                                            outline: 'none'
+                                        }}
+                                        placeholder="e.g., C:/Users/YourName/Documents"
+                                        onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                                        onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
+                                    />
+                                    <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
+                                        📂 Enter the base directory path
+                                    </small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style={{ 
+                                    padding: '15px',
+                                    backgroundColor: '#f8f9fa',
+                                    fontWeight: 'bold',
+                                    textAlign: 'left',
+                                    borderBottom: '1px solid #dee2e6',
+                                    color: '#495057',
+                                    fontSize: '14px'
+                                }}>
+                                    Relative Path - Manual Input
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style={{ 
+                                    padding: '15px',
+                                    textAlign: 'left',
+                                    borderBottom: '1px solid #dee2e6'
+                                }}>
+                                    <input 
+                                        type="text" 
+                                        value={relativePath}
+                                        onChange={(e) => setRelativePath(e.target.value)}
+                                        style={{ 
+                                            width: '100%', 
+                                            padding: '12px',
+                                            border: '2px solid #e9ecef',
+                                            borderRadius: '8px',
+                                            fontSize: '14px',
+                                            transition: 'border-color 0.3s ease',
+                                            outline: 'none'
+                                        }}
+                                        placeholder="Enter folder name"
+                                        onFocus={(e) => e.target.style.borderColor = '#28a745'}
+                                        onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
+                                    />
+                                    <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
+                                        ✏️ Type folder name manually
+                                    </small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style={{ 
+                                    padding: '15px',
+                                    backgroundColor: '#f8f9fa',
+                                    fontWeight: 'bold',
+                                    textAlign: 'left',
+                                    borderBottom: '1px solid #dee2e6',
+                                    color: '#495057',
+                                    fontSize: '14px'
+                                }}>
+                                    Relative Path - Folder Browser
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style={{ 
+                                    padding: '15px',
+                                    textAlign: 'left',
+                                    borderBottom: '1px solid #dee2e6'
+                                }}>
+                                    <input 
+                                        type="file" 
+                                        webkitdirectory="true"
+                                        directory=""
+                                        onChange={handlerSetRelativePath}
+                                        style={{ 
+                                            width: '100%',
+                                            padding: '12px',
+                                            border: '2px solid #e9ecef',
+                                            borderRadius: '8px',
+                                            fontSize: '14px',
+                                            backgroundColor: '#fff',
+                                            cursor: 'pointer'
+                                        }}
+                                    />
+                                    <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
+                                        📁 Select folder using file browser
+                                    </small>
+                                </td>
+                            </tr>
+                            {basePath && relativePath && (
+                                <tr style={{ backgroundColor: '#e8f5e8' }}>
+                                    <td style={{ 
+                                        padding: '15px',
+                                        textAlign: 'left',
+                                        color: '#155724',
+                                        fontFamily: 'monospace',
+                                        fontSize: '13px',
+                                        wordBreak: 'break-all',
+                                        backgroundColor: '#d4edda',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        <div style={{ marginBottom: '5px', color: '#155724' }}>
+                                            ✅ Full Path Preview:
+                                        </div>
+                                        {basePath}/{relativePath}
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+
+                    {/* Search Controls */}
+                    <div style={{ 
+                        marginTop: '25px',
+                        padding: '20px',
+                        background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)',
+                        borderRadius: '15px',
+                        border: '1px solid #dee2e6'
+                    }}>
+                        <button 
+                            onClick={() => handleSearch(false)}
+                            disabled={isLoading || !basePath || !relativePath}
                             style={{ 
                                 width: '100%',
-                                padding: '8px',
-                                border: '1px solid #ced4da',
-                                borderRadius: '4px',
-                                fontSize: '14px',
-                                backgroundColor: '#fff'
-                            }}
-                        />
-                        <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                            Select folder using file browser
-                        </small>
-                    </td>
-                </tr>
-                {basePath && relativePath && (
-                    <tr style={{ backgroundColor: '#e8f5e8' }}>
-                        <td style={{ 
-                            padding: '12px',
-                            backgroundColor: '#d4edda',
-                            fontWeight: 'bold',
-                            textAlign: 'left',
-                            color: '#155724'
-                        }}>
-                            Full Path Preview
-                        </td>
-                        <td style={{ 
-                            padding: '12px',
-                            textAlign: 'left',
-                            color: '#155724',
-                            fontFamily: 'monospace',
-                            fontSize: '14px',
-                            wordBreak: 'break-all'
-                        }} colSpan="2">
-                            <strong>{basePath}/{relativePath}</strong>
-                        </td>
-                    </tr>
-                )}
-            </tbody>
-            </table>
-
-            {/* Search Controls */}
-            <div style={{ 
-                marginTop: '20px', 
-                marginBottom: '20px',
-                padding: '20px',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '8px',
-                border: '1px solid #dee2e6'
-            }}>
-                <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '15px',
-                    flexWrap: 'wrap'
-                }}>
-                    <button 
-                        onClick={() => handleSearch(false)}
-                        disabled={isLoading || !basePath || !relativePath}
-                        style={{ 
-                            padding: '12px 24px',
-                            backgroundColor: isLoading || !basePath || !relativePath ? '#6c757d' : '#28a745',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: isLoading || !basePath || !relativePath ? 'not-allowed' : 'pointer',
-                            fontSize: '16px',
-                            fontWeight: 'bold',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px'
-                        }}
-                    >
-                        {isLoading ? 'Searching...' : 'Search'}
-                    </button>
-                    
-
-                    {folderData && (
-                        <span style={{ 
-                            color: '#28a745', 
-                            fontSize: '14px',
-                            fontWeight: 'bold'
-                        }}>
-                            ✓ {folderData.length} files loaded
-                        </span>
-                    )}
-                </div>
-                
-                {(!basePath || !relativePath) && (
-                    <div style={{
-                        marginTop: '10px',
-                        padding: '8px 12px',
-                        backgroundColor: '#fff3cd',
-                        border: '1px solid #ffeaa7',
-                        borderRadius: '4px',
-                        color: '#856404',
-                        fontSize: '14px'
-                    }}>
-                        💡 Please set both Base Path and Relative Path to enable searching
-                    </div>
-                )}
-            </div>
-
-            {/* Loading Indicator */}
-            {isLoading && 
-                <p style={{ color: '#007bff', fontWeight: 'bold' }}>
-                    Loading folder data...
-                </p>
-            }
-
-            {/* Error Display */}
-            {error && (
-                <div style={{ 
-                    marginTop: '20px', 
-                    padding: '10px', 
-                    backgroundColor: '#f8d7da', 
-                    color: '#721c24',
-                    border: '1px solid #f5c6cb',
-                    borderRadius: '4px'
-                }}>
-                    {error}
-                </div>
-            )}
-
-            <br />
-
-            <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-                <button 
-                    onClick={() => navigate("/file/video/list")}
-                    style={{
-                        padding: '12px 24px',
-                        backgroundColor: '#6f42c1',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        fontWeight: 'bold'
-                    }}
-                >
-                    📹 Video Viewer
-                </button>
-                <button 
-                    onClick={() => navigate("/file/picture/list")}
-                    style={{
-                        padding: '12px 24px',
-                        backgroundColor: '#20c997',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        fontWeight: 'bold'
-                    }}
-                >
-                    🖼️ Picture Viewer
-                </button>
-            </div>
-
-            {/* Folder List Data */}
-            {folderData && (
-                <div>
-                    {/* Pagination Controls */}
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: '20px',
-                        gap: '15px'
-                    }}>
-                        <button 
-                            disabled={page === 1} 
-                            onClick={() => setPage(page - 1)}
-                            style={{
-                                padding: '8px 16px',
-                                backgroundColor: page === 1 ? '#e9ecef' : '#007bff',
-                                color: page === 1 ? '#6c757d' : 'white',
+                                padding: '15px 25px',
+                                background: isLoading || !basePath || !relativePath 
+                                    ? 'linear-gradient(135deg, #6c757d, #5a6268)' 
+                                    : 'linear-gradient(135deg, #28a745, #20c997)',
+                                color: 'white',
                                 border: 'none',
-                                borderRadius: '4px',
-                                cursor: page === 1 ? 'not-allowed' : 'pointer',
-                                fontSize: '14px',
-                                fontWeight: 'bold'
-                            }}
-                        > 
-                            ← 前へ 
-                        </button>
-
-                        <span style={{
-                            padding: '8px 16px',
-                            backgroundColor: '#f8f9fa',
-                            borderRadius: '4px',
-                            fontSize: '14px',
-                            fontWeight: 'bold',
-                            color: '#495057'
-                        }}>
-                            {page} Page / {totalPages} Pages
-                        </span> 
-                        
-                        <button 
-                            disabled={page === totalPages} 
-                            onClick={() => setPage(page + 1)}
-                            style={{
-                                padding: '8px 16px',
-                                backgroundColor: page === totalPages ? '#e9ecef' : '#007bff',
-                                color: page === totalPages ? '#6c757d' : 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: page === totalPages ? 'not-allowed' : 'pointer',
-                                fontSize: '14px',
-                                fontWeight: 'bold'
-                            }}
-                        > 
-                            次へ → 
-                        </button>
-                    </div>
-
-                    <h3>Files in Folder Data</h3>
-
-                    {/* Tag Filter Dropdown */}
-                    <label htmlFor="tagFilter" style={{ fontWeight: 'bold', marginRight: '10px' }}>Filter by Tag:</label>
-
-                    {folderData.length === 0 && tagsList.length === 0 && (
-                        <span style={{ color: '#6c757d', fontSize: '14px' }}>No tags available</span>
-                    )}
-
-                    {tagsList.length > 0 && (
-                        <>
-                            <select
-                                id="tagFilter"
-                                style={{
-                                    padding: '6px 12px',
-                                    border: '1px solid #ced4da',
-                                    borderRadius: '4px',
-                                    fontSize: '14px'
-                                }}  
-                            >
-                            
-                            <option value="">-- Select Tag --</option>
-                            {tagsList.map((tag, index) => (
-                                <option key={index} value={tag}>{tag}</option>
-                            ))}
-                        
-                            </select>
-
-                            <button 
-                                onClick={() => tagsFilter(document.getElementById('tagFilter').value)}
-                                style={{ 
-                                    marginLeft: '10px',
-                                    padding: '6px 12px',
-                                    backgroundColor: '#17a2b8',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '14px'
-                                }}
-                            >
-                                Apply Filter
-                            </button>
-
-                            <button
-                                onClick={() => clearTagFilter()}
-                                style={{ 
-                                    marginLeft: '10px',
-                                    padding: '6px 12px',
-                                    backgroundColor: '#6c757d',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '14px'
-                                }}
-                            >
-                                Clear Filter
-                            </button>
-                        </>
-                    )}
-
-                    {/* Single Image Display */}
-                    <div style={{ 
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        padding: '20px 0'
-                    }}>
-                        {imageFiles && imageFiles.length === 0 && (
-                            <div style={{ 
-                                marginTop: '20px',
-                                padding: '10px',
-                                backgroundColor: '#fff3cd',
-                                color: '#856404',   
-                                border: '1px solid #ffeaa7',
-                                borderRadius: '4px'
-                            }}>
-                                <h3>No image files found.</h3> <br />
-                                Folder name: <strong>{relativePath}</strong>
-                            </div>
-                        )}
-
-                        {currentImageFile && (
-                            
-                            <div key={currentImageFile.path} style={{
-                                backgroundColor: '#ffffff',
-                                border: '1px solid #dee2e6',
                                 borderRadius: '12px',
-                                padding: '20px',
-                                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                                maxWidth: '80vw',
-                                width: '100%'
+                                cursor: isLoading || !basePath || !relativePath ? 'not-allowed' : 'pointer',
+                                fontSize: '16px',
+                                fontWeight: 'bold',
+                                transition: 'all 0.3s ease',
+                                boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)'
                             }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-2px)';
-                                e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.15)';
+                                if (!isLoading && basePath && relativePath) {
+                                    e.target.style.transform = 'translateY(-2px)';
+                                    e.target.style.boxShadow = '0 6px 20px rgba(40, 167, 69, 0.4)';
+                                }
                             }}
                             onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                                e.target.style.transform = 'translateY(0)';
+                                e.target.style.boxShadow = '0 4px 15px rgba(40, 167, 69, 0.3)';
                             }}
-                            >
-                                {/* Header with file name and extension */}
+                        >
+                            {isLoading ? '🔍 Searching...' : '🔍 Search Pictures'}
+                        </button>
+                        
+                        {folderData && (
+                            <div style={{
+                                marginTop: '15px',
+                                textAlign: 'center',
+                                padding: '10px',
+                                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(40, 167, 69, 0.2)'
+                            }}>
+                                <span style={{ 
+                                    color: '#155724', 
+                                    fontSize: '14px',
+                                    fontWeight: 'bold'
+                                }}>
+                                    ✅ {folderData.length} pictures loaded successfully
+                                </span>
+                            </div>
+                        )}
+                        
+                        {(!basePath || !relativePath) && (
+                            <div style={{
+                                marginTop: '15px',
+                                padding: '12px 15px',
+                                backgroundColor: '#fff3cd',
+                                border: '1px solid #ffeaa7',
+                                borderRadius: '8px',
+                                color: '#856404',
+                                fontSize: '14px'
+                            }}>
+                                💡 Please set both Base Path and Relative Path to enable searching
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Loading Indicator */}
+                    {isLoading && (
+                        <div style={{
+                            marginTop: '20px',
+                            textAlign: 'center',
+                            padding: '15px',
+                            background: 'linear-gradient(135deg, #007bff, #0056b3)',
+                            borderRadius: '12px',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            fontSize: '16px'
+                        }}>
+                            🔄 Loading folder data...
+                        </div>
+                    )}
+
+                    {/* Error Display */}
+                    {error && (
+                        <div style={{ 
+                            marginTop: '20px', 
+                            padding: '15px', 
+                            backgroundColor: '#f8d7da', 
+                            color: '#721c24',
+                            border: '1px solid #f5c6cb',
+                            borderRadius: '12px',
+                            fontWeight: 'bold'
+                        }}>
+                            ❌ {error}
+                        </div>
+                    )}
+                </aside>
+
+                {/* Main Content Area */}
+                <main style={{ 
+                    flex: 1,
+                    background: 'rgba(255,255,255,0.95)',
+                    borderRadius: '20px',
+                    padding: '30px',
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,255,255,0.2)'
+                }}>
+                    {/* Folder List Data */}
+                    {folderData && (
+                        <div>
+                            {/* Status Bar - File Count & Pagination Controls Horizontal */}
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                marginBottom: '25px',
+                                padding: '15px 20px',
+                                background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)',
+                                borderRadius: '15px',
+                                border: '1px solid #dee2e6'
+                            }}>
+                                {/* File Count */}
                                 <div style={{
                                     display: 'flex',
-                                    justifyContent: 'space-between',
                                     alignItems: 'center',
-                                    marginBottom: '15px',
-                                    borderBottom: '1px solid #e9ecef',
-                                    paddingBottom: '10px'
+                                    gap: '20px'
                                 }}>
-                                    <h4 style={{
-                                        margin: 0,
-                                        fontSize: '18px',
-                                        fontWeight: 'bold',
-                                        color: '#2c3e50',
-                                        wordBreak: 'break-word',
-                                        flex: 1
-                                    }}>
-                                        {currentImageFile.name || 'Unknown File'} ({index + 1}/{imageFiles.length})
-                                    </h4>
                                     <span style={{
-                                        backgroundColor: '#e9ecef',
-                                        padding: '4px 8px',
-                                        borderRadius: '12px',
-                                        fontSize: '12px',
+                                        fontSize: '16px',
                                         fontWeight: 'bold',
                                         color: '#495057',
-                                        marginLeft: '10px'
-                                    }}>
-                                        {currentImageFile.extension || 'none'}
-                                    </span>
-                                </div>
-                                
-                                {/* Navigation instructions */}
-                                <div style={{
-                                    textAlign: 'center',
-                                    marginBottom: '15px',
-                                    fontSize: '14px',
-                                    color: '#666',
-                                    backgroundColor: '#f8f9fa',
-                                    padding: '10px',
-                                    borderRadius: '4px'
-                                }}>
-                                    <strong>Navigation:</strong> Left click to go forward | Right click to go backward
-                                </div>
-                                
-                                {/* Image Display with Click Events */}
-                                <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-                                    <img 
-                                        src={currentImageFile.path} 
-                                        alt={currentImageFile.name}
-                                        onClick={handleImageClick}
-                                        onContextMenu={handleImageRightClick}
-                                        style={{ 
-                                            maxWidth: '100%', 
-                                            maxHeight: '70vh',
-                                            cursor: 'pointer',
-                                            borderRadius: '8px',
-                                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                                        }} 
-                                    />
-                                </div>
-
-                                {/* Navigation Buttons */}
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    gap: '20px',
-                                    marginBottom: '15px'
-                                }}>
-                                    <button 
-                                        onClick={prev}
-                                        style={{
-                                            padding: '10px 20px',
-                                            fontSize: '16px',
-                                            backgroundColor: '#007bff',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '5px',
-                                            cursor: 'pointer',
-                                            transition: 'background-color 0.2s'
-                                        }}
-                                        onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
-                                        onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
-                                    >
-                                        ← Previous
-                                    </button>
-                                    <button 
-                                        onClick={next}
-                                        style={{
-                                            padding: '10px 20px',
-                                            fontSize: '16px',
-                                            backgroundColor: '#007bff',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '5px',
-                                            cursor: 'pointer',
-                                            transition: 'background-color 0.2s'
-                                        }}
-                                        onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
-                                        onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
-                                    >
-                                        Next →
-                                    </button>
-                                </div>
-
-                                {/* File Info */}
-                                <div style={{
-                                    marginBottom: '15px'
-                                }}>
-                                    <div style={{ 
-                                        fontSize: '14px',
-                                        color: '#666',
-                                        marginBottom: '8px'
-                                    }}>
-                                        <strong>Size:</strong> {currentImageFile.size === 0 ? '0 bytes' : 
-                                            currentImageFile.size >= 1024 * 1024 * 1024 * 1024 ? `${(currentImageFile.size / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB` :
-                                            currentImageFile.size >= 1024 * 1024 * 1024 ? `${(currentImageFile.size / (1024 * 1024 * 1024)).toFixed(2)} GB` :
-                                            currentImageFile.size >= 1024 * 1024 ? `${(currentImageFile.size / (1024 * 1024)).toFixed(2)} MB` :
-                                            currentImageFile.size >= 1024 ? `${(currentImageFile.size / 1024).toFixed(2)} KB` :
-                                            `${currentImageFile.size.toLocaleString()} bytes`}
-                                    </div>
-                                    <div style={{
-                                        fontSize: '12px',
-                                        color: '#888',
-                                        wordBreak: 'break-word',
-                                        backgroundColor: '#f8f9fa',
-                                        padding: '8px',
-                                        borderRadius: '4px'
-                                    }}>
-                                        <strong>Path:</strong> {currentImageFile.path}
-                                    </div>
-
-                                    <div style={{
-                                        fontSize: '12px',
-                                        color: '#888',
-                                        marginTop: '8px',
-                                        backgroundColor: '#f8f9fa',
-                                        padding: '8px',
-                                        borderRadius: '4px'
-                                    }}>
-                                        <strong>Tags:</strong>
-                                        {currentImageFile.tags && currentImageFile.tags.length === 0 ? ' None' : 
-                                            currentImageFile.tags && currentImageFile.tags.map((tag, tagIndex) => (
-                                                <span key={tagIndex} style={{ 
-                                                    marginTop: '4px',
-                                                    backgroundColor: '#90EE90',
-                                                    padding: '4px 8px',
-                                                    borderRadius: '4px',
-                                                    display: 'inline-block',
-                                                    marginLeft: '4px',
-                                                    marginRight: '2px'
-                                                }}>
-                                                    <button onClick={() => tagsFilter(tag)} style={{
-                                                        background: 'none',
-                                                        border: 'none',
-                                                        padding: 0,
-                                                        margin: 0,
-                                                        fontSize: '12px',
-                                                        color: '#155724',
-                                                        cursor: 'pointer'
-                                                    }}>
-                                                        {tag}
-                                                    </button>
-                                                </span>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
-
-                                {/* Action Buttons */}
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    gap: '10px'
-                                }}>
-                                    {/* Rename Check */}
-                                    <div style={{
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '8px'
                                     }}>
-                                        <label style={{
-                                            fontSize: '12px',
-                                            color: '#666',
-                                            cursor: 'pointer'
-                                        }}>
-                                            <input 
-                                                type="checkbox" 
-                                                checked={checkedFiles[currentImageFile.id] !== undefined}
-                                                onChange={(e) => handleCheck(currentImageFile.id, e.target.checked)}
-                                                style={{ marginRight: '4px' }}
-                                            />
-                                            Rename
-                                        </label>
+                                        🖼️ {folderData.length} pictures found
+                                    </span>
+
+                                    {/* Tag Filter - Inline */}
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px'
+                                    }}>
+                                        {tagsList.length > 0 && (
+                                            <>
+                                                <label htmlFor="tagFilter" style={{ 
+                                                    fontWeight: 'bold',
+                                                    fontSize: '14px',
+                                                    color: '#495057'
+                                                }}>
+                                                    🏷️ Filter by Tag:
+                                                </label>
+                                                <select
+                                                    id="tagFilter"
+                                                    style={{
+                                                        padding: '8px 12px',
+                                                        border: '2px solid #e9ecef',
+                                                        borderRadius: '8px',
+                                                        fontSize: '14px',
+                                                        background: 'white',
+                                                        cursor: 'pointer'
+                                                    }}  
+                                                >
+                                                    <option value="">-- All Tags --</option>
+                                                    {tagsList.map((tag, index) => (
+                                                        <option key={index} value={tag}>{tag}</option>
+                                                    ))}
+                                                </select>
+
+                                                <button 
+                                                    onClick={() => tagsFilter(document.getElementById('tagFilter').value)}
+                                                    style={{ 
+                                                        padding: '8px 15px',
+                                                        background: 'linear-gradient(135deg, #17a2b8, #138496)',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        cursor: 'pointer',
+                                                        fontSize: '14px',
+                                                        fontWeight: 'bold',
+                                                        transition: 'all 0.3s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.target.style.transform = 'translateY(-1px)';
+                                                        e.target.style.boxShadow = '0 4px 12px rgba(23, 162, 184, 0.3)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.target.style.transform = 'translateY(0)';
+                                                        e.target.style.boxShadow = 'none';
+                                                    }}
+                                                >
+                                                    Apply
+                                                </button>
+
+                                                <button
+                                                    onClick={() => clearTagFilter()}
+                                                    style={{ 
+                                                        padding: '8px 15px',
+                                                        background: 'linear-gradient(135deg, #6c757d, #5a6268)',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        cursor: 'pointer',
+                                                        fontSize: '14px',
+                                                        fontWeight: 'bold',
+                                                        transition: 'all 0.3s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.target.style.transform = 'translateY(-1px)';
+                                                        e.target.style.boxShadow = '0 4px 12px rgba(108, 117, 125, 0.3)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.target.style.transform = 'translateY(0)';
+                                                        e.target.style.boxShadow = 'none';
+                                                    }}
+                                                >
+                                                    Clear
+                                                </button>
+                                            </>
+                                        )}
+                                        {tagsList.length === 0 && (
+                                            <span style={{ 
+                                                color: '#6c757d', 
+                                                fontSize: '14px',
+                                                fontStyle: 'italic'
+                                            }}>
+                                                No tags available
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
-                                {/* Rename Input */}
-                                {checkedFiles[currentImageFile.id] !== undefined && (
-                                    <div style={{ marginTop: '15px' }}>
-                                        <input
-                                            type="text"
-                                            value={checkedFiles[currentImageFile.id] || currentImageFile.name || ''}
-                                            onChange={(e) => renameInputChange(currentImageFile.id, e.target.value)}
-                                            style={{ 
-                                                width: '100%',
-                                                padding: '8px 12px',
+                                {/* Pagination Controls */}
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px'
+                                }}>
+                                    <button 
+                                        disabled={page === 1} 
+                                        onClick={() => setPage(page - 1)}
+                                        style={{
+                                            padding: '10px 16px',
+                                            background: page === 1 
+                                                ? 'linear-gradient(135deg, #e9ecef, #dee2e6)' 
+                                                : 'linear-gradient(135deg, #007bff, #0056b3)',
+                                            color: page === 1 ? '#6c757d' : 'white',
+                                            border: 'none',
+                                            borderRadius: '10px',
+                                            cursor: page === 1 ? 'not-allowed' : 'pointer',
+                                            fontSize: '14px',
+                                            fontWeight: 'bold',
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (page !== 1) {
+                                                e.target.style.transform = 'translateY(-1px)';
+                                                e.target.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.target.style.transform = 'translateY(0)';
+                                            e.target.style.boxShadow = 'none';
+                                        }}
+                                    > 
+                                        ← Prev
+                                    </button>
+
+                                    <span style={{
+                                        padding: '10px 16px',
+                                        background: 'rgba(255,255,255,0.8)',
+                                        borderRadius: '10px',
+                                        fontSize: '14px',
+                                        fontWeight: 'bold',
+                                        color: '#495057',
+                                        border: '1px solid #dee2e6'
+                                    }}>
+                                        {page} / {totalPages}
+                                    </span> 
+                                    
+                                    <button 
+                                        disabled={page === totalPages} 
+                                        onClick={() => setPage(page + 1)}
+                                        style={{
+                                            padding: '10px 16px',
+                                            background: page === totalPages 
+                                                ? 'linear-gradient(135deg, #e9ecef, #dee2e6)' 
+                                                : 'linear-gradient(135deg, #007bff, #0056b3)',
+                                            color: page === totalPages ? '#6c757d' : 'white',
+                                            border: 'none',
+                                            borderRadius: '10px',
+                                            cursor: page === totalPages ? 'not-allowed' : 'pointer',
+                                            fontSize: '14px',
+                                            fontWeight: 'bold',
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (page !== totalPages) {
+                                                e.target.style.transform = 'translateY(-1px)';
+                                                e.target.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.target.style.transform = 'translateY(0)';
+                                            e.target.style.boxShadow = 'none';
+                                        }}
+                                    > 
+                                        Next →
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Single Image Display */}
+                            <div style={{ 
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                padding: '20px 0'
+                            }}>
+                                {imageFiles && imageFiles.length === 0 && (
+                                    <div style={{ 
+                                        marginTop: '40px',
+                                        padding: '40px',
+                                        background: 'linear-gradient(135deg, #fff3cd, #ffeaa7)',
+                                        color: '#856404',   
+                                        border: '2px solid #ffeaa7',
+                                        borderRadius: '20px',
+                                        textAlign: 'center',
+                                        boxShadow: '0 8px 25px rgba(0,0,0,0.1)'
+                                    }}>
+                                        <h3 style={{ margin: '0 0 15px 0', fontSize: '24px' }}>
+                                            🔍 No image files found
+                                        </h3>
+                                        <p style={{ margin: '0 0 10px 0', fontSize: '16px' }}>
+                                            Folder name: <strong>{relativePath}</strong>
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: '14px', color: '#6c757d' }}>
+                                            Try searching in a different folder or check your path settings
+                                        </p>
+                                    </div>
+                                )}
+
+                                {currentImageFile && (
+                                    <div key={currentImageFile.path} style={{
+                                        background: 'linear-gradient(135deg, #ffffff, #f8f9fa)',
+                                        border: '2px solid #e9ecef',
+                                        borderRadius: '20px',
+                                        padding: '30px',
+                                        boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                                        transition: 'all 0.3s ease',
+                                        maxWidth: '90%',
+                                        width: '100%'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-5px)';
+                                        e.currentTarget.style.boxShadow = '0 15px 50px rgba(0,0,0,0.15)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                        e.currentTarget.style.boxShadow = '0 10px 40px rgba(0,0,0,0.1)';
+                                    }}
+                                    >
+                                        {/* Header with file name and extension */}
+                                        <div style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            marginBottom: '20px',
+                                            borderBottom: '2px solid #e9ecef',
+                                            paddingBottom: '15px'
+                                        }}>
+                                            <h4 style={{
+                                                margin: 0,
+                                                fontSize: '22px',
+                                                fontWeight: 'bold',
+                                                color: '#2c3e50',
+                                                wordBreak: 'break-word',
+                                                flex: 1
+                                            }}>
+                                                📷 {currentImageFile.name || 'Unknown File'} ({index + 1}/{imageFiles.length})
+                                            </h4>
+                                            <span style={{
+                                                background: 'linear-gradient(135deg, #e9ecef, #dee2e6)',
+                                                padding: '8px 15px',
+                                                borderRadius: '15px',
                                                 fontSize: '14px',
-                                                border: '1px solid #ddd',
-                                                borderRadius: '4px',
-                                                backgroundColor: '#f8f9fa'
-                                            }}
-                                            placeholder={currentImageFile.name || ''}
-                                        />
+                                                fontWeight: 'bold',
+                                                color: '#495057',
+                                                marginLeft: '15px'
+                                            }}>
+                                                {currentImageFile.extension || 'none'}
+                                            </span>
+                                        </div>
+                                        
+                                        {/* Navigation instructions */}
+                                        <div style={{
+                                            textAlign: 'center',
+                                            marginBottom: '20px',
+                                            fontSize: '14px',
+                                            color: '#666',
+                                            background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)',
+                                            padding: '15px',
+                                            borderRadius: '12px',
+                                            border: '1px solid #dee2e6'
+                                        }}>
+                                            <strong>🖱️ Navigation:</strong> Left click to go forward | Right click to go backward
+                                        </div>
+                                        
+                                        {/* Image Display with Click Events */}
+                                        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                                            <img 
+                                                src={currentImageFile.path} 
+                                                alt={currentImageFile.name}
+                                                onClick={handleImageClick}
+                                                onContextMenu={handleImageRightClick}
+                                                style={{ 
+                                                    maxWidth: '100%', 
+                                                    maxHeight: '70vh',
+                                                    cursor: 'pointer',
+                                                    borderRadius: '15px',
+                                                    boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
+                                                    transition: 'transform 0.3s ease'
+                                                }}
+                                                onMouseEnter={(e) => e.target.style.transform = 'scale(1.02)'}
+                                                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'} 
+                                            />
+                                        </div>
+
+                                        {/* Navigation Buttons */}
+                                        <div style={{
+                                            display: 'flex',
+                                            justifyContent: 'center',
+                                            gap: '25px',
+                                            marginBottom: '20px'
+                                        }}>
+                                            <button 
+                                                onClick={prev}
+                                                style={{
+                                                    padding: '12px 25px',
+                                                    fontSize: '16px',
+                                                    background: 'linear-gradient(135deg, #007bff, #0056b3)',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '12px',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.3s ease',
+                                                    fontWeight: 'bold',
+                                                    boxShadow: '0 4px 15px rgba(0, 123, 255, 0.3)'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.target.style.transform = 'translateY(-2px)';
+                                                    e.target.style.boxShadow = '0 6px 20px rgba(0, 123, 255, 0.4)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.target.style.transform = 'translateY(0)';
+                                                    e.target.style.boxShadow = '0 4px 15px rgba(0, 123, 255, 0.3)';
+                                                }}
+                                            >
+                                                ← Previous
+                                            </button>
+                                            <button 
+                                                onClick={next}
+                                                style={{
+                                                    padding: '12px 25px',
+                                                    fontSize: '16px',
+                                                    background: 'linear-gradient(135deg, #007bff, #0056b3)',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '12px',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.3s ease',
+                                                    fontWeight: 'bold',
+                                                    boxShadow: '0 4px 15px rgba(0, 123, 255, 0.3)'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.target.style.transform = 'translateY(-2px)';
+                                                    e.target.style.boxShadow = '0 6px 20px rgba(0, 123, 255, 0.4)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.target.style.transform = 'translateY(0)';
+                                                    e.target.style.boxShadow = '0 4px 15px rgba(0, 123, 255, 0.3)';
+                                                }}
+                                            >
+                                                Next →
+                                            </button>
+                                        </div>
+
+                                        {/* File Info */}
+                                        <div style={{
+                                            marginBottom: '20px'
+                                        }}>
+                                            <div style={{ 
+                                                fontSize: '15px',
+                                                color: '#495057',
+                                                marginBottom: '12px',
+                                                padding: '12px',
+                                                background: 'rgba(248, 249, 250, 0.8)',
+                                                borderRadius: '10px',
+                                                border: '1px solid #e9ecef'
+                                            }}>
+                                                <strong>📊 Size:</strong> {currentImageFile.size === 0 ? '0 bytes' : 
+                                                    currentImageFile.size >= 1024 * 1024 * 1024 * 1024 ? `${(currentImageFile.size / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB` :
+                                                    currentImageFile.size >= 1024 * 1024 * 1024 ? `${(currentImageFile.size / (1024 * 1024 * 1024)).toFixed(2)} GB` :
+                                                    currentImageFile.size >= 1024 * 1024 ? `${(currentImageFile.size / (1024 * 1024)).toFixed(2)} MB` :
+                                                    currentImageFile.size >= 1024 ? `${(currentImageFile.size / 1024).toFixed(2)} KB` :
+                                                    `${currentImageFile.size.toLocaleString()} bytes`}
+                                            </div>
+                                            <div style={{
+                                                fontSize: '13px',
+                                                color: '#6c757d',
+                                                wordBreak: 'break-word',
+                                                background: 'rgba(248, 249, 250, 0.8)',
+                                                padding: '12px',
+                                                borderRadius: '10px',
+                                                border: '1px solid #e9ecef',
+                                                marginBottom: '12px'
+                                            }}>
+                                                <strong>📁 Path:</strong> {currentImageFile.path}
+                                            </div>
+
+                                            <div style={{
+                                                fontSize: '14px',
+                                                color: '#495057',
+                                                background: 'rgba(248, 249, 250, 0.8)',
+                                                padding: '12px',
+                                                borderRadius: '10px',
+                                                border: '1px solid #e9ecef'
+                                            }}>
+                                                <strong>🏷️ Tags:</strong>
+                                                {currentImageFile.tags && currentImageFile.tags.length === 0 ? ' None' : 
+                                                    currentImageFile.tags && currentImageFile.tags.map((tag, tagIndex) => (
+                                                        <span key={tagIndex} style={{ 
+                                                            marginTop: '8px',
+                                                            background: 'linear-gradient(135deg, #90EE90, #7FDD7F)',
+                                                            padding: '6px 12px',
+                                                            borderRadius: '8px',
+                                                            display: 'inline-block',
+                                                            marginLeft: '6px',
+                                                            marginRight: '4px',
+                                                            transition: 'all 0.2s ease',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                        onMouseEnter={(e) => e.target.style.transform = 'translateY(-1px)'}
+                                                        onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                                                        >
+                                                            <button onClick={() => tagsFilter(tag)} style={{
+                                                                background: 'none',
+                                                                border: 'none',
+                                                                padding: 0,
+                                                                margin: 0,
+                                                                fontSize: '13px',
+                                                                color: '#155724',
+                                                                cursor: 'pointer',
+                                                                fontWeight: 'bold'
+                                                            }}>
+                                                                {tag}
+                                                            </button>
+                                                        </span>
+                                                    ))
+                                                }
+                                            </div>
+                                        </div>
+
+                                        {/* Action Buttons */}
+                                        <div style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            gap: '15px'
+                                        }}>
+                                            {/* Rename Check */}
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '10px',
+                                                padding: '10px 15px',
+                                                background: 'rgba(248, 249, 250, 0.8)',
+                                                borderRadius: '10px',
+                                                border: '1px solid #e9ecef'
+                                            }}>
+                                                <label style={{
+                                                    fontSize: '14px',
+                                                    color: '#495057',
+                                                    cursor: 'pointer',
+                                                    fontWeight: 'bold',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px'
+                                                }}>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={checkedFiles[currentImageFile.id] !== undefined}
+                                                        onChange={(e) => handleCheck(currentImageFile.id, e.target.checked)}
+                                                        style={{ 
+                                                            width: '18px',
+                                                            height: '18px',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    />
+                                                    ✏️ Enable Rename
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* Rename Input */}
+                                        {checkedFiles[currentImageFile.id] !== undefined && (
+                                            <div style={{ 
+                                                marginTop: '20px',
+                                                padding: '20px',
+                                                background: 'linear-gradient(135deg, #fff3cd, #ffeaa7)',
+                                                borderRadius: '15px',
+                                                border: '2px solid #ffeaa7'
+                                            }}>
+                                                <label style={{
+                                                    display: 'block',
+                                                    marginBottom: '10px',
+                                                    fontWeight: 'bold',
+                                                    color: '#856404'
+                                                }}>
+                                                    🏷️ New filename:
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={checkedFiles[currentImageFile.id] || currentImageFile.name || ''}
+                                                    onChange={(e) => renameInputChange(currentImageFile.id, e.target.value)}
+                                                    style={{ 
+                                                        width: '100%',
+                                                        padding: '12px 15px',
+                                                        fontSize: '14px',
+                                                        border: '2px solid #ffeaa7',
+                                                        borderRadius: '10px',
+                                                        backgroundColor: 'white',
+                                                        outline: 'none',
+                                                        transition: 'border-color 0.3s ease'
+                                                    }}
+                                                    placeholder={currentImageFile.name || ''}
+                                                    onFocus={(e) => e.target.style.borderColor = '#856404'}
+                                                    onBlur={(e) => e.target.style.borderColor = '#ffeaa7'}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
-                        )}
-                    </div>
 
-                    {/* Image navigation status */}
-                    {imageFiles && imageFiles.length > 0 && (
-                        <div style={{
-                            textAlign: 'center',
-                            marginTop: '20px',
-                            fontSize: '16px',
-                            color: '#495057',
-                            backgroundColor: '#f8f9fa',
-                            padding: '10px',
-                            borderRadius: '4px'
-                        }}>
-                            Viewing {index + 1} of {imageFiles.length} images
+                            {/* Image navigation status */}
+                            {imageFiles && imageFiles.length > 0 && (
+                                <div style={{
+                                    textAlign: 'center',
+                                    marginTop: '25px',
+                                    fontSize: '18px',
+                                    color: '#495057',
+                                    background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)',
+                                    padding: '15px',
+                                    borderRadius: '15px',
+                                    border: '1px solid #dee2e6',
+                                    fontWeight: 'bold'
+                                }}>
+                                    📊 Viewing {index + 1} of {imageFiles.length} images
+                                </div>
+                            )}
                         </div>
                     )}
-                </div>
-            )}
 
-            {/* Rename Execution Button */}
-            {Object.keys(checkedFiles).length > 0 && (
-                <button onClick={() => renameExecute()} style={{ 
-                    padding: '8px 16px',
-                    backgroundColor: '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: 'bold'
-                }}>
-                    Rename checked files
-                </button>
-                )
-            }
-            <br />
+                    {/* Rename Execution Button */}
+                    {Object.keys(checkedFiles).length > 0 && (
+                        <div style={{
+                            marginTop: '30px',
+                            textAlign: 'center',
+                            padding: '20px',
+                            background: 'linear-gradient(135deg, #d4edda, #c3e6cb)',
+                            borderRadius: '15px',
+                            border: '2px solid #c3e6cb'
+                        }}>
+                            <button onClick={() => renameExecute()} style={{ 
+                                padding: '15px 30px',
+                                background: 'linear-gradient(135deg, #28a745, #20c997)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '12px',
+                                cursor: 'pointer',
+                                fontSize: '16px',
+                                fontWeight: 'bold',
+                                transition: 'all 0.3s ease',
+                                boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.target.style.transform = 'translateY(-2px)';
+                                e.target.style.boxShadow = '0 6px 20px rgba(40, 167, 69, 0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.transform = 'translateY(0)';
+                                e.target.style.boxShadow = '0 4px 15px rgba(40, 167, 69, 0.3)';
+                            }}
+                            >
+                                💾 Rename Checked Files ({Object.keys(checkedFiles).length})
+                            </button>
+                        </div>
+                    )}
+                </main>
+            </div>
         </div>
     );
 }
