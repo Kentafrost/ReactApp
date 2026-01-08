@@ -314,15 +314,52 @@ function VideoCheckPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shouldLoadThumbnails, folderData, fileJsonPath]);
 
-    // Handler for setting relative path from directory input
-    const handlerSetRelativePath = (e) => { 
-        const files = Array.from(e.target.files); 
-        if (files.length === 0) return;
 
-        const relative = files[0].webkitRelativePath.split("\\")[0]; 
-        console.log("Selected relative path:", relative);
-        setRelativePath(relative); 
+
+    const [allDirs, setAllDirs] = useState(() => {
+        const cached = localStorage.getItem('folderManagement_allDirs');
+        return cached ? JSON.parse(cached) : [];
+    });
+
+    // Save allDirs to localStorage when it changes
+    useEffect(() => {
+        if (allDirs && allDirs.length > 0) {
+            localStorage.setItem('folderManagement_allDirs', JSON.stringify(allDirs));
+        }
+    }, [allDirs]);
+
+    // Handler for folder selection from dropdown
+    const handleFolderSelect = (selectedFolder) => {
+        console.log('Selected folder:', selectedFolder);
+        setRelativePath(selectedFolder);
     };
+    
+    // Auto-fetch folders when basePath changes
+    useEffect(() => {
+        if (basePath && basePath.trim() !== '') {
+            console.log('Auto-fetching folders for basePath:', basePath);
+            fetch(`http://localhost:5000/files/relativePath?basePath=${encodeURIComponent(basePath)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        console.log('Available folders:', data.folders);
+                        setAllDirs(data.folders);
+                    } else {
+                        console.warn(`Error fetching folders: ${data.message}`);
+                        // Don't clear allDirs on error, just log the warning
+                    }
+                })
+                .catch(err => {
+                    console.error("Error fetching folders:", err);
+                    // Don't clear allDirs on fetch error, just log the error
+                });
+        } else if (basePath === '') {
+            // Only clear when basePath is explicitly cleared
+            setAllDirs([]);
+            setRelativePath('');
+            localStorage.removeItem('folderManagement_allDirs');
+        }
+    }, [basePath]);
 
     // set folderPath when basePath or relativePath changes
     useEffect(() => { 
@@ -771,6 +808,7 @@ function VideoCheckPage() {
         }
         
         console.log('Search requested - using existing data if available');
+        console.log('Current allDirs state:', allDirs.length, 'folders');
         setUseExistingData(true); // Try to use existing data
         setError(null);
         setPage(1); // Reset pagination
@@ -998,7 +1036,7 @@ function VideoCheckPage() {
                                     color: '#495057',
                                     fontSize: '14px'
                                 }}>
-                                    Relative Path - Manual Input
+                                    Relative Path - Select Folder
                                 </td>
                             </tr>
                             <tr>
@@ -1007,10 +1045,10 @@ function VideoCheckPage() {
                                     textAlign: 'left',
                                     borderBottom: '1px solid #dee2e6'
                                 }}>
-                                    <input 
-                                        type="text" 
+                                    <select 
                                         value={relativePath}
-                                        onChange={(e) => setRelativePath(e.target.value)}
+                                        onChange={(e) => handleFolderSelect(e.target.value)}
+                                        disabled={!basePath || allDirs.length === 0}
                                         style={{ 
                                             width: '100%', 
                                             padding: '12px',
@@ -1018,53 +1056,31 @@ function VideoCheckPage() {
                                             borderRadius: '8px',
                                             fontSize: '14px',
                                             transition: 'border-color 0.3s ease',
-                                            outline: 'none'
+                                            outline: 'none',
+                                            backgroundColor: (!basePath || allDirs.length === 0) ? '#f8f9fa' : '#fff',
+                                            cursor: (!basePath || allDirs.length === 0) ? 'not-allowed' : 'pointer'
                                         }}
-                                        placeholder="Enter folder name"
                                         onFocus={(e) => e.target.style.borderColor = '#28a745'}
                                         onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
-                                    />
+                                    >
+                                        <option value="">
+                                            {!basePath ? 'Please set base path first' : 
+                                             allDirs.length === 0 ? 'No folders available' : 
+                                             'Select a folder...'}
+                                        </option>
+                                        {allDirs.map((folder, index) => (
+                                            <option key={index} value={folder}>
+                                                📁 {folder}
+                                            </option>
+                                        ))}
+                                    </select>
                                     <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
-                                        ✏️ Type folder name manually
-                                    </small>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style={{ 
-                                    padding: '15px',
-                                    backgroundColor: '#f8f9fa',
-                                    fontWeight: 'bold',
-                                    textAlign: 'left',
-                                    borderBottom: '1px solid #dee2e6',
-                                    color: '#495057',
-                                    fontSize: '14px'
-                                }}>
-                                    Relative Path - Folder Browser
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style={{ 
-                                    padding: '15px',
-                                    textAlign: 'left',
-                                    borderBottom: '1px solid #dee2e6'
-                                }}>
-                                    <input 
-                                        type="file" 
-                                        webkitdirectory="true"
-                                        directory=""
-                                        onChange={handlerSetRelativePath}
-                                        style={{ 
-                                            width: '100%',
-                                            padding: '12px',
-                                            border: '2px solid #e9ecef',
-                                            borderRadius: '8px',
-                                            fontSize: '14px',
-                                            backgroundColor: '#fff',
-                                            cursor: 'pointer'
-                                        }}
-                                    />
-                                    <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
-                                        📁 Select folder using file browser
+                                        📂 Choose from available folders in base directory
+                                        {allDirs.length > 0 && (
+                                            <span style={{ color: '#28a745', fontWeight: 'bold' }}>
+                                                {` (${allDirs.length} folders found)`}
+                                            </span>
+                                        )}
                                     </small>
                                 </td>
                             </tr>
@@ -1143,7 +1159,7 @@ function VideoCheckPage() {
                                     fontSize: '14px',
                                     fontWeight: 'bold'
                                 }}>
-                                    ✅ {folderData.length} videos loaded successfully
+                                    ✅ {allFilesData.length} videos loaded successfully
                                 </span>
                             </div>
                         )}
@@ -1195,9 +1211,16 @@ function VideoCheckPage() {
                     )}
                 </aside>
 
+                {/* Main Content Area - Right Side */}
+                <main style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '20px'
+                }}>
                     {/* Folder data list */}
                     {folderData && folderData.length > 0 && (
-                <div>
+                        <div style={{ flex: 1 }}>
                     {/* Filtering Options */}
                     <div style={{
                         backgroundColor: '#f8f9fa',
@@ -1771,23 +1794,42 @@ function VideoCheckPage() {
                             </div>
                         </div>
                     )}
-                </div>
-            )}
+                        </div>
+                    )}
 
-            <br />
-            {/* Folder Graph */}
-            {folderGraphData && folderGraphData.graphUrl && (
-                <div className="text-center mt-4">
-                    <img
-                        src={folderGraphData.graphUrl}
-                        alt="Folder Graph"
-                        className="img-fluid border rounded shadow"
-                        style={{ maxWidth: '800px', marginBottom: '20px' }}
-                        onLoad={() => console.log('Graph image loaded successfully')}
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                </div>
-            )}
+                    {/* Folder Graph */}
+                    {folderGraphData && folderGraphData.graphUrl && (
+                        <div style={{
+                            textAlign: 'center',
+                            marginTop: '30px',
+                            padding: '20px',
+                            backgroundColor: 'rgba(255,255,255,0.95)',
+                            borderRadius: '20px',
+                            boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
+                        }}>
+                            <h3 style={{
+                                color: '#2c3e50',
+                                marginBottom: '20px',
+                                fontSize: '20px',
+                                fontWeight: '600'
+                            }}>
+                                📊 Folder Analysis Graph
+                            </h3>
+                            <img
+                                src={folderGraphData.graphUrl}
+                                alt="Folder Graph"
+                                style={{ 
+                                    maxWidth: '65%', 
+                                    height: 'auto',
+                                    borderRadius: '12px',
+                                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                                }}
+                                onLoad={() => console.log('Graph image loaded successfully')}
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                        </div>
+                    )}
+                </main>
             </div>
         </div>
     );

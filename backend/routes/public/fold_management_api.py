@@ -195,7 +195,7 @@ async def file_rename_endpoint(request: BatchFileRenameRequest):
 API endpoint to review files in a folder
 """
 @fold_management_router.get("/file/details")
-async def get_file_details_endpoint(id: int, jsonPath: str):
+async def get_file_details_endpoint(id: int, jsonPath: str, file: str = ""):
     try:
         with open(jsonPath, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -460,6 +460,39 @@ async def get_files_page(jsonPath: str):
         
     except Exception as e:
         error_msg = f"Unexpected error while processing {jsonPath}: {str(e)}"
+        print(f"Error: {error_msg}")
+        return {
+            "status": "error",
+            "message": error_msg
+        }
+
+@fold_management_router.get("/files/relativePath")
+async def get_files_page(basePath: str):
+    print(f"Fetching all folders from base path: {basePath}")
+    folder_list = []
+
+    try:
+        if not os.path.isdir(basePath):
+            error_msg = f"Base path is not a directory: {basePath}"
+            print(f"Error: {error_msg}")
+            return {
+                "status": "error",
+                "message": error_msg
+            }
+
+        # only directories in basePath ⇒ folder_list
+        for entry in os.scandir(basePath):
+            if entry.is_dir():
+                folder_list.append(entry.name)
+        print(f"Successfully found {len(folder_list)} folders in {basePath}")
+
+        return {
+            "status": "success",
+            "folders": folder_list,
+            "total": len(folder_list)
+        }
+    except Exception as e:
+        error_msg = f"Unexpected error while processing {basePath}: {str(e)}"
         print(f"Error: {error_msg}")
         return {
             "status": "error",

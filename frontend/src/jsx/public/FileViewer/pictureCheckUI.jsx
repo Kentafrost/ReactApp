@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 function PictureViewerPage() {
@@ -102,38 +102,27 @@ function PictureViewerPage() {
         } 
     }, [basePath, relativePath]);
 
-    // Pagination states
-    const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-
     // Rename check state
     const [checkedFiles, setCheckedFiles] = useState({});
 
     const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp']; 
-    const imageFiles = allFilesData.filter(file => 
+    // Get imageFiles from folderData to include filtering
+    const imageFiles = (folderData || []).filter(file => 
         imageExtensions.some(ext => file.path.toLowerCase().endsWith(ext)) 
     );
 
     useEffect(() => {
-        // Only process pagination if we have all files data
+        // Display all data without pagination
         if (!allFilesData || !Array.isArray(allFilesData)) {
-            console.warn('No allFilesData available for pagination');
+            console.warn('No allFilesData available');
             return;
         }
 
-        // Calculate pagination
-        const perPage = 50;
-        const startIndex = (page - 1) * perPage;
-        const endIndex = startIndex + perPage;
-        const pageData = allFilesData.slice(startIndex, endIndex);
-        const totalPages = Math.ceil(allFilesData.length / perPage);
-
-        console.log(`Displaying page ${page}: items ${startIndex + 1}-${Math.min(endIndex, allFilesData.length)} of ${allFilesData.length}`);
+        console.log(`Displaying all ${allFilesData.length} items`);
         
-        // Update folder data with current page
-        setFolderData(pageData);
-        setTotalPages(totalPages);        
-    }, [page, allFilesData]);
+        // Update folder data with all data
+        setFolderData(allFilesData);       
+    }, [allFilesData]);
 
     // handler for checkbox change
     const handleCheck = (fileId, checked) => {
@@ -224,6 +213,73 @@ function PictureViewerPage() {
 
     const [tagsList, setTagsList] = useState([]); // List of all tags available
 
+    // Filter states
+    const [extensionFilter, setExtensionFilter] = useState('all');
+    const [sizeFilter, setSizeFilter] = useState('all');
+    const [searchKeyword, setSearchKeyword] = useState('');
+    const [selectedTag, setSelectedTag] = useState('');
+    const [filteredData, setFilteredData] = useState(null);
+
+    // Enhanced filtering function for images
+    const applyFilters = useCallback(() => {
+        if (!allFilesData || !Array.isArray(allFilesData)) return;
+        
+        let filtered = [...allFilesData];
+        
+        // Extension filter
+        if (extensionFilter && extensionFilter !== 'all') {
+            filtered = filtered.filter(file => {
+                const ext = file.path.toLowerCase();
+                return ext.endsWith(extensionFilter.toLowerCase());
+            });
+        }
+        
+        // Size filter
+        if (sizeFilter && sizeFilter !== 'all') {
+            filtered = filtered.filter(file => {
+                const sizeInMB = file.size / (1024 * 1024);
+                switch(sizeFilter) {
+                    case 'small': return sizeInMB < 5;
+                    case 'medium': return sizeInMB >= 5 && sizeInMB < 20;
+                    case 'large': return sizeInMB >= 20 && sizeInMB < 50;
+                    case 'xlarge': return sizeInMB >= 50;
+                    default: return true;
+                }
+            });
+        }
+        
+        // Search keyword filter
+        if (searchKeyword && searchKeyword.trim()) {
+            const keyword = searchKeyword.toLowerCase().trim();
+            filtered = filtered.filter(file => 
+                file.name && file.name.toLowerCase().includes(keyword)
+            );
+        }
+        
+        // Tag filter
+        if (selectedTag && selectedTag !== '') {
+            filtered = filtered.filter(file => 
+                file.tags && Array.isArray(file.tags) && file.tags.includes(selectedTag)
+            );
+        }
+        
+        setFilteredData(filtered);
+        setFolderData(filtered); // Display all filtered data
+    }, [extensionFilter, sizeFilter, searchKeyword, selectedTag, allFilesData]);
+    
+    // Clear all filters
+    const clearAllFilters = () => {
+        setExtensionFilter('all');
+        setSizeFilter('all');
+        setSearchKeyword('');
+        setSelectedTag('');
+        setFilteredData(null);
+    };
+    
+    // Apply filters when filter states change
+    useEffect(() => {
+        applyFilters();
+    }, [applyFilters]);
 
     // tag filter function based on tags array in each file data
     const tagsFilter = async (tag) => {
@@ -232,7 +288,7 @@ function PictureViewerPage() {
             return;
         };
         const filteredFiles = allFilesData.filter(file => file.tags && file.tags.includes(tag));
-        setFolderData(filteredFiles);
+        setFolderData(filteredFiles); // Display all filtered files
     };
 
     const clearTagFilter = async () => {
@@ -240,11 +296,11 @@ function PictureViewerPage() {
             console.warn('No allFilesData available for clearing tag filter');
             return;
         };
-        setFolderData(allFilesData.slice(0, 50)); // Reset to first page
+        setFolderData(allFilesData); // Display all data
     };
 
     // tag listup function to use as options in tag filter
-    const tagsListup = async() => {
+    const tagsListup = useCallback(async() => {
         const allTagsList = [];
 
         if (allFilesData && Array.isArray(allFilesData)) {
@@ -259,7 +315,7 @@ function PictureViewerPage() {
             });
         }
         setTagsList(allTagsList);
-    };
+    }, [allFilesData]);
 
     // useEffect for fetching folder data when folderPath changes
     useEffect(() => {
@@ -287,8 +343,8 @@ function PictureViewerPage() {
                         console.log(`Existing JSON file found (${existingCheck.source}):`, existingCheck.json_path);
                         
                         try {
-                            // Load existing data
-                            const response = await fetch(`http://localhost:5000/files/page?jsonPath=${encodeURIComponent(existingCheck.json_path)}&page=${page}&per_page=50`);
+                            // Load existing data - get all data instead of paginated
+                            const response = await fetch(`http://localhost:5000/files/all?jsonPath=${encodeURIComponent(existingCheck.json_path)}`);
                             if (response.ok) {
                                 const data = await response.json();
                                 if (data.status === 'success' && data.files) {
@@ -372,15 +428,10 @@ function PictureViewerPage() {
                 // Store all files data
                 setAllFilesData(json_folder_list.files);
                 
-                // Calculate first page data (100 items)
-                const firstPageData = json_folder_list.files.slice(0, 100);
-                setFolderData(firstPageData);
+                // Display all data instead of pagination
+                setFolderData(json_folder_list.files);
                 
-                // Calculate total pages
-                const totalPages = Math.ceil(json_folder_list.files.length / 100);
-                setTotalPages(totalPages);
-                
-                console.log(`Loaded ${json_folder_list.files.length} total files, showing first ${firstPageData.length} items, ${totalPages} total pages`);
+                console.log(`Loaded and displaying all ${json_folder_list.files.length} files`);
                 tagsListup(); // Update tag list
 
                 setError(null);
@@ -396,7 +447,7 @@ function PictureViewerPage() {
         if (folderPath && fileDataGet) {
             fetchFolderManagement();
         }
-    }, [fileDataGet]);
+    }, [fileDataGet, tagsListup]);
 
 
     // Manual search handler
@@ -409,7 +460,6 @@ function PictureViewerPage() {
         console.log('Search requested - using existing data if available');
         setUseExistingData(true); // Try to use existing data
         setError(null);
-        setPage(1); // Reset pagination
         
         // Trigger search
         setFileDataGet(true);
@@ -798,7 +848,7 @@ function PictureViewerPage() {
                                     fontSize: '14px',
                                     fontWeight: 'bold'
                                 }}>
-                                    ✅ {folderData.length} pictures loaded successfully
+                                    ✅ {folderData.length} files loaded successfully
                                 </span>
                             </div>
                         )}
@@ -860,7 +910,203 @@ function PictureViewerPage() {
                     backdropFilter: 'blur(10px)',
                     border: '1px solid rgba(255,255,255,0.2)'
                 }}>
-                    {/* Folder List Data */}
+                    {/* Filtering Options */}
+                    {folderData && (
+                        <div style={{
+                            backgroundColor: '#f8f9fa',
+                            border: '2px solid #e9ecef',
+                            borderRadius: '12px',
+                            padding: '1.5rem',
+                            marginBottom: '1rem',
+                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                        }}>
+                            <h3 style={{
+                                color: '#495057',
+                                fontSize: '1.1rem',
+                                fontWeight: '600',
+                                marginBottom: '1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}>
+                                🔍 Filtering Options
+                            </h3>
+                            
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                gap: '1rem',
+                                alignItems: 'end'
+                            }}>
+                                {/* Search Input */}
+                                <div>
+                                    <label style={{ 
+                                        display: 'block', 
+                                        marginBottom: '5px', 
+                                        fontWeight: '500',
+                                        color: '#495057',
+                                        fontSize: '14px'
+                                    }}>
+                                        📝 File Name Search
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={searchKeyword}
+                                        onChange={(e) => setSearchKeyword(e.target.value)}
+                                        placeholder="Enter file name..."
+                                        style={{
+                                            width: '100%',
+                                            padding: '8px 12px',
+                                            border: '2px solid #dee2e6',
+                                            borderRadius: '6px',
+                                            fontSize: '14px',
+                                            backgroundColor: '#fff'
+                                        }}
+                                    />
+                                </div>
+                                
+                                {/* Extension Filter */}
+                                <div>
+                                    <label style={{ 
+                                        display: 'block', 
+                                        marginBottom: '5px', 
+                                        fontWeight: '500',
+                                        color: '#495057',
+                                        fontSize: '14px'
+                                    }}>
+                                        📄 Extension Filter
+                                    </label>
+                                    <select
+                                        value={extensionFilter}
+                                        onChange={(e) => setExtensionFilter(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '8px 12px',
+                                            border: '2px solid #dee2e6',
+                                            borderRadius: '6px',
+                                            fontSize: '14px',
+                                            backgroundColor: '#fff'
+                                        }}
+                                    >
+                                        <option value="all">All</option>
+                                        <option value=".jpg">JPG</option>
+                                        <option value=".jpeg">JPEG</option>
+                                        <option value=".png">PNG</option>
+                                        <option value=".gif">GIF</option>
+                                        <option value=".webp">WEBP</option>
+                                        <option value=".bmp">BMP</option>
+                                    </select>
+                                </div>
+                                
+                                {/* Size Filter */}
+                                <div>
+                                    <label style={{ 
+                                        display: 'block', 
+                                        marginBottom: '5px', 
+                                        fontWeight: '500',
+                                        color: '#495057',
+                                        fontSize: '14px'
+                                    }}>
+                                        📊 Size Filter
+                                    </label>
+                                    <select
+                                        value={sizeFilter}
+                                        onChange={(e) => setSizeFilter(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '8px 12px',
+                                            border: '2px solid #dee2e6',
+                                            borderRadius: '6px',
+                                            fontSize: '14px',
+                                            backgroundColor: '#fff'
+                                        }}
+                                    >
+                                        <option value="all">All</option>
+                                        <option value="small">Small (&lt;5MB)</option>
+                                        <option value="medium">Medium (5-20MB)</option>
+                                        <option value="large">Large (20-50MB)</option>
+                                        <option value="xlarge">Extra Large (&gt;50MB)</option>
+                                    </select>
+                                </div>
+                                
+                                {/* Tag Filter */}
+                                {tagsList && tagsList.length > 0 && (
+                                    <div>
+                                        <label style={{ 
+                                            display: 'block', 
+                                            marginBottom: '5px', 
+                                            fontWeight: '500',
+                                            color: '#495057',
+                                            fontSize: '14px'
+                                        }}>
+                                            🏷️ Tag Filter
+                                        </label>
+                                        <select
+                                            value={selectedTag}
+                                            onChange={(e) => setSelectedTag(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px 12px',
+                                                border: '2px solid #dee2e6',
+                                                borderRadius: '6px',
+                                                fontSize: '14px',
+                                                backgroundColor: '#fff'
+                                            }}
+                                        >
+                                            <option value="">Select a tag...</option>
+                                            {tagsList.map(tag => (
+                                                <option key={tag} value={tag}>{tag}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                                
+                                {/* Clear Filters Button */}
+                                <div>
+                                    <button
+                                        onClick={clearAllFilters}
+                                        style={{
+                                            width: '100%',
+                                            padding: '8px 16px',
+                                            backgroundColor: '#6c757d',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            fontSize: '14px',
+                                            fontWeight: '500',
+                                            cursor: 'pointer',
+                                            transition: 'background-color 0.2s ease'
+                                        }}
+                                        onMouseOver={(e) => e.target.style.backgroundColor = '#5a6268'}
+                                        onMouseOut={(e) => e.target.style.backgroundColor = '#6c757d'}
+                                    >
+                                        🗑️ Clear Filters
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            {/* Filter Results Summary */}
+                            {(extensionFilter !== 'all' || sizeFilter !== 'all' || searchKeyword || selectedTag) && (
+                                <div style={{
+                                    marginTop: '1rem',
+                                    padding: '8px 12px',
+                                    backgroundColor: '#d1ecf1',
+                                    border: '1px solid #bee5eb',
+                                    borderRadius: '6px',
+                                    fontSize: '14px',
+                                    color: '#0c5460'
+                                }}>
+                                    📋 Filters Applied: {filteredData ? filteredData.length : 0} results found
+                                    {extensionFilter !== 'all' && ` | Extension: ${extensionFilter}`}
+                                    {sizeFilter !== 'all' && ` | Size: ${sizeFilter}`}
+                                    {searchKeyword && ` | Search: "${searchKeyword}"`}
+                                    {selectedTag && ` | Tag: ${selectedTag}`}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* imageFiles */}
                     {folderData && (
                         <div>
                             {/* Status Bar - File Count & Pagination Controls Horizontal */}
@@ -888,7 +1134,7 @@ function PictureViewerPage() {
                                         alignItems: 'center',
                                         gap: '8px'
                                     }}>
-                                        🖼️ {folderData.length} pictures found
+                                        🖼️ {imageFiles.length} pictures found
                                     </span>
 
                                     {/* Tag Filter - Inline */}
@@ -985,92 +1231,10 @@ function PictureViewerPage() {
                                         )}
                                     </div>
                                 </div>
-
-                                {/* Pagination Controls */}
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px'
-                                }}>
-                                    <button 
-                                        disabled={page === 1} 
-                                        onClick={() => setPage(page - 1)}
-                                        style={{
-                                            padding: '10px 16px',
-                                            background: page === 1 
-                                                ? 'linear-gradient(135deg, #e9ecef, #dee2e6)' 
-                                                : 'linear-gradient(135deg, #007bff, #0056b3)',
-                                            color: page === 1 ? '#6c757d' : 'white',
-                                            border: 'none',
-                                            borderRadius: '10px',
-                                            cursor: page === 1 ? 'not-allowed' : 'pointer',
-                                            fontSize: '14px',
-                                            fontWeight: 'bold',
-                                            transition: 'all 0.3s ease'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            if (page !== 1) {
-                                                e.target.style.transform = 'translateY(-1px)';
-                                                e.target.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.target.style.transform = 'translateY(0)';
-                                            e.target.style.boxShadow = 'none';
-                                        }}
-                                    > 
-                                        ← Prev
-                                    </button>
-
-                                    <span style={{
-                                        padding: '10px 16px',
-                                        background: 'rgba(255,255,255,0.8)',
-                                        borderRadius: '10px',
-                                        fontSize: '14px',
-                                        fontWeight: 'bold',
-                                        color: '#495057',
-                                        border: '1px solid #dee2e6'
-                                    }}>
-                                        {page} / {totalPages}
-                                    </span> 
-                                    
-                                    <button 
-                                        disabled={page === totalPages} 
-                                        onClick={() => setPage(page + 1)}
-                                        style={{
-                                            padding: '10px 16px',
-                                            background: page === totalPages 
-                                                ? 'linear-gradient(135deg, #e9ecef, #dee2e6)' 
-                                                : 'linear-gradient(135deg, #007bff, #0056b3)',
-                                            color: page === totalPages ? '#6c757d' : 'white',
-                                            border: 'none',
-                                            borderRadius: '10px',
-                                            cursor: page === totalPages ? 'not-allowed' : 'pointer',
-                                            fontSize: '14px',
-                                            fontWeight: 'bold',
-                                            transition: 'all 0.3s ease'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            if (page !== totalPages) {
-                                                e.target.style.transform = 'translateY(-1px)';
-                                                e.target.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.target.style.transform = 'translateY(0)';
-                                            e.target.style.boxShadow = 'none';
-                                        }}
-                                    > 
-                                        Next →
-                                    </button>
-                                </div>
                             </div>
 
-                            {/* Single Image Display */}
+                            {/* All Images Grid Display */}
                             <div style={{ 
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
                                 padding: '20px 0'
                             }}>
                                 {imageFiles && imageFiles.length === 0 && (
@@ -1096,361 +1260,221 @@ function PictureViewerPage() {
                                     </div>
                                 )}
 
-                                {currentImageFile && (
-                                    <div key={currentImageFile.path} style={{
-                                        background: 'linear-gradient(135deg, #ffffff, #f8f9fa)',
-                                        border: '2px solid #e9ecef',
-                                        borderRadius: '20px',
-                                        padding: '30px',
-                                        boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-                                        transition: 'all 0.3s ease',
-                                        maxWidth: '90%',
-                                        width: '100%'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.transform = 'translateY(-5px)';
-                                        e.currentTarget.style.boxShadow = '0 15px 50px rgba(0,0,0,0.15)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.transform = 'translateY(0)';
-                                        e.currentTarget.style.boxShadow = '0 10px 40px rgba(0,0,0,0.1)';
-                                    }}
-                                    >
-                                        {/* Header with file name and extension */}
-                                        <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            marginBottom: '20px',
-                                            borderBottom: '2px solid #e9ecef',
-                                            paddingBottom: '15px'
-                                        }}>
-                                            <h4 style={{
-                                                margin: 0,
-                                                fontSize: '22px',
-                                                fontWeight: 'bold',
-                                                color: '#2c3e50',
-                                                wordBreak: 'break-word',
-                                                flex: 1
-                                            }}>
-                                                📷 {currentImageFile.name || 'Unknown File'} ({index + 1}/{imageFiles.length})
-                                            </h4>
-                                            <span style={{
-                                                background: 'linear-gradient(135deg, #e9ecef, #dee2e6)',
-                                                padding: '8px 15px',
-                                                borderRadius: '15px',
-                                                fontSize: '14px',
-                                                fontWeight: 'bold',
-                                                color: '#495057',
-                                                marginLeft: '15px'
-                                            }}>
-                                                {currentImageFile.extension || 'none'}
-                                            </span>
-                                        </div>
-                                        
-                                        {/* Navigation instructions */}
-                                        <div style={{
-                                            textAlign: 'center',
-                                            marginBottom: '20px',
-                                            fontSize: '14px',
-                                            color: '#666',
-                                            background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)',
-                                            padding: '15px',
-                                            borderRadius: '12px',
-                                            border: '1px solid #dee2e6'
-                                        }}>
-                                            <strong>🖱️ Navigation:</strong> Left click to go forward | Right click to go backward
-                                        </div>
-                                        
-                                        {/* Image Display with Click Events */}
-                                        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                                            <img 
-                                                src={currentImageFile.path} 
-                                                alt={currentImageFile.name}
-                                                onClick={handleImageClick}
-                                                onContextMenu={handleImageRightClick}
-                                                style={{ 
-                                                    maxWidth: '100%', 
-                                                    maxHeight: '70vh',
-                                                    cursor: 'pointer',
-                                                    borderRadius: '15px',
-                                                    boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
-                                                    transition: 'transform 0.3s ease'
-                                                }}
-                                                onMouseEnter={(e) => e.target.style.transform = 'scale(1.02)'}
-                                                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'} 
-                                            />
-                                        </div>
-
-                                        {/* Navigation Buttons */}
-                                        <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'center',
-                                            gap: '25px',
-                                            marginBottom: '20px'
-                                        }}>
-                                            <button 
-                                                onClick={prev}
-                                                style={{
-                                                    padding: '12px 25px',
-                                                    fontSize: '16px',
-                                                    background: 'linear-gradient(135deg, #007bff, #0056b3)',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: '12px',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.3s ease',
-                                                    fontWeight: 'bold',
-                                                    boxShadow: '0 4px 15px rgba(0, 123, 255, 0.3)'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.target.style.transform = 'translateY(-2px)';
-                                                    e.target.style.boxShadow = '0 6px 20px rgba(0, 123, 255, 0.4)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.target.style.transform = 'translateY(0)';
-                                                    e.target.style.boxShadow = '0 4px 15px rgba(0, 123, 255, 0.3)';
-                                                }}
+                                {/* Grid Display of All Images */}
+                                {imageFiles && imageFiles.length > 0 && (
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                                        gap: '20px',
+                                        padding: '20px 0'
+                                    }}>
+                                        {imageFiles.map((file, index) => (
+                                            <div key={file.path} style={{
+                                                background: 'linear-gradient(135deg, #ffffff, #f8f9fa)',
+                                                border: '2px solid #e9ecef',
+                                                borderRadius: '16px',
+                                                padding: '20px',
+                                                boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+                                                transition: 'all 0.3s ease',
+                                                cursor: 'pointer'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.transform = 'translateY(-5px)';
+                                                e.currentTarget.style.boxShadow = '0 12px 35px rgba(0,0,0,0.15)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.transform = 'translateY(0)';
+                                                e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)';
+                                            }}
                                             >
-                                                ← Previous
-                                            </button>
-                                            <button 
-                                                onClick={next}
-                                                style={{
-                                                    padding: '12px 25px',
-                                                    fontSize: '16px',
-                                                    background: 'linear-gradient(135deg, #007bff, #0056b3)',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: '12px',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.3s ease',
-                                                    fontWeight: 'bold',
-                                                    boxShadow: '0 4px 15px rgba(0, 123, 255, 0.3)'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.target.style.transform = 'translateY(-2px)';
-                                                    e.target.style.boxShadow = '0 6px 20px rgba(0, 123, 255, 0.4)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.target.style.transform = 'translateY(0)';
-                                                    e.target.style.boxShadow = '0 4px 15px rgba(0, 123, 255, 0.3)';
-                                                }}
-                                            >
-                                                Next →
-                                            </button>
-                                        </div>
-
-                                        {/* File Info */}
-                                        <div style={{
-                                            marginBottom: '20px'
-                                        }}>
-                                            <div style={{ 
-                                                fontSize: '15px',
-                                                color: '#495057',
-                                                marginBottom: '12px',
-                                                padding: '12px',
-                                                background: 'rgba(248, 249, 250, 0.8)',
-                                                borderRadius: '10px',
-                                                border: '1px solid #e9ecef'
-                                            }}>
-                                                <strong>📊 Size:</strong> {currentImageFile.size === 0 ? '0 bytes' : 
-                                                    currentImageFile.size >= 1024 * 1024 * 1024 * 1024 ? `${(currentImageFile.size / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB` :
-                                                    currentImageFile.size >= 1024 * 1024 * 1024 ? `${(currentImageFile.size / (1024 * 1024 * 1024)).toFixed(2)} GB` :
-                                                    currentImageFile.size >= 1024 * 1024 ? `${(currentImageFile.size / (1024 * 1024)).toFixed(2)} MB` :
-                                                    currentImageFile.size >= 1024 ? `${(currentImageFile.size / 1024).toFixed(2)} KB` :
-                                                    `${currentImageFile.size.toLocaleString()} bytes`}
-                                            </div>
-                                            <div style={{
-                                                fontSize: '13px',
-                                                color: '#6c757d',
-                                                wordBreak: 'break-word',
-                                                background: 'rgba(248, 249, 250, 0.8)',
-                                                padding: '12px',
-                                                borderRadius: '10px',
-                                                border: '1px solid #e9ecef',
-                                                marginBottom: '12px'
-                                            }}>
-                                                <strong>📁 Path:</strong> {currentImageFile.path}
-                                            </div>
-
-                                            <div style={{
-                                                fontSize: '14px',
-                                                color: '#495057',
-                                                background: 'rgba(248, 249, 250, 0.8)',
-                                                padding: '12px',
-                                                borderRadius: '10px',
-                                                border: '1px solid #e9ecef'
-                                            }}>
-                                                <strong>🏷️ Tags:</strong>
-                                                {currentImageFile.tags && currentImageFile.tags.length === 0 ? ' None' : 
-                                                    currentImageFile.tags && currentImageFile.tags.map((tag, tagIndex) => (
-                                                        <span key={tagIndex} style={{ 
-                                                            marginTop: '8px',
-                                                            background: 'linear-gradient(135deg, #90EE90, #7FDD7F)',
-                                                            padding: '6px 12px',
-                                                            borderRadius: '8px',
-                                                            display: 'inline-block',
-                                                            marginLeft: '6px',
-                                                            marginRight: '4px',
-                                                            transition: 'all 0.2s ease',
-                                                            cursor: 'pointer'
-                                                        }}
-                                                        onMouseEnter={(e) => e.target.style.transform = 'translateY(-1px)'}
-                                                        onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                                                        >
-                                                            <button onClick={() => tagsFilter(tag)} style={{
-                                                                background: 'none',
-                                                                border: 'none',
-                                                                padding: 0,
-                                                                margin: 0,
-                                                                fontSize: '13px',
-                                                                color: '#155724',
-                                                                cursor: 'pointer',
-                                                                fontWeight: 'bold'
-                                                            }}>
-                                                                {tag}
-                                                            </button>
-                                                        </span>
-                                                    ))
-                                                }
-                                            </div>
-                                        </div>
-
-                                        {/* Action Buttons */}
-                                        <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            gap: '15px'
-                                        }}>
-                                            {/* Rename Check */}
-                                            <div style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '10px',
-                                                padding: '10px 15px',
-                                                background: 'rgba(248, 249, 250, 0.8)',
-                                                borderRadius: '10px',
-                                                border: '1px solid #e9ecef'
-                                            }}>
-                                                <label style={{
-                                                    fontSize: '14px',
-                                                    color: '#495057',
-                                                    cursor: 'pointer',
-                                                    fontWeight: 'bold',
+                                                {/* Header with file name and extension */}
+                                                <div style={{
                                                     display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '8px'
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'flex-start',
+                                                    marginBottom: '15px',
+                                                    borderBottom: '1px solid #e9ecef',
+                                                    paddingBottom: '10px'
                                                 }}>
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={checkedFiles[currentImageFile.id] !== undefined}
-                                                        onChange={(e) => handleCheck(currentImageFile.id, e.target.checked)}
+                                                    <h4 style={{
+                                                        margin: 0,
+                                                        fontSize: '16px',
+                                                        fontWeight: 'bold',
+                                                        color: '#2c3e50',
+                                                        wordBreak: 'break-word',
+                                                        flex: 1,
+                                                        lineHeight: '1.3'
+                                                    }}>
+                                                        📷 {file.name || 'Unknown File'}
+                                                    </h4>
+                                                    <span style={{
+                                                        background: 'linear-gradient(135deg, #e9ecef, #dee2e6)',
+                                                        padding: '4px 8px',
+                                                        borderRadius: '8px',
+                                                        fontSize: '12px',
+                                                        fontWeight: 'bold',
+                                                        color: '#495057',
+                                                        marginLeft: '10px',
+                                                        minWidth: 'fit-content'
+                                                    }}>
+                                                        {file.extension || 'none'}
+                                                    </span>
+                                                </div>
+                                                
+                                                {/* Image Display */}
+                                                <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                                                    <img 
+                                                        src={file.path} 
+                                                        alt={file.name}
                                                         style={{ 
-                                                            width: '18px',
-                                                            height: '18px',
-                                                            cursor: 'pointer'
+                                                            width: '100%',
+                                                            height: '200px',
+                                                            objectFit: 'cover',
+                                                            borderRadius: '8px',
+                                                            border: '1px solid #dee2e6'
+                                                        }}
+                                                        onError={(e) => {
+                                                            e.target.style.display = 'none';
+                                                            e.target.nextSibling.style.display = 'flex';
                                                         }}
                                                     />
-                                                    ✏️ Enable Rename
-                                                </label>
-                                            </div>
-                                        </div>
-
-                                        {/* Rename Input */}
-                                        {checkedFiles[currentImageFile.id] !== undefined && (
-                                            <div style={{ 
-                                                marginTop: '20px',
-                                                padding: '20px',
-                                                background: 'linear-gradient(135deg, #fff3cd, #ffeaa7)',
-                                                borderRadius: '15px',
-                                                border: '2px solid #ffeaa7'
-                                            }}>
-                                                <label style={{
-                                                    display: 'block',
-                                                    marginBottom: '10px',
-                                                    fontWeight: 'bold',
-                                                    color: '#856404'
-                                                }}>
-                                                    🏷️ New filename:
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={checkedFiles[currentImageFile.id] || currentImageFile.name || ''}
-                                                    onChange={(e) => renameInputChange(currentImageFile.id, e.target.value)}
-                                                    style={{ 
+                                                    {/* Fallback when image fails to load */}
+                                                    <div style={{
+                                                        display: 'none',
                                                         width: '100%',
-                                                        padding: '12px 15px',
+                                                        height: '200px',
+                                                        backgroundColor: '#f8f9fa',
+                                                        border: '2px dashed #dee2e6',
+                                                        borderRadius: '8px',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        color: '#6c757d',
+                                                        fontSize: '14px'
+                                                    }}>
+                                                        🖼️ Image not available
+                                                    </div>
+                                                </div>
+
+                                                {/* File Information */}
+                                                <div style={{
+                                                    fontSize: '12px',
+                                                    color: '#666',
+                                                    textAlign: 'center',
+                                                    padding: '10px',
+                                                    backgroundColor: '#f8f9fa',
+                                                    borderRadius: '8px'
+                                                }}>
+                                                    <div style={{ marginBottom: '5px' }}>
+                                                        <strong>Size:</strong> {file.size ? 
+                                                            file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` :
+                                                            file.size >= 1024 ? `${(file.size / 1024).toFixed(2)} KB` :
+                                                            `${file.size} bytes` : 'Unknown'}
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: '10px',
+                                                        color: '#888',
+                                                        wordBreak: 'break-all'
+                                                    }}>
+                                                        {file.path}
+                                                    </div>
+                                                </div>
+
+                                                {/* Rename Checkbox and Input */}
+                                                <div style={{ marginTop: '15px' }}>
+                                                    <label style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px',
                                                         fontSize: '14px',
-                                                        border: '2px solid #ffeaa7',
-                                                        borderRadius: '10px',
-                                                        backgroundColor: 'white',
-                                                        outline: 'none',
-                                                        transition: 'border-color 0.3s ease'
-                                                    }}
-                                                    placeholder={currentImageFile.name || ''}
-                                                    onFocus={(e) => e.target.style.borderColor = '#856404'}
-                                                    onBlur={(e) => e.target.style.borderColor = '#ffeaa7'}
-                                                />
+                                                        fontWeight: '500',
+                                                        color: '#495057',
+                                                        cursor: 'pointer'
+                                                    }}>
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={checkedFiles[file.id] !== undefined}
+                                                            onChange={(e) => handleCheck(file.id, e.target.checked)}
+                                                            style={{ width: '16px', height: '16px' }}
+                                                        />
+                                                        Rename
+                                                    </label>
+                                                </div>
+
+                                                {/* Rename Input */}
+                                                {checkedFiles[file.id] !== undefined && (
+                                                    <div style={{ marginTop: '10px' }}>
+                                                        <input
+                                                            type="text"
+                                                            value={checkedFiles[file.id] || ''}
+                                                            onChange={(e) => renameInputChange(file.id, e.target.value)}
+                                                            style={{ 
+                                                                width: '100%',
+                                                                height: '35px',
+                                                                padding: '8px 12px',
+                                                                fontSize: '12px',
+                                                                border: '2px solid #ddd',
+                                                                borderRadius: '6px',
+                                                                backgroundColor: '#fff',
+                                                                boxSizing: 'border-box',
+                                                                fontWeight: '500',
+                                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                            }}
+                                                            placeholder={file.name || ''}
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Rename Execution Button */}
+                                {Object.keys(checkedFiles).length > 0 && (
+                                    <div style={{ 
+                                        textAlign: 'center', 
+                                        margin: '30px 0',
+                                        padding: '20px',
+                                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                                        borderRadius: '10px',
+                                        border: '2px dashed #28a745'
+                                    }}>
+                                        <button onClick={() => renameExecute()} style={{ 
+                                            padding: '15px 30px',
+                                            backgroundColor: '#28a745',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            cursor: 'pointer',
+                                            fontSize: '18px',
+                                            fontWeight: 'bold',
+                                            boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                                            transform: 'scale(1)',
+                                            transition: 'all 0.2s ease',
+                                            minWidth: '200px',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '1px'
+                                        }}
+                                        onMouseOver={(e) => {
+                                            e.target.style.transform = 'scale(1.05)';
+                                            e.target.style.backgroundColor = '#218838';
+                                        }}
+                                        onMouseOut={(e) => {
+                                            e.target.style.transform = 'scale(1)';
+                                            e.target.style.backgroundColor = '#28a745';
+                                        }}>
+                                            🔄 RENAME CHECKED FILES
+                                        </button>
+                                        <div style={{
+                                            marginTop: '10px',
+                                            fontSize: '14px',
+                                            color: '#666',
+                                            fontStyle: 'italic'
+                                        }}>
+                                            {Object.keys(checkedFiles).length} files selected for renaming
+                                        </div>
                                     </div>
                                 )}
                             </div>
-
-                            {/* Image navigation status */}
-                            {imageFiles && imageFiles.length > 0 && (
-                                <div style={{
-                                    textAlign: 'center',
-                                    marginTop: '25px',
-                                    fontSize: '18px',
-                                    color: '#495057',
-                                    background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)',
-                                    padding: '15px',
-                                    borderRadius: '15px',
-                                    border: '1px solid #dee2e6',
-                                    fontWeight: 'bold'
-                                }}>
-                                    📊 Viewing {index + 1} of {imageFiles.length} images
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Rename Execution Button */}
-                    {Object.keys(checkedFiles).length > 0 && (
-                        <div style={{
-                            marginTop: '30px',
-                            textAlign: 'center',
-                            padding: '20px',
-                            background: 'linear-gradient(135deg, #d4edda, #c3e6cb)',
-                            borderRadius: '15px',
-                            border: '2px solid #c3e6cb'
-                        }}>
-                            <button onClick={() => renameExecute()} style={{ 
-                                padding: '15px 30px',
-                                background: 'linear-gradient(135deg, #28a745, #20c997)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '12px',
-                                cursor: 'pointer',
-                                fontSize: '16px',
-                                fontWeight: 'bold',
-                                transition: 'all 0.3s ease',
-                                boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.target.style.transform = 'translateY(-2px)';
-                                e.target.style.boxShadow = '0 6px 20px rgba(40, 167, 69, 0.4)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.target.style.transform = 'translateY(0)';
-                                e.target.style.boxShadow = '0 4px 15px rgba(40, 167, 69, 0.3)';
-                            }}
-                            >
-                                💾 Rename Checked Files ({Object.keys(checkedFiles).length})
-                            </button>
                         </div>
                     )}
                 </main>
