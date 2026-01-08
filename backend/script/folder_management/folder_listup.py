@@ -6,6 +6,7 @@ import json
 from PIL import Image, ImageDraw, ImageFont
 import subprocess
 import shutil
+import time
 
 # Function to find FFmpeg executable
 def find_ffmpeg():
@@ -39,6 +40,27 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import db_func
 
 log_json_file_name = f"{os.path.splitext(os.path.basename(__file__))[0]}.json"
+
+# Get video file length in seconds
+def file_length_check(file_path: str) -> float:
+    try:
+        import cv2
+        video = cv2.VideoCapture(file_path)
+        if not video.isOpened():
+            print(f"Error: Could not open video file {file_path}")
+            return 0.0
+        fps = video.get(cv2.CAP_PROP_FPS)
+        frame_count = video.get(cv2.CAP_PROP_FRAME_COUNT)
+        if fps == 0:
+            print(f"Error: FPS is zero for video file {file_path}")
+            return 0.0
+        duration = frame_count / fps
+        video.release()
+        return duration
+    except Exception as e:
+        print(f"Error getting video length for {file_path}: {e}")
+        return 0.0
+
 
 # List up folders and their files into a dictionary
 def folder_listup(base_path: str):
@@ -80,6 +102,21 @@ def folder_listup(base_path: str):
                 tags = basename_tag.split("-")
 
                 file_extension = file_extension.replace('.', '')
+
+                # Get video length if applicable
+                if file_extension == "mp4":
+                    file_length = file_length_check(os.path.join(root, file))
+                    if file_length == 0.0:
+                        continue
+                    file_length = str(int(file_length // 60)).zfill(2) + ":" + str(int(file_length % 60)).zfill(2)
+                else:
+                    file_length = ""
+
+                # modified_time(timestamp) example: 1672531199.0
+                modified_time = os.path.getmtime(os.path.join(root, file))
+                if modified_time > 0:
+                    modified_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(modified_time))
+
                 count += 1
 
                 if file_size > 0:
@@ -93,7 +130,8 @@ def folder_listup(base_path: str):
                             "path": os.path.join(root, file),
                             "size": file_size,
                             "extension": file_extension,
-                            "created_time": os.path.getmtime(os.path.join(root, file)),
+                            "length": file_length,
+                            "modified_time": modified_time,
                             "tags": tags
                         }
                     )

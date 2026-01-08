@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-function FolderManagementUI() {
+function PictureViewerPage() {
     const navigate = useNavigate();
 
     // States for folder path to list up and file name change
@@ -27,11 +27,6 @@ function FolderManagementUI() {
         return cached ? JSON.parse(cached) : null;
     });
 
-    // folder graph data - restore from localStorage if available
-    const [folderGraphData, setFolderGraphData] = useState(() => {
-        const cached = localStorage.getItem('folderManagement_folderGraphData');
-        return cached ? JSON.parse(cached) : [];
-    });
 
     // JSON path for passing to file details page - restore from localStorage
     const [fileJsonPath, setFileJsonPath] = useState(() => {
@@ -39,24 +34,8 @@ function FolderManagementUI() {
     });
 
     const [fileDataGet, setFileDataGet] = useState(false);
-    const [thumbnailList, setThumbnailList] = useState({});
-    const [thumbnailLoadingState, setThumbnailLoadingState] = useState({}); // Track loading state per file
-
-    // thumbnail cache state - restore from localStorage with Base64 data
-    const [thumbnailCache, setThumbnailCache] = useState(() => {
-        try {
-            const cached = localStorage.getItem('folderManagement_thumbnailCache');
-            return cached ? JSON.parse(cached) : {};
-        } catch (error) {
-            console.warn('Failed to restore thumbnail cache:', error);
-            return {};
-        }
-    });
-
     const [useExistingData, setUseExistingData] = useState(true); // Control whether to use existing JSON files
     const [jsonFileCache, setJsonFileCache] = useState({}); // Cache for existing JSON file paths
-    const [shouldLoadThumbnails, setShouldLoadThumbnails] = useState(false); // Control thumbnail loading independently
-    const [jsonDataLength, setJsonDataLength] = useState(0); // Length of current JSON data
 
     // Error state
     const [error, setError] = useState(null);
@@ -100,219 +79,10 @@ function FolderManagementUI() {
     }, [allFilesData]);
 
     useEffect(() => {
-        if (folderGraphData) {
-            localStorage.setItem('folderManagement_folderGraphData', JSON.stringify(folderGraphData));
-        }
-    }, [folderGraphData]);
-
-    useEffect(() => {
         if (fileJsonPath) {
             localStorage.setItem('folderManagement_fileJsonPath', fileJsonPath);
         }
     }, [fileJsonPath]);
-
-    // Save thumbnail cache to localStorage with size management
-    useEffect(() => {
-        try {
-            // Limit cache size to prevent quota exceeded errors
-            const maxCacheSize = 50; // Maximum number of cached thumbnails
-            const cacheKeys = Object.keys(thumbnailCache);
-            
-            if (cacheKeys.length > maxCacheSize) {
-                console.log(`Cache size (${cacheKeys.length}) exceeds limit (${maxCacheSize}), cleaning up...`);
-                
-                // Keep only the most recent entries (simple approach)
-                const sortedKeys = cacheKeys.sort((a, b) => b - a); // Sort by fileId (assuming higher ids are newer)
-                const keysToKeep = sortedKeys.slice(0, maxCacheSize);
-                
-                const cleanedCache = {};
-                keysToKeep.forEach(key => {
-                    cleanedCache[key] = thumbnailCache[key];
-                });
-                
-                setThumbnailCache(cleanedCache);
-                localStorage.setItem('folderManagement_thumbnailCache', JSON.stringify(cleanedCache));
-                console.log(`Cache cleaned: kept ${keysToKeep.length} entries`);
-            } else {
-                localStorage.setItem('folderManagement_thumbnailCache', JSON.stringify(thumbnailCache));
-            }
-        } catch (error) {
-            console.warn('Failed to save thumbnail cache:', error);
-            // If storage is still full, clear all cache
-            if (error.name === 'QuotaExceededError') {
-                console.log('Storage quota exceeded, clearing all thumbnail cache');
-                localStorage.removeItem('folderManagement_thumbnailCache');
-                setThumbnailCache({});
-                
-                // Also clear other large localStorage items if needed
-                try {
-                    const usage = JSON.stringify(thumbnailCache).length;
-                    console.log(`Attempted cache size: ${(usage / 1024 / 1024).toFixed(2)} MB`);
-                } catch (e) {
-                    console.log('Could not calculate cache size');
-                }
-            }
-        }
-    }, [thumbnailCache]);
-
-    // thumbnail loading function
-    const loadThumbnailsForFiles = async (files, jsonPath) => {
-        if (!files || !Array.isArray(files) || !jsonPath) {
-            console.warn('Invalid parameters for thumbnail loading:', { files: files?.length, jsonPath });
-            return;
-        }
-
-        console.log(`Loading thumbnails for ${files.length} files (Page ${page || 'unknown'}) using JSON: ${jsonPath}`);
-        
-        const fileIds = files.map(file => file.id);
-        
-        const initialLoadingState = {};
-        fileIds.forEach(fileId => {
-            // Check if we have cached Base64 data
-            if (thumbnailCache[fileId]) {
-                // Convert Base64 back to blob URL for display
-                try {
-                    const byteCharacters = atob(thumbnailCache[fileId]);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) {
-                        byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    }
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], { type: 'image/jpeg' });
-                    const blobUrl = URL.createObjectURL(blob);
-                    setThumbnailList(prev => ({ ...prev, [fileId]: blobUrl }));
-                    return;
-                } catch (error) {
-                    console.warn(`Failed to restore cached thumbnail for ${fileId}:`, error);
-                    // Remove invalid cache entry
-                    setThumbnailCache(prev => {
-                        const updated = { ...prev };
-                        delete updated[fileId];
-                        return updated;
-                    });
-                }
-            }
-            initialLoadingState[fileId] = true;
-        });
-        setThumbnailLoadingState(initialLoadingState);
-
-        const loadThumbnail = async (fileId) => {
-            // Check cached Base64 data first
-            if (thumbnailCache[fileId]) {
-                try {
-                    const byteCharacters = atob(thumbnailCache[fileId]);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) {
-                        byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    }
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], { type: 'image/jpeg' });
-                    const blobUrl = URL.createObjectURL(blob);
-                    setThumbnailList(prev => ({ ...prev, [fileId]: blobUrl }));
-                    setThumbnailLoadingState(prev => ({ ...prev, [fileId]: false }));
-                    return;
-                } catch (error) {
-                    console.warn(`Failed to use cached thumbnail for ${fileId}:`, error);
-                }
-            }
-
-            try {
-                const response = await fetch(
-                    `http://localhost:5000/file/thumbnail?id=${fileId}&jsonPath=${encodeURIComponent(jsonPath)}&relativePath=${relativePath}`,
-                    { cache: 'force-cache' }
-                );
-                
-                if (response.ok) {
-                    const thumbnail_blob = await response.blob();
-                    if (thumbnail_blob && thumbnail_blob.size > 0) {
-                        const thumbnail_url = URL.createObjectURL(thumbnail_blob);
-                        setThumbnailList(prev => ({ ...prev, [fileId]: thumbnail_url }));
-                        
-                        // Convert blob to compressed Base64 for caching
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                            try {
-                                // Create a smaller, compressed version for caching
-                                const img = new Image();
-                                img.onload = () => {
-                                    const canvas = document.createElement('canvas');
-                                    const ctx = canvas.getContext('2d');
-                                    
-                                    // Use smaller dimensions for cache (reduce size significantly)
-                                    const maxSize = 150; // Smaller than display size (450x270)
-                                    const aspectRatio = img.width / img.height;
-                                    
-                                    if (aspectRatio > 1) {
-                                        canvas.width = maxSize;
-                                        canvas.height = maxSize / aspectRatio;
-                                    } else {
-                                        canvas.width = maxSize * aspectRatio;
-                                        canvas.height = maxSize;
-                                    }
-                                    
-                                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                                    
-                                    // Convert to compressed JPEG with lower quality
-                                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6); // 60% quality
-                                    const compressedBase64 = compressedDataUrl.split(',')[1];
-                                    
-                                    // Check compressed size before caching
-                                    const sizeKB = (compressedBase64.length * 0.75) / 1024; // Rough Base64 size calculation
-                                    console.log(`Compressed thumbnail size: ${sizeKB.toFixed(1)}KB for file ${fileId}`);
-                                    
-                                    if (sizeKB < 100) { // Only cache if smaller than 100KB
-                                        setThumbnailCache(prev => ({ ...prev, [fileId]: compressedBase64 }));
-                                    } else {
-                                        console.log(`Skipping cache for file ${fileId}: too large (${sizeKB.toFixed(1)}KB)`);
-                                    }
-                                };
-                                img.src = reader.result;
-                            } catch (error) {
-                                console.warn(`Failed to compress thumbnail for caching:`, error);
-                                // Fallback to original method
-                                const base64data = reader.result.split(',')[1];
-                                setThumbnailCache(prev => ({ ...prev, [fileId]: base64data }));
-                            }
-                        };
-                        reader.readAsDataURL(thumbnail_blob);
-                        
-                        console.log(`Thumbnail loaded and cached for file ${fileId}`);
-                    }
-                } else if (response.status !== 404) {
-                    console.error(`Thumbnail error for ${fileId}:`, response.status);
-                }
-            } catch (error) {
-                console.error(`Failed to load thumbnail for file ${fileId}:`, error);
-            } finally {
-                setThumbnailLoadingState(prev => ({ ...prev, [fileId]: false }));
-            }
-        };
-
-        const chunkSize = 3;
-        const filesToLoad = fileIds.filter(fileId => !thumbnailCache[fileId]);
-        
-        console.log(`Loading ${filesToLoad.length} new thumbnails (${fileIds.length - filesToLoad.length} from cache)`);
-        
-        for (let i = 0; i < filesToLoad.length; i += chunkSize) {
-            const chunk = filesToLoad.slice(i, i + chunkSize);
-            await Promise.allSettled(chunk.map(fileId => loadThumbnail(fileId)));
-            
-            if (i + chunkSize < filesToLoad.length) {
-                await new Promise(resolve => setTimeout(resolve, 200));
-            }
-        }
-        
-        console.log(`Thumbnail loading completed`);
-    };
-
-    // useEffect for thumbnail loading
-    useEffect(() => {
-        if (shouldLoadThumbnails && folderData && fileJsonPath) {
-            console.log(`Triggering thumbnail loading for ${folderData.length} files on page ${page}`);
-            loadThumbnailsForFiles(folderData, fileJsonPath);
-            setShouldLoadThumbnails(false);
-        }
-    }, [shouldLoadThumbnails, folderData, fileJsonPath]);
 
     // Handler for setting relative path from directory input
     const handlerSetRelativePath = (e) => { 
@@ -339,6 +109,11 @@ function FolderManagementUI() {
     // Rename check state
     const [checkedFiles, setCheckedFiles] = useState({});
 
+    const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp']; 
+    const imageFiles = allFilesData.filter(file => 
+        imageExtensions.some(ext => file.path.toLowerCase().endsWith(ext)) 
+    );
+
     useEffect(() => {
         // Only process pagination if we have all files data
         if (!allFilesData || !Array.isArray(allFilesData)) {
@@ -357,14 +132,7 @@ function FolderManagementUI() {
         
         // Update folder data with current page
         setFolderData(pageData);
-        setTotalPages(totalPages);
-        
-        // Clear previous page thumbnails and loading states
-        setThumbnailLoadingState({});
-        
-        // Trigger thumbnail loading for new page data
-        setShouldLoadThumbnails(true);
-        
+        setTotalPages(totalPages);        
     }, [page, allFilesData]);
 
     // handler for checkbox change
@@ -432,7 +200,6 @@ function FolderManagementUI() {
             
             if (renameResults.status === "success") {
                 setCheckedFiles({});
-                setShouldLoadThumbnails(true);
             } else {
                 setError(`Rename failed: ${renameResults.message}`);
             }
@@ -453,32 +220,6 @@ function FolderManagementUI() {
         const data_check = await res_check.json();
         console.log('Existing JSON file check result:', data_check);            
         return data_check; // { exists: bool, json_path: string|null, source: 'server'|'local'|null }
-    };
-
-    // function to create folder graph
-    const createFolderGraph = async () => {
-        // Fetch folder graph data
-        console.log("Fetching folder graph data...");
-        const res = await fetch(
-            `http://localhost:5000/folder/graph/create?folderPath=${encodeURIComponent(folderPath)}`
-        );
-        if (!res.ok) {
-            console.log("Graph fetch failed:", res.status, res.statusText);
-            setError(`Graph Error: ${res.status} ${res.statusText}`);
-            // Continue without graph instead of returning
-            setFolderGraphData(null);
-        } else {
-            const graphBlob = await res.blob();
-            const graphUrl = URL.createObjectURL(graphBlob);
-            console.log("Graph URL:", graphUrl);
-            setFolderGraphData({ graphUrl });
-        }
-        setIsLoading(false);
-        setError(null); // Clear previous errors
-        setPage(1); // Reset to first page
-
-        // Trigger independent thumbnail loading
-        setShouldLoadThumbnails(true);
     };
 
     const [tagsList, setTagsList] = useState([]); // List of all tags available
@@ -563,10 +304,6 @@ function FolderManagementUI() {
                                             [folderPath]: existingCheck.json_path
                                         }));
                                     }
-                                    
-                                    // Trigger thumbnail loading for existing data
-                                    setShouldLoadThumbnails(true);
-                                    createFolderGraph(); // Fetch folder graph data
                                     tagsListup(); // Update tag list
 
                                     console.log(`Loaded ${data.files.length} files from existing JSON (${existingCheck.source})`);
@@ -635,16 +372,15 @@ function FolderManagementUI() {
                 // Store all files data
                 setAllFilesData(json_folder_list.files);
                 
-                // Calculate first page data (50 items)
-                const firstPageData = json_folder_list.files.slice(0, 50);
+                // Calculate first page data (100 items)
+                const firstPageData = json_folder_list.files.slice(0, 100);
                 setFolderData(firstPageData);
                 
                 // Calculate total pages
-                const totalPages = Math.ceil(json_folder_list.files.length / 50);
+                const totalPages = Math.ceil(json_folder_list.files.length / 100);
                 setTotalPages(totalPages);
                 
                 console.log(`Loaded ${json_folder_list.files.length} total files, showing first ${firstPageData.length} items, ${totalPages} total pages`);
-                createFolderGraph(); // Fetch folder graph data
                 tagsListup(); // Update tag list
 
                 setError(null);
@@ -678,6 +414,24 @@ function FolderManagementUI() {
         // Trigger search
         setFileDataGet(true);
     };
+
+    const [index, setIndex] = useState(0); 
+    const next = () => setIndex((index + 1) % imageFiles.length); 
+    const prev = () => setIndex((index - 1 + imageFiles.length) % imageFiles.length);
+
+    // Handle image click events
+    const handleImageClick = (e) => {
+        e.preventDefault();
+        next();
+    };
+
+    const handleImageRightClick = (e) => {
+        e.preventDefault();
+        prev();
+    };
+
+    // Get current image file
+    const currentImageFile = imageFiles[index];
 
     return (
         <div>
@@ -881,20 +635,6 @@ function FolderManagementUI() {
                         💡 Please set both Base Path and Relative Path to enable searching
                     </div>
                 )}
-                
-                {/* Search Mode Explanation */}
-                <div style={{
-                    marginTop: '10px',
-                    padding: '12px',
-                    backgroundColor: '#d1ecf1',
-                    border: '1px solid #bee5eb',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                }}>
-                    <div style={{ marginBottom: '8px' }}>
-                        <strong>Search:</strong> Checks for existing JSON files first, creates new one only if needed
-                    </div>
-                </div>
             </div>
 
             {/* Loading Indicator */}
@@ -919,6 +659,39 @@ function FolderManagementUI() {
             )}
 
             <br />
+
+            <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                <button 
+                    onClick={() => navigate("/file/video/list")}
+                    style={{
+                        padding: '12px 24px',
+                        backgroundColor: '#6f42c1',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        fontWeight: 'bold'
+                    }}
+                >
+                    📹 Video Viewer
+                </button>
+                <button 
+                    onClick={() => navigate("/file/picture/list")}
+                    style={{
+                        padding: '12px 24px',
+                        backgroundColor: '#20c997',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        fontWeight: 'bold'
+                    }}
+                >
+                    🖼️ Picture Viewer
+                </button>
+            </div>
 
             {/* Folder List Data */}
             {folderData && (
@@ -1039,21 +812,38 @@ function FolderManagementUI() {
                         </>
                     )}
 
-                    {/* File Cards Display */}
+                    {/* Single Image Display */}
                     <div style={{ 
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(490px, 1fr))',
-                        gap: '20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
                         padding: '20px 0'
                     }}>
-                        {folderData.map((file, index) => (
-                            <div key={file.path} style={{
+                        {imageFiles && imageFiles.length === 0 && (
+                            <div style={{ 
+                                marginTop: '20px',
+                                padding: '10px',
+                                backgroundColor: '#fff3cd',
+                                color: '#856404',   
+                                border: '1px solid #ffeaa7',
+                                borderRadius: '4px'
+                            }}>
+                                <h3>No image files found.</h3> <br />
+                                Folder name: <strong>{relativePath}</strong>
+                            </div>
+                        )}
+
+                        {currentImageFile && (
+                            
+                            <div key={currentImageFile.path} style={{
                                 backgroundColor: '#ffffff',
                                 border: '1px solid #dee2e6',
                                 borderRadius: '12px',
                                 padding: '20px',
                                 boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                                transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                                maxWidth: '80vw',
+                                width: '100%'
                             }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.transform = 'translateY(-2px)';
@@ -1075,13 +865,13 @@ function FolderManagementUI() {
                                 }}>
                                     <h4 style={{
                                         margin: 0,
-                                        fontSize: '16px',
+                                        fontSize: '18px',
                                         fontWeight: 'bold',
                                         color: '#2c3e50',
                                         wordBreak: 'break-word',
                                         flex: 1
                                     }}>
-                                        {file.name || 'Unknown File'}
+                                        {currentImageFile.name || 'Unknown File'} ({index + 1}/{imageFiles.length})
                                     </h4>
                                     <span style={{
                                         backgroundColor: '#e9ecef',
@@ -1092,68 +882,81 @@ function FolderManagementUI() {
                                         color: '#495057',
                                         marginLeft: '10px'
                                     }}>
-                                        {file.extension || 'none'}
+                                        {currentImageFile.extension || 'none'}
                                     </span>
                                 </div>
-
-                                {/* Thumbnail - Much Larger */}
+                                
+                                {/* Navigation instructions */}
                                 <div style={{
                                     textAlign: 'center',
+                                    marginBottom: '15px',
+                                    fontSize: '14px',
+                                    color: '#666',
+                                    backgroundColor: '#f8f9fa',
+                                    padding: '10px',
+                                    borderRadius: '4px'
+                                }}>
+                                    <strong>Navigation:</strong> Left click to go forward | Right click to go backward
+                                </div>
+                                
+                                {/* Image Display with Click Events */}
+                                <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                                    <img 
+                                        src={currentImageFile.path} 
+                                        alt={currentImageFile.name}
+                                        onClick={handleImageClick}
+                                        onContextMenu={handleImageRightClick}
+                                        style={{ 
+                                            maxWidth: '100%', 
+                                            maxHeight: '70vh',
+                                            cursor: 'pointer',
+                                            borderRadius: '8px',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                        }} 
+                                    />
+                                </div>
+
+                                {/* Navigation Buttons */}
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    gap: '20px',
                                     marginBottom: '15px'
                                 }}>
-                                    {thumbnailLoadingState[file.id] ? (
-                                        <div style={{ 
-                                            width: '450px',
-                                            height: '270px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            backgroundColor: '#f1f3f5',
-                                            borderRadius: '8px',
-                                            border: '1px solid #dee2e6',
-                                            color: '#6c757d',
-                                            fontSize: '14px',
-                                            margin: '0 auto'
-                                        }}>
-                                            Loading...
-                                        </div>
-                                    ) : thumbnailList[file.id] ? (
-                                        <img
-                                            src={thumbnailList[file.id]}
-                                            alt="Thumbnail"
-                                            style={{ 
-                                                width: '450px',
-                                                height: '270px',
-                                                objectFit: 'cover',
-                                                borderRadius: '8px',
-                                                border: '1px solid #dee2e6',
-                                                cursor: 'pointer'
-                                            }}
-                                            onClick={() => {
-                                                if (fileJsonPath) {
-                                                    navigate(`/file/details/${file.id}`, { state: { jsonPath: fileJsonPath, file: file } });
-                                                } else {
-                                                    setError('JSON path is not available. Please reload the folder data.');
-                                                }
-                                            }}
-                                        />
-                                    ) : (
-                                        <div style={{ 
-                                            width: '450px',
-                                            height: '270px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            backgroundColor: '#f1f3f5',
-                                            borderRadius: '8px',
-                                            border: '1px solid #dee2e6',
-                                            color: '#6c757d',
-                                            fontSize: '14px',
-                                            margin: '0 auto'
-                                        }}>
-                                            No Thumbnail
-                                        </div>
-                                    )}
+                                    <button 
+                                        onClick={prev}
+                                        style={{
+                                            padding: '10px 20px',
+                                            fontSize: '16px',
+                                            backgroundColor: '#007bff',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '5px',
+                                            cursor: 'pointer',
+                                            transition: 'background-color 0.2s'
+                                        }}
+                                        onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
+                                        onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
+                                    >
+                                        ← Previous
+                                    </button>
+                                    <button 
+                                        onClick={next}
+                                        style={{
+                                            padding: '10px 20px',
+                                            fontSize: '16px',
+                                            backgroundColor: '#007bff',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '5px',
+                                            cursor: 'pointer',
+                                            transition: 'background-color 0.2s'
+                                        }}
+                                        onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
+                                        onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
+                                    >
+                                        Next →
+                                    </button>
                                 </div>
 
                                 {/* File Info */}
@@ -1165,12 +968,12 @@ function FolderManagementUI() {
                                         color: '#666',
                                         marginBottom: '8px'
                                     }}>
-                                        <strong>Size:</strong> {file.size === 0 ? '0 bytes' : 
-                                            file.size >= 1024 * 1024 * 1024 * 1024 ? `${(file.size / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB` :
-                                            file.size >= 1024 * 1024 * 1024 ? `${(file.size / (1024 * 1024 * 1024)).toFixed(2)} GB` :
-                                            file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` :
-                                            file.size >= 1024 ? `${(file.size / 1024).toFixed(2)} KB` :
-                                            `${file.size.toLocaleString()} bytes`}
+                                        <strong>Size:</strong> {currentImageFile.size === 0 ? '0 bytes' : 
+                                            currentImageFile.size >= 1024 * 1024 * 1024 * 1024 ? `${(currentImageFile.size / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB` :
+                                            currentImageFile.size >= 1024 * 1024 * 1024 ? `${(currentImageFile.size / (1024 * 1024 * 1024)).toFixed(2)} GB` :
+                                            currentImageFile.size >= 1024 * 1024 ? `${(currentImageFile.size / (1024 * 1024)).toFixed(2)} MB` :
+                                            currentImageFile.size >= 1024 ? `${(currentImageFile.size / 1024).toFixed(2)} KB` :
+                                            `${currentImageFile.size.toLocaleString()} bytes`}
                                     </div>
                                     <div style={{
                                         fontSize: '12px',
@@ -1180,7 +983,7 @@ function FolderManagementUI() {
                                         padding: '8px',
                                         borderRadius: '4px'
                                     }}>
-                                        <strong>Path:</strong> {file.path}
+                                        <strong>Path:</strong> {currentImageFile.path}
                                     </div>
 
                                     <div style={{
@@ -1192,9 +995,9 @@ function FolderManagementUI() {
                                         borderRadius: '4px'
                                     }}>
                                         <strong>Tags:</strong>
-                                        {file.tags.length === 0 ? ' None' : 
-                                            file.tags.map((tag, index) => (
-                                                <span key={index} style={{ 
+                                        {currentImageFile.tags && currentImageFile.tags.length === 0 ? ' None' : 
+                                            currentImageFile.tags && currentImageFile.tags.map((tag, tagIndex) => (
+                                                <span key={tagIndex} style={{ 
                                                     marginTop: '4px',
                                                     backgroundColor: '#90EE90',
                                                     padding: '4px 8px',
@@ -1227,29 +1030,6 @@ function FolderManagementUI() {
                                     alignItems: 'center',
                                     gap: '10px'
                                 }}>
-                                    <button
-                                        onClick={() => {
-                                            if (fileJsonPath) {
-                                                navigate(`/file/details/${file.id}`, { state: { jsonPath: fileJsonPath, file: file } });
-                                            } else {
-                                                setError('JSON path is not available. Please reload the folder data.');
-                                            }
-                                        }}
-                                        style={{ 
-                                            padding: "10px 16px", 
-                                            backgroundColor: '#007bff',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '6px',
-                                            cursor: 'pointer',
-                                            fontSize: '14px',
-                                            fontWeight: 'bold',
-                                            flex: 1
-                                        }}
-                                    >
-                                        View Details
-                                    </button>
-
                                     {/* Rename Check */}
                                     <div style={{
                                         display: 'flex',
@@ -1263,8 +1043,8 @@ function FolderManagementUI() {
                                         }}>
                                             <input 
                                                 type="checkbox" 
-                                                checked={checkedFiles[file.id] !== undefined}
-                                                onChange={(e) => handleCheck(file.id, e.target.checked)}
+                                                checked={checkedFiles[currentImageFile.id] !== undefined}
+                                                onChange={(e) => handleCheck(currentImageFile.id, e.target.checked)}
                                                 style={{ marginRight: '4px' }}
                                             />
                                             Rename
@@ -1273,12 +1053,12 @@ function FolderManagementUI() {
                                 </div>
 
                                 {/* Rename Input */}
-                                {checkedFiles[file.id] !== undefined && (
+                                {checkedFiles[currentImageFile.id] !== undefined && (
                                     <div style={{ marginTop: '15px' }}>
                                         <input
                                             type="text"
-                                            value={checkedFiles[file.id] || ''}
-                                            onChange={(e) => renameInputChange(file.id, e.target.value)}
+                                            value={checkedFiles[currentImageFile.id] || currentImageFile.name || ''}
+                                            onChange={(e) => renameInputChange(currentImageFile.id, e.target.value)}
                                             style={{ 
                                                 width: '100%',
                                                 padding: '8px 12px',
@@ -1287,57 +1067,28 @@ function FolderManagementUI() {
                                                 borderRadius: '4px',
                                                 backgroundColor: '#f8f9fa'
                                             }}
-                                            placeholder={file.name || ''}
+                                            placeholder={currentImageFile.name || ''}
                                         />
                                     </div>
                                 )}
                             </div>
-                        ))}
+                        )}
                     </div>
-                    <button 
-                        disabled={page === 1} 
-                        onClick={() => setPage(page - 1)}
-                        style={{
-                            padding: '8px 16px',
-                            backgroundColor: page === 1 ? '#e9ecef' : '#007bff',
-                            color: page === 1 ? '#6c757d' : 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: page === 1 ? 'not-allowed' : 'pointer',
-                            fontSize: '14px',
-                            fontWeight: 'bold'
-                        }}
-                    > 
-                        ← 前へ 
-                    </button>
 
-                    <span style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#f8f9fa',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        fontWeight: 'bold',
-                        color: '#495057'
-                    }}>
-                        {page} Page / {totalPages} Pages
-                    </span> 
-                    
-                    <button 
-                        disabled={page === totalPages} 
-                        onClick={() => setPage(page + 1)}
-                        style={{
-                            padding: '8px 16px',
-                            backgroundColor: page === totalPages ? '#e9ecef' : '#007bff',
-                            color: page === totalPages ? '#6c757d' : 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: page === totalPages ? 'not-allowed' : 'pointer',
-                            fontSize: '14px',
-                            fontWeight: 'bold'
-                        }}
-                    > 
-                        次へ → 
-                    </button>
+                    {/* Image navigation status */}
+                    {imageFiles && imageFiles.length > 0 && (
+                        <div style={{
+                            textAlign: 'center',
+                            marginTop: '20px',
+                            fontSize: '16px',
+                            color: '#495057',
+                            backgroundColor: '#f8f9fa',
+                            padding: '10px',
+                            borderRadius: '4px'
+                        }}>
+                            Viewing {index + 1} of {imageFiles.length} images
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -1357,23 +1108,9 @@ function FolderManagementUI() {
                 </button>
                 )
             }
-
             <br />
-            {/* Folder Graph */}
-            {folderGraphData && folderGraphData.graphUrl && (
-                <div className="text-center mt-4">
-                    <img
-                        src={folderGraphData.graphUrl}
-                        alt="Folder Graph"
-                        className="img-fluid border rounded shadow"
-                        style={{ maxWidth: '800px', marginBottom: '20px' }}
-                        onLoad={() => console.log('Graph image loaded successfully')}
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                </div>
-            )}
         </div>
     );
 }
 
-export default FolderManagementUI;
+export default PictureViewerPage;

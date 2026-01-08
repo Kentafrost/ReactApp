@@ -12,8 +12,10 @@ import GmailSummary from './js/private/GmailSummary';
 import LogViewer from './jsx/public/LogViewerUI';
 
 // folder management imports
-import FolderManagementUI from './jsx/public/FolderManagementUI';
-import FileDetailsPage from './jsx/public/FileDetailsPageUI';
+import ViewerHandling from './jsx/public/FileViewer/FileViewerHandling';
+import VideoCheckPage from './jsx/public/FileViewer/videoCheckUI';
+import VideoDetailsPage from './jsx/public/FileViewer/videoDetailsUI';
+import PictureViewerPage from './jsx/public/FileViewer/pictureCheckUI';
 
 
 function App() {
@@ -24,53 +26,54 @@ function App() {
     <Router>
       {/* Header */}
       <div style={{ textAlign: 'center' }}>
-        <header className="bg-info py-3 mb-4">
+        {/* <header className="bg-info py-3 mb-4">
           <div className="container">
             <h1 className="h3">My React App</h1>
           </div>
-        </header>
+        </header> */}
 
         {/* Navigation */}
-        <nav className="navbar navbar-expand-lg navbar-light bg-light mb-4">
-          <div className="container">
-            <h3 className="navbar-brand">Navigation</h3>
-            <div className="collapse navbar-collapse">
-              <ul className="navbar-nav me-auto">
-                
-                <li className="nav-item">
-                  <Link className="nav-link" to="/login">Login</Link>
-                </li>
+        <h4>
+          <nav className="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+            <div style={{ width: '100%', padding: '0 2rem' }}>
+              <div className="collapse navbar-collapse">
+                <ul className="navbar-nav me-auto" style={{ display: 'flex', gap: '1rem' }}>
+                  <li className="nav-item">
+                    <Link className="nav-link" to="/login">Login To Private Pages</Link>
+                  </li>
 
-                <li className="nav-item">
-                  <Link className="nav-link" to="/rakuten-items">Rakuten Items</Link>
-                </li>
+                  <li className="nav-item">
+                    <Link className="nav-link" to="/rakuten/items/search">Rakuten Items Search</Link>
+                  </li>
 
-                <li className="nav-item">
-                  <Link className="nav-link" to="/folder-management">Folder Management</Link>
-                </li>
-              </ul>
+                  <li className="nav-item">
+                    <Link className="nav-link" to="/file/handling">File Viewer</Link>
+                  </li>
+                </ul>
+              </div>
             </div>
-          </div>
-        </nav>
+          </nav>
+        </h4>
 
         {/* Content */}
-        <div className="container">
+        <div style={{ width: '100%', margin: 0, padding: 0 }}>
           <Routes>
             {/* Login */}
             <Route path="/login" element={<LoginToPrivate onLogin={() => setIsAuthenticated(true)} />} />
             
             {/* Public Route */}
-            <Route path="/rakuten-items" element={<RakutenItemUI />} />
+            <Route path="/rakuten/items/search" element={<RakutenItemUI />} />
             
-            {/* Folder Management Routes */}
-            <Route path="/folder-management" element={<FolderManagementUI />} />
-            <Route path="/file/details/:fileId" element={<FileDetailsPage />} />
-
+            {/* File Viewer Routes */}
+            <Route path="/file/handling" element={<ViewerHandling />} />
+            <Route path="/file/video/list" element={<VideoCheckPage />} />
+            <Route path="/file/video/details/:fileId" element={<VideoDetailsPage />} />
+            <Route path="/file/picture/list" element={<PictureViewerPage />} />
 
             {/* Private Routes */}
             <Route path="/private-ui/*" element={<Private />}>
-              <Route path="task-scheduler-switch" element={<TaskSwitch />} />
-              <Route path="task-scheduler-create" element={<TaskCreate />} />
+              <Route path="taskscheduler/switch" element={<TaskSwitch />} />
+              <Route path="taskscheduler/create" element={<TaskCreate />} />
               <Route path="gmail-summary" element={<GmailSummary />} />
             </Route>
           </Routes>

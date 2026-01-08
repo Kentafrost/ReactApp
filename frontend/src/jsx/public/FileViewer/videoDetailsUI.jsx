@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 
-function FileDetailsPage() {
+function VideoDetailsPage() {
     const { fileId } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
@@ -459,4 +459,4 @@ function FileDetailsPage() {
     );
 }
 
-export default FileDetailsPage;
+export default VideoDetailsPage;
