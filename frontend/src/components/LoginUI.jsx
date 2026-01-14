@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { loginToPrivate } from "../api/login";
+import { LoginRequestSchema } from "../schema/authSchema";
+import { LoginFortmValidation } from "../hooks/loginHooks";
 
 function LoginToPrivateComponent() {
 
-  const [UserName, setUserName] = useState("");
-  const [Password, setPassword] = useState("");
+  const [form, setForm] = useState(LoginRequestSchema);
   
   const [LoggedIn, setLoggedIn] = useState(false);
   const [ErrorMsg, setErrorMsg] = useState(null);
@@ -12,24 +14,19 @@ function LoginToPrivateComponent() {
 
   const handleLogin = async () => {
     try {
-      const res = await fetch("http://localhost:5000/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: UserName,
-          password: Password,
-        }),
-      });
-
-      if (UserName.trim() === "" || Password.trim() === "") {
-        throw new Error("Username and password cannot be empty");
+      const checkForm = LoginFortmValidation(form);
+      if (checkForm) {
+        setLoggedIn(false);
+        setErrorMsg(checkForm);
+        return;
       }
-      
-      const data = await res.json();
+
+      const data = await loginToPrivate(form.username, form.password);
       if (data.status !== "success") {
-        throw new Error(data.message || "Login failed");
+        setLoggedIn(false);
+        setErrorMsg(data.message || "Login failed. Please try again.");
+        return;
       }
-
       setLoggedIn(true);
       setErrorMsg(null);
 
@@ -67,14 +64,19 @@ function LoginToPrivateComponent() {
         maxWidth: '400px',
         width: '100%'
       }}>
-        <h4 style={{
+        <h3 style={{
           textAlign: 'center',
           marginBottom: '1.5rem',
           color: '#333',
           fontSize: '1.5rem',
           fontWeight: '600'
-        }}>Login</h4>
+        }}>Login</h3>
         
+        <h4> 
+          Please enter your credentials to access private pages.<p />
+          The length of User ID and Password should be between 4 to 20 characters.
+        </h4>
+
         <table style={{
           width: '100%',
           borderCollapse: 'separate',
@@ -106,8 +108,8 @@ function LoginToPrivateComponent() {
                 <input
                   type="text"
                   placeholder="Enter your username"
-                  value={UserName}
-                  onChange={(e) => setUserName(e.target.value)}
+                  value={form.username}
+                  onChange={(e) => setForm({ ...form, username: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -147,8 +149,8 @@ function LoginToPrivateComponent() {
                 <input
                   type="password"
                   placeholder="Enter your password"
-                  value={Password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -223,14 +225,3 @@ function LoginToPrivateComponent() {
 }
 
 export default LoginToPrivateComponent;
-
-// Wrapper component from scheme/Login.js
-function LoginToPrivate() {
-    return (
-        <div>
-            <LoginToPrivateComponent />
-        </div>
-    );
-}
-
-export { LoginToPrivate };

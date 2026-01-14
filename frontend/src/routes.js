@@ -2,14 +2,14 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
 // path imports
-import LoginToPrivate from './components/LoginUI';
-import RakutenItemUI from './components/public/RakutenItem';
+import { LoginToPrivate } from './components/LoginUI';
+import { RakutenItemUI } from './components/public/RakutenItemUI';
 
 // private imports
 import PrivatePage from './components/Private';
-import TaskCreate from './components/private/TaskCreate';
-import TaskSwitch from './components/private/TaskSwitch';
-import GmailSummary from './components/private/GmailSummary';
+import { TaskCreate } from './components/private/TaskCreateUI';
+import { TaskSwitch } from './components/private/TaskSwitchUI';
+import { GmailSummary } from './components/private/GmailSummaryUI';
 
 // folder management imports
 import ViewerHandling from './components/public/FolderManagement/FileViewerHandling';
@@ -55,9 +55,9 @@ export const routes = () => {
                 
                 {/* File Viewer Routes */}
                 <Route path="/file/handling" element={<ViewerHandling />} />
-                <Route path="/file/list/video" element={<VideoCheckPage />} />
+                <Route path="/file/video/list" element={<VideoCheckPage />} />
                 <Route path="/file/view/video/:fileId" element={<VideoDetailsPage />} />
-                <Route path="/file/list/picture" element={<PictureViewerPage />} />
+                <Route path="/file/picture/list" element={<PictureViewerPage />} />
 
                 {/* Login to Private Pages */}
                 <Route path="/auth/login" element={<LoginToPrivate />} />
