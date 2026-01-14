@@ -23,9 +23,9 @@ sys.path.append(grand_parent_dir)
 from script.folder_management.filename_convert import file_name_converter
 from script.folder_management.folder_listup import folder_listup, folder_graph_create
 
-fold_management_router = APIRouter()
+folder_management_router = APIRouter()
 
-@fold_management_router.get("/folder/json/check-existing")
+@folder_management_router.get("/folder/check/json")
 async def check_existing_json_file(folderPath: str):
     
     try:
@@ -50,7 +50,7 @@ async def check_existing_json_file(folderPath: str):
 """ 
 API endpoint to list up all folders and their contents 
 """
-@fold_management_router.get("/folder/listup")
+@folder_management_router.get("/folder/view/files")
 async def fold_list_endpoint(folderPath: str):
     print("Received folderPath:", folderPath)
     print("Type of folderPath:", type(folderPath))
@@ -102,8 +102,8 @@ async def fold_list_endpoint(folderPath: str):
 """
 API endpoint to create a graph to visualize folder data(numbers of files, sizes, etc.)
 """
-@fold_management_router.get("/folder/graph/create")
-async def fold_graph_create_endpoint(folderPath: str):
+@folder_management_router.get("/folder/create/graph")
+async def folder_graph_create_endpoint(folderPath: str):
     # loop all files in the folderPath and create a folder_file_list dictionary
     # folder A: 10
     files_dir = {}
@@ -133,7 +133,7 @@ async def fold_graph_create_endpoint(folderPath: str):
 """
 API endpoint to change file name in a folder(POST method)
 """
-@fold_management_router.post("/file/changename/single")
+@folder_management_router.post("/file/changename/single")
 async def file_rename_endpoint(request: FileRenameRequest):
     result = file_name_converter(request.oldPath, request.newPath)
     
@@ -143,7 +143,7 @@ async def file_rename_endpoint(request: FileRenameRequest):
         return {"status": "error", "message": result.get("message", "Unknown error")}
 
 
-@fold_management_router.post("/file/changename/several")
+@folder_management_router.post("/file/changename/several")
 async def file_rename_endpoint(request: BatchFileRenameRequest):
     
     with open(request.jsonPath, 'r', encoding='utf-8') as f:
@@ -200,7 +200,7 @@ async def file_rename_endpoint(request: BatchFileRenameRequest):
 """
 API endpoint to review files in a folder
 """
-@fold_management_router.get("/file/details")
+@folder_management_router.get("/file/view/details")
 async def get_file_details_endpoint(id: int, jsonPath: str, file: str = ""):
     try:
         with open(jsonPath, 'r', encoding='utf-8') as f:
@@ -218,7 +218,7 @@ async def get_file_details_endpoint(id: int, jsonPath: str, file: str = ""):
 """
 API endpoint to get existing thumbnail for a file from folder
 """
-@fold_management_router.get("/file/thumbnail/existing")
+@folder_management_router.get("/file/view/thumbnail/exists")
 async def get_existing_thumbnail_endpoint(id: str, jsonPath: str):
     """
     Try to get an existing thumbnail file from the folder before generating a new one.
@@ -290,32 +290,9 @@ async def get_existing_thumbnail_endpoint(id: str, jsonPath: str):
 
 
 """
-API endpoint to get thumbnail for a file
-"""
-@fold_management_router.get("/file/thumbnail")
-async def get_file_thumbnail_endpoint(id: int, jsonPath: str, relativePath: str = ""):
-    from script.folder_management.folder_listup import file_thumbnail_create
-
-    print(f"Requesting thumbnail for file ID: {id} from JSON: {jsonPath}")
-    result = file_thumbnail_create(id, jsonPath, relativePath)
-
-    if result.get("status") == "success":
-        thumbnail_path = result.get("thumbnail_path")
-        thumbnail_name = os.path.basename(thumbnail_path)
-
-        print(f"Looking for thumbnail at: {thumbnail_path}")
-
-        if not os.path.exists(thumbnail_path):
-            return {"error": "Thumbnail file does not exist. Please create the thumbnail first."}
-
-        return FileResponse(path=thumbnail_path, filename=thumbnail_name, media_type='image/png')
-    else:
-        return {"status": "error", "message": result.get("message", "Unknown error")}
-
-"""
 API endpoint to serve video files
 """
-@fold_management_router.get("/file/video")
+@folder_management_router.get("/file/view/video")
 async def serve_video_file(id: int, jsonPath: str):
     try:
         with open(jsonPath, 'r', encoding='utf-8') as f:
@@ -354,7 +331,7 @@ async def serve_video_file(id: int, jsonPath: str):
 """
 API endpoint to serve image files
 """
-@fold_management_router.get("/file/image")
+@folder_management_router.get("/file/view/image")
 async def serve_image_file(id: int, jsonPath: str):
     try:
         with open(jsonPath, 'r', encoding='utf-8') as f:
@@ -383,7 +360,6 @@ async def serve_image_file(id: int, jsonPath: str):
                     '.svg': 'image/svg+xml'
                 }
                 media_type = media_type_map.get(ext.lower(), 'image/png')
-                
                 return FileResponse(path=file_path, filename=file_name, media_type=media_type)
         
         return {"error": "File not found in the listed data"}
@@ -391,9 +367,32 @@ async def serve_image_file(id: int, jsonPath: str):
         return {"status": "error", "message": f"Error serving image file: {e}"}
 
 """
+API endpoint to get thumbnail for a file
+"""
+@folder_management_router.get("/file/create/thumbnail")
+async def get_file_thumbnail_endpoint(id: int, jsonPath: str, relativePath: str = ""):
+    from script.folder_management.folder_listup import file_thumbnail_create
+
+    print(f"Requesting thumbnail for file ID: {id} from JSON: {jsonPath}")
+    result = file_thumbnail_create(id, jsonPath, relativePath)
+
+    if result.get("status") == "success":
+        thumbnail_path = result.get("thumbnail_path")
+        thumbnail_name = os.path.basename(thumbnail_path)
+
+        print(f"Looking for thumbnail at: {thumbnail_path}")
+
+        if not os.path.exists(thumbnail_path):
+            return {"error": "Thumbnail file does not exist. Please create the thumbnail first."}
+
+        return FileResponse(path=thumbnail_path, filename=thumbnail_name, media_type='image/png')
+    else:
+        return {"status": "error", "message": result.get("message", "Unknown error")}
+
+"""
 API endpoint to serve thumbnail image files
 """
-@fold_management_router.get("/file/thumbnail")
+@folder_management_router.get("/file/view/thumbnail")
 async def serve_image_file(path: str):
     try:
         print(f"Serving thumbnail file: {path}")
@@ -404,7 +403,12 @@ async def serve_image_file(path: str):
     except Exception as e:
         return {"status": "error", "message": f"Error serving thumbnail file: {e}"}
 
-@fold_management_router.get("/files/all")
+
+"""
+API endpoint to get all files from a JSON file
+jsonPath: str
+"""
+@folder_management_router.get("/json/list/files")
 async def get_files_page(jsonPath: str):
     print(f"Fetching all files from {jsonPath}")
     
@@ -472,7 +476,11 @@ async def get_files_page(jsonPath: str):
             "message": error_msg
         }
 
-@fold_management_router.get("/files/relativePath")
+"""
+API endpoint to get all folders from a base path
+basePath: str (selected from frontend)
+"""
+@folder_management_router.get("/folder/get/relativePath")
 async def get_files_page(basePath: str):
     print(f"Fetching all folders from base path: {basePath}")
     folder_list = []

@@ -28,7 +28,7 @@ function VideoDetailsPage() {
 
             try {
                 // to display file details from json file
-                const res = await fetch(`http://localhost:5000/file/details?id=${fileId}&jsonPath=${encodeURIComponent(jsonPath)}`);
+                const res = await fetch(`http://localhost:5000/management/file/view/details?id=${fileId}&jsonPath=${encodeURIComponent(jsonPath)}`);
                 if (!res.ok) {
                     console.error(`Error: ${res.status} ${res.statusText}`);
                     setError(`Failed to fetch file details: ${res.status} ${res.statusText}`);
@@ -70,7 +70,7 @@ function VideoDetailsPage() {
             console.log("Renaming file in folder:", folderPath);
             console.log(`Renaming file from ${fileDetails.name} to ${afterfileName}`);
             
-            const res_changename = await fetch("http://localhost:5000/file/changename/single", {
+            const res_changename = await fetch("http://localhost:5000/management/file/changename/single", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -404,7 +404,7 @@ function VideoDetailsPage() {
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                             }}
                         >
-                            <source src={`http://localhost:5000/file/video?id=${fileDetails.id}&jsonPath=${encodeURIComponent(jsonPath)}`} type="video/mp4" />
+                            <source src={`http://localhost:5000/management/file/view/video?id=${fileDetails.id}&jsonPath=${encodeURIComponent(jsonPath)}`} type="video/mp4" />
                             Your browser does not support the video tag.
                         </video>
                     </div>
@@ -429,7 +429,7 @@ function VideoDetailsPage() {
                             Image Preview
                         </h3>
                         <img 
-                            src={`http://localhost:5000/file/image?id=${fileDetails.id}&jsonPath=${encodeURIComponent(jsonPath)}`}
+                            src={`http://localhost:5000/management/file/view/image?id=${fileDetails.id}&jsonPath=${encodeURIComponent(jsonPath)}`}
                             alt={fileDetails.name}
                             style={{
                                 maxWidth: '100%',

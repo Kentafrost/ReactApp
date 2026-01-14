@@ -217,7 +217,7 @@ function VideoCheckPage() {
 
             try {
                 const response = await fetch(
-                    `http://localhost:5000/file/thumbnail?id=${fileId}&jsonPath=${encodeURIComponent(jsonPath)}&relativePath=${relativePath}`,
+                    `http://localhost:5000/management/file/create/thumbnail?id=${fileId}&jsonPath=${encodeURIComponent(jsonPath)}&relativePath=${relativePath}`,
                     { cache: 'force-cache' }
                 );
                 
@@ -338,7 +338,7 @@ function VideoCheckPage() {
     useEffect(() => {
         if (basePath && basePath.trim() !== '') {
             console.log('Auto-fetching folders for basePath:', basePath);
-            fetch(`http://localhost:5000/files/relativePath?basePath=${encodeURIComponent(basePath)}`)
+            fetch(`http://localhost:5000/management/folder/get/relativePath?basePath=${encodeURIComponent(basePath)}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.status === "success") {
@@ -454,7 +454,7 @@ function VideoCheckPage() {
         };
 
         try {
-            const res_rename = await fetch("http://localhost:5000/file/changename/several", {
+            const res_rename = await fetch("http://localhost:5000/management/file/changename/several", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -492,7 +492,7 @@ function VideoCheckPage() {
     
     const checkExistingJsonFile = async (folderPath) => {
         const res_check = await fetch(
-            `http://localhost:5000/folder/json/check-existing?folderPath=${encodeURIComponent(folderPath)}`
+            `http://localhost:5000/management/folder/check/json?folderPath=${encodeURIComponent(folderPath)}`
         );
         if (!res_check.ok) {
             console.error('Error checking existing JSON file:', res_check.status, res_check.statusText);
@@ -507,7 +507,7 @@ function VideoCheckPage() {
         // Fetch folder graph data
         console.log("Fetching folder graph data...");
         const res = await fetch(
-            `http://localhost:5000/folder/graph/create?folderPath=${encodeURIComponent(folderPath)}`
+            `http://localhost:5000/management/folder/create/graph?folderPath=${encodeURIComponent(folderPath)}`
         );
         if (!res.ok) {
             console.log("Graph fetch failed:", res.status, res.statusText);
@@ -687,7 +687,7 @@ function VideoCheckPage() {
                         
                         try {
                             // Load existing data
-                            const response = await fetch(`http://localhost:5000/files/page?jsonPath=${encodeURIComponent(existingCheck.json_path)}&page=${page}&per_page=50`);
+                            const response = await fetch(`http://localhost:5000/management/json/list/files?jsonPath=${encodeURIComponent(existingCheck.json_path)}`);
                             if (response.ok) {
                                 const data = await response.json();
                                 if (data.status === 'success' && data.files) {
@@ -729,7 +729,7 @@ function VideoCheckPage() {
                 // Fetch folder list data
                 console.log("Fetching folder list data...");
                 const res_folder_list = await fetch(
-                    `http://localhost:5000/folder/listup?folderPath=${encodeURIComponent(folderPath)}`
+                    `http://localhost:5000/management/folder/view/files?folderPath=${encodeURIComponent(folderPath)}`
                 );                
                 
                 console.log("Folder list response status:", res_folder_list.status);
@@ -1170,7 +1170,7 @@ function VideoCheckPage() {
                                     fontSize: '14px',
                                     fontWeight: 'bold'
                                 }}>
-                                    ✅ {allFilesData.length} videos loaded successfully
+                                    ✅ Number of files in this folder: {allFilesData.length}
                                 </span>
                             </div>
                         )}
@@ -1621,12 +1621,17 @@ function VideoCheckPage() {
 
                                 {/* File Info */}
                                 <div style={{
-                                    marginBottom: '15px'
+                                    marginBottom: '15px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '8px'
                                 }}>
                                     <div style={{ 
-                                        fontSize: '14px',
-                                        color: '#666',
-                                        marginBottom: '8px'
+                                        fontSize: '12px',
+                                        color: '#888',
+                                        backgroundColor: '#f8f9fa',
+                                        padding: '8px',
+                                        borderRadius: '4px'
                                     }}>
                                         <strong>Size:</strong> {file.size === 0 ? '0 bytes' : 
                                             file.size >= 1024 * 1024 * 1024 * 1024 ? `${(file.size / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB` :
@@ -1641,15 +1646,52 @@ function VideoCheckPage() {
                                         wordBreak: 'break-word',
                                         backgroundColor: '#f8f9fa',
                                         padding: '8px',
-                                        borderRadius: '4px'
+                                        borderRadius: '4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px'
                                     }}>
-                                        <strong>Path:</strong> {file.path}
+                                        <span style={{ flex: '1', minWidth: '0' }}>
+                                            <strong>Path:</strong> {file.path}
+                                        </span>
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(file.path).then(() => {
+                                                    const button = document.activeElement;
+                                                    if (button) {
+                                                        const originalText = button.textContent;
+                                                        const originalColor = button.style.backgroundColor;
+                                                        button.textContent = '✓';
+                                                        button.style.backgroundColor = '#d4edda';
+                                                        setTimeout(() => {
+                                                            button.textContent = originalText;
+                                                            button.style.backgroundColor = originalColor;
+                                                        }, 1000);
+                                                    }
+                                                }).catch(() => {
+                                                    alert('Failed to copy path to clipboard');
+                                                });
+                                            }}
+                                            style={{
+                                                padding: '4px 8px',
+                                                fontSize: '10px',
+                                                backgroundColor: '#007bff',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '3px',
+                                                cursor: 'pointer',
+                                                flexShrink: '0',
+                                                whiteSpace: 'nowrap'
+                                            }}
+                                            title="Copy path to clipboard"
+                                        >
+                                            Copy
+                                        </button>
                                     </div>
 
                                     <div style={{
                                         fontSize: '12px',
                                         color: '#888',
-                                        marginTop: '8px',
                                         backgroundColor: '#f8f9fa',
                                         padding: '8px',
                                         borderRadius: '4px'

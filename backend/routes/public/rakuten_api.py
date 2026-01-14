@@ -18,7 +18,7 @@ rakuten_router = APIRouter()
 
 
 """ Rakuten items listup endpoint"""
-@rakuten_router.get("/rakuten/listup")
+@rakuten_router.get("/listup")
 async def rakuten_item_listup_endpoint(number_hits: int, page: int, max_page: int, keywords: str):
 
     keywords_list = keywords.split(",")
@@ -32,7 +32,7 @@ async def rakuten_item_listup_endpoint(number_hits: int, page: int, max_page: in
     # "CSV_DATA_NUM": total_csv_data_num
     # }
 
-    # Itemキーを展開して返す
+    # item keys extraction
     items = []
     csv_path_list = []
     csv_data_num_list = []
@@ -52,7 +52,7 @@ async def rakuten_item_listup_endpoint(number_hits: int, page: int, max_page: in
 
 
 """ Download rakuten items listup CSV """
-@rakuten_router.get("/rakuten/listup/csv/download")
+@rakuten_router.get("/listup/csv/download")
 async def rakuten_item_listup_csv_download_endpoint():
 
     # loop all files in results directory
@@ -74,7 +74,7 @@ class GraphRequest(BaseModel):
     range: Optional[list[int]] = None
 
 """ create rakuten item graph endpoint """
-@rakuten_router.post("/rakuten/graph/create")
+@rakuten_router.post("/graph/create")
 async def rakuten_item_graph_create_endpoint(request: GraphRequest):
 
     items = json.loads(request.json_data)
@@ -95,7 +95,7 @@ class FilterOptionsRequest(BaseModel):
     json_data: str
 
 """ filter options for rakuten item graph endpoint """
-@rakuten_router.post("/rakuten/graph/filter/options")
+@rakuten_router.post("/graph/filter/options")
 async def rakuten_item_graph_filter_options_endpoint(request: FilterOptionsRequest = None):
 
     items = json.loads(request.json_data) if request else []
@@ -107,7 +107,7 @@ async def rakuten_item_graph_filter_options_endpoint(request: FilterOptionsReque
 
 
 """ display rakuten item graph endpoint """
-@rakuten_router.get("/rakuten/graph/display")
+@rakuten_router.get("/graph/display")
 async def rakuten_item_graph_display_endpoint():
 
     # get all data from sqlite3 database and get keyword to create graph and API routes
@@ -117,3 +117,20 @@ async def rakuten_item_graph_display_endpoint():
         return {"error": "Graph file does not exist. Please create the graph first."}
 
     return FileResponse(path=graph_path, filename=os.path.basename(graph_path), media_type='image/png')
+
+class ThumbnailRequest(BaseModel):
+    itemNameList: list[str]
+    itemUrlList: list[str]
+
+@rakuten_router.post("/thumbnail")
+async def rakuten_thumbnail_endpoint(request: ThumbnailRequest):
+    from script.web_scraping.rakuten_filtering import get_thumbnail_from_url
+
+    print("Received itemNameList:", request.itemNameList)
+    print("Received itemUrlList:", request.itemUrlList)
+
+    try:
+        thumbnail_path_list = get_thumbnail_from_url(request.itemNameList, request.itemUrlList)
+        return {"status": "success", "thumbnails": thumbnail_path_list}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

@@ -14,7 +14,7 @@ current_dir = os.path.dirname(__file__)
 gmail_script_dir = os.path.join(current_dir, '..', '..', 'script', 'retrieve_gmail')
 
 # Gmail cost summary endpoint
-@gmail_router.get("/mail/listup/{script_name}")
+@gmail_router.get("/listup/{script_name}")
 async def credit_online_course_gmail_listup_endpoint(number_of_mails: int = 50, send_email_flg: bool = False, script_name: str = ""):
 
     try:
@@ -47,11 +47,11 @@ csv_path = os.path.join(gmail_script_dir, 'csv', 'card_cost.csv')
 graph_path = os.path.join(gmail_script_dir, 'png', 'card_cost_by_date.png')
 
 # Download cost summary CSV
-@gmail_router.get("/mail/listup/{script_name}/csv/download")
+@gmail_router.get("/listup/{script_name}/csv/download")
 async def cost_summary_csv_download_endpoint(script_name: str = ""):
     return FileResponse(path=csv_path, media_type='text/csv', filename=os.path.basename(csv_path))
 
 # Show cost summary graph
-@gmail_router.get("/mail/listup/{script_name}/graph/show")
+@gmail_router.get("/listup/{script_name}/graph/show")
 async def credit_online_course_gmail_graph_show_endpoint(script_name: str = ""):
     return FileResponse(path=graph_path, media_type='image/png', filename=os.path.basename(graph_path))

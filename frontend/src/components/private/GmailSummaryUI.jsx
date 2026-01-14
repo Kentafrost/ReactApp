@@ -40,7 +40,7 @@ function GmailSummaryComponent() {
 
         try {
             // Fetch api to get gmail summary
-            const res = await fetch(`http://localhost:5000/mail/listup/${selectedScript}?number_of_mails=${InputSearchMailNumber.current.value}&send_email_flg=${sendEmailFlg}`, {
+            const res = await fetch(`http://localhost:5000/gmail/listup/${selectedScript}?number_of_mails=${InputSearchMailNumber.current.value}&send_email_flg=${sendEmailFlg}`, {
                 method: "GET",
                 headers: {"Content-Type": "application/json"}
             });
@@ -58,12 +58,12 @@ function GmailSummaryComponent() {
             }
 
             // Fetch api to download csv
-            const res_download = await fetch(`http://localhost:5000/mail/listup/${selectedScript}/csv/download`);
+            const res_download = await fetch(`http://localhost:5000/gmail/listup/${selectedScript}/csv/download`);
             console.log("Download Response:", res_download);
             setDownloadLink(res_download.url);
 
             // Fetch api to show graph
-            const res_graph = await fetch(`http://localhost:5000/mail/listup/${selectedScript}/graph/show`);
+            const res_graph = await fetch(`http://localhost:5000/gmail/listup/${selectedScript}/graph/show`);
             console.log("Graph Response:", res_graph);
 
             const graphBlob = await res_graph.blob();
@@ -226,3 +226,20 @@ function GmailSummaryComponent() {
 }
 
 export {GmailSummaryComponent};
+
+// Wrapper component from scheme/private/GmailSummary.js
+function GmailSummary() {
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <header>
+      </header>
+
+      <div>
+        <GmailSummaryComponent />
+      </div>
+
+    </div>
+  );
+}
+
+export { GmailSummary };

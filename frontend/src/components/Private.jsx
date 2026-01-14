@@ -1,8 +1,7 @@
-import React from 'react';
 import { Link, Outlet } from "react-router-dom";
 
 
-function Private() {
+function PrivatePage() {
   return (
     <div>
       <h2> Access Granted! </h2>
@@ -13,15 +12,15 @@ function Private() {
           <div className="collapse navbar-collapse">
             <ul className="navbar-nav me-auto">
               <li className="nav-item">
-                <Link className="nav-link" to="/private-ui/task-scheduler-switch">Task Scheduler Switch</Link>
+                <Link className="nav-link" to="/private/task/switch">Task Scheduler Switch</Link>
               </li>
               
               <li className="nav-item">
-                <Link className="nav-link" to="/private-ui/task-scheduler-create">Task Scheduler Create</Link>
+                <Link className="nav-link" to="/private/task/create">Task Scheduler Create</Link>
               </li>
 
               <li className="nav-item">
-                <Link className="nav-link" to="/private-ui/gmail-summary">Gmail Summary</Link>
+                <Link className="nav-link" to="/private/gmail/summary">Gmail Summary</Link>
               </li>
             </ul>
           </div>
@@ -32,4 +31,4 @@ function Private() {
   );
 }
 
-export default Private;
+export default PrivatePage;

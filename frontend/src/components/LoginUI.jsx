@@ -7,12 +7,12 @@ function LoginToPrivateComponent() {
   const [Password, setPassword] = useState("");
   
   const [LoggedIn, setLoggedIn] = useState(false);
-  const [Error, setError] = useState(null);
+  const [ErrorMsg, setErrorMsg] = useState(null);
   const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
-      const res = await fetch("http://localhost:5000/login", {
+      const res = await fetch("http://localhost:5000/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -31,14 +31,14 @@ function LoginToPrivateComponent() {
       }
 
       setLoggedIn(true);
-      setError(null);
+      setErrorMsg(null);
 
       // Simulate redirecting to a private UI component
-      navigate("/private-ui");
+      navigate("/private");
 
     } catch (err) {
       setLoggedIn(false);
-      setError(err.message);
+      setErrorMsg(err.message);
     }
   };
 
@@ -203,7 +203,7 @@ function LoginToPrivateComponent() {
           </tbody>
         </table>
 
-        {Error && (
+        {ErrorMsg && (
           <div style={{
             marginTop: '1rem',
             padding: '0.75rem',
@@ -214,7 +214,7 @@ function LoginToPrivateComponent() {
             fontSize: '0.9rem',
             textAlign: 'center'
           }}>
-            {Error}
+            {ErrorMsg}
           </div>
         )}
       </div>
@@ -223,3 +223,14 @@ function LoginToPrivateComponent() {
 }
 
 export default LoginToPrivateComponent;
+
+// Wrapper component from scheme/Login.js
+function LoginToPrivate() {
+    return (
+        <div>
+            <LoginToPrivateComponent />
+        </div>
+    );
+}
+
+export { LoginToPrivate };

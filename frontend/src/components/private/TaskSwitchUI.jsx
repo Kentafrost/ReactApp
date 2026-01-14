@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 
 // fetch the task list from the backend and display them.(Already working)
@@ -8,7 +8,7 @@ function TaskListupComponent ( { onSelect } ) {
     useEffect(() => {
         const fetchSchedules = async () => {
             try {
-                const res = await fetch("http://localhost:5000/task-scheduler/list", {
+                const res = await fetch("http://localhost:5000/task/list", {
                     method: "GET",
                 });
                 const data = await res.json();
@@ -48,7 +48,7 @@ function TaskOnOff( { selectedTask } ) {
         if (!selectedTask) { return; }
 
         try {
-            const res = await fetch(`http://localhost:5000/task-scheduler/enable`, {
+            const res = await fetch(`http://localhost:5000/task/enable`, {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({ 
@@ -104,3 +104,27 @@ function TaskSchedulerApp() {
 }
 
 export { TaskSchedulerApp };
+
+// Wrapper component from scheme/private/TaskSwitch.js
+function TaskSwitch() {
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <header>
+        <p>
+          Edit <code>src/js/TaskSwitch.js</code> and save to reload.
+        </p>
+        <a href="https://reactjs.org" target="_blank" rel="noopener noreferrer">
+          Learn React
+        </a>
+      </header>
+
+      <div>
+        <h1> Task Scheduler Enable/Disable </h1>
+        <TaskSchedulerApp />
+      </div>
+
+    </div>
+  );
+}
+
+export { TaskSwitch };

@@ -109,7 +109,7 @@ function PictureViewerPage() {
             if (basePath) {
                 try {
                     console.log('Fetching folders for basePath:', basePath);
-                    const response = await fetch(`http://localhost:5000/files/relativePath?basePath=${encodeURIComponent(basePath)}`);
+                    const response = await fetch(`http://localhost:5000/management/folder/get/relativePath?basePath=${encodeURIComponent(basePath)}`);
                     
                     if (response.ok) {
                         const data = await response.json();
@@ -220,7 +220,7 @@ function PictureViewerPage() {
         };
 
         try {
-            const res_rename = await fetch("http://localhost:5000/file/changename/several", {
+            const res_rename = await fetch("http://localhost:5000/management/file/changename/several", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -252,7 +252,7 @@ function PictureViewerPage() {
     
     const checkExistingJsonFile = async (folderPath) => {
         const res_check = await fetch(
-            `http://localhost:5000/folder/json/check-existing?folderPath=${encodeURIComponent(folderPath)}`
+            `http://localhost:5000/management/folder/check/json?folderPath=${encodeURIComponent(folderPath)}`
         );
         if (!res_check.ok) {
             console.error('Error checking existing JSON file:', res_check.status, res_check.statusText);
@@ -395,7 +395,7 @@ function PictureViewerPage() {
                         
                         try {
                             // Load existing data - get all data instead of paginated
-                            const response = await fetch(`http://localhost:5000/files/all?jsonPath=${encodeURIComponent(existingCheck.json_path)}`);
+                            const response = await fetch(`http://localhost:5000/management/json/list/files?jsonPath=${encodeURIComponent(existingCheck.json_path)}`);
                             if (response.ok) {
                                 const data = await response.json();
                                 if (data.status === 'success' && data.files) {
@@ -433,7 +433,7 @@ function PictureViewerPage() {
                 // Fetch folder list data
                 console.log("Fetching folder list data...");
                 const res_folder_list = await fetch(
-                    `http://localhost:5000/folder/listup?folderPath=${encodeURIComponent(folderPath)}`
+                    `http://localhost:5000/management/folder/view/files?folderPath=${encodeURIComponent(folderPath)}`
                 );                
                 
                 console.log("Folder list response status:", res_folder_list.status);

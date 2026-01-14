@@ -23,16 +23,16 @@ def create_rakuten_item_graph(df: pd.DataFrame) -> str:
     # label ⇒ Shift-JIS
     font_path = r"C:\\Windows\\Fonts\\meiryo.ttc"
     
-    plt.xlabel("価格 (円)", fontproperties=matplotlib.font_manager.FontProperties(fname=font_path))
-    plt.ylabel("商品数", fontproperties=matplotlib.font_manager.FontProperties(fname=font_path))
-    plt.title("楽天市場 商品価格 vs 商品数", fontproperties=matplotlib.font_manager.FontProperties(fname=font_path))
+    plt.xlabel("Price (JPY)", fontproperties=matplotlib.font_manager.FontProperties(fname=font_path))
+    plt.ylabel("Number of Items", fontproperties=matplotlib.font_manager.FontProperties(fname=font_path))
+    plt.title("Rakuten Item Price vs Number of Items", fontproperties=matplotlib.font_manager.FontProperties(fname=font_path))
     plt.legend(prop=matplotlib.font_manager.FontProperties(fname=font_path))
 
     # Save the graph to a file
     results_dir = os.path.join(os.path.dirname(__file__), 'rakuten_item_graph')
     os.makedirs(results_dir, exist_ok=True)
 
-    graph_path = os.path.join(results_dir, 'rakuten_item_cost_graph.png')
+    graph_path = os.path.join(results_dir, 'rakuten_item_price_graph.png')
     print("Saving graph to:", graph_path)
 
     plt.savefig(graph_path)

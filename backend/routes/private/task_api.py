@@ -22,7 +22,7 @@ class Task(BaseModel):
     command: str | None = None
     file_path: str | None = None
 
-@task_router.get("/task-scheduler/list")
+@task_router.get("/list")
 async def task_list_endpoint():
 
     result = task_listup()
@@ -32,7 +32,7 @@ async def task_list_endpoint():
         return result
 
 
-@task_router.post("/task-scheduler/enable")
+@task_router.post("/enable")
 async def task_switch_endpoint(req: Task):
     print(f"Received task_name: {req.task_name}, check: {req.check}")
     
@@ -41,7 +41,7 @@ async def task_switch_endpoint(req: Task):
 
 
 # handle task scheduling requests
-@task_router.post("/task-scheduler/create")
+@task_router.post("/create")
 async def task_create_endpoint(req: Task):
     print(f"Received request: {req}")
 
@@ -53,7 +53,7 @@ async def task_create_endpoint(req: Task):
         return result
 
 
-@task_router.post("/task-scheduler/shutdown")
+@task_router.post("/shutdown")
 async def task_shutdown_endpoint(req: Task):
     
     print(f"Received request: {req}")

@@ -151,8 +151,8 @@ function SearchForm({
     );
 }
 
-// component to display rakuten items list
-function ItemsList({ items }) {
+// component to display rakuten items list, with thumbnails
+function ItemsList({ items, thumbnails }) {
     return (
         <div>
             <div className="text-center mb-4">
@@ -169,10 +169,11 @@ function ItemsList({ items }) {
                             <th scope="col" className="text-center">Item Name</th>
                             <th scope="col" className="text-center">Price</th>
                             <th scope="col" className="text-center">URL</th>
+                            <th scope="col" className="text-center">Thumbnail</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {items.map((item, index) => (
+                        {(items, thumbnails).map(([item, thumbnail], index) => (
                             <tr key={index}>
                                 <td className="text-center align-middle">
                                     <span className="badge bg-primary">{index + 1}</span>
@@ -192,6 +193,13 @@ function ItemsList({ items }) {
                                     >
                                         View Item
                                     </a>
+                                </td>
+                                <td>
+                                    <img
+                                        src={thumbnail}
+                                        alt={item.itemName}
+                                        style={{ maxWidth: '100px', height: 'auto', border: '1px solid #ccc' }}
+                                    />
                                 </td>
                             </tr>
                         ))}
@@ -219,6 +227,31 @@ function GraphDisplay({ graphImagePath }) {
             />
         </div>
     );
+}
+
+const fetchThumbnails = async (itemNameList, itemUrlList) => {
+    const res = await fetch("http://localhost:5000/rakuten/thumbnail", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            itemNameList: itemNameList,
+            itemUrlList: itemUrlList
+        })
+    });
+    console.log("Thumbnail API Response:", res);
+
+    if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+    }
+
+    const resJson = await res.json();
+    const thumbnails = resJson.thumbnails;
+    console.log("Thumbnails received:", thumbnails);
+
+    return thumbnails;
 }
 
 
@@ -326,8 +359,9 @@ function RakutenItemUIComponent ( { onSelect } ) {
     // graph filter fields
     const [shopName, setShopName] = useState("");
     const [shopsNames, setShopsNames] = useState([]);
-    const [range, setRange] = useState([0, 100000]);
+    const [ThumbnailList, setThumbnailList] = useState([]);
 
+    const [range, setRange] = useState([0, 100000]);
 
     // custom hook for fetching rakuten items
     const handleItemsFetch = async () => {
@@ -365,8 +399,18 @@ function RakutenItemUIComponent ( { onSelect } ) {
 
                     const shopsNames = Object.values(FilterOptionsJson.shop_names || {});
                     console.log("Available Shops:", shopsNames);
-
                     setShopsNames(shopsNames);
+
+                    // fetch thumbnails with itemNames, item URLs
+                    const itemNameList = json.results.map(item => item.itemName);
+                    const itemUrlList = json.results.map(item => item.itemUrl);
+                                        
+                    console.log("Item Name List:", itemNameList);
+                    console.log("Item URL List:", itemUrlList);
+
+                    const thumbnails = await fetchThumbnails(itemNameList, itemUrlList);
+                    console.log("Thumbnail List:", thumbnails);
+                    setThumbnailList(thumbnails);
                     
                     const graphUrl = URL.createObjectURL(graphBlob);
                     setGraphImagePath(graphUrl);
@@ -496,7 +540,7 @@ function RakutenItemUIComponent ( { onSelect } ) {
 
             {hasListed && (
                 <>
-                    <ItemsList items={items} />
+                    <ItemsList items={items} ThumbnailList={ThumbnailList} />
                     
                     <FilterOptions
                         range = {range} setRange={setRange}
@@ -513,3 +557,26 @@ function RakutenItemUIComponent ( { onSelect } ) {
 
 
 export default RakutenItemUIComponent;
+
+// Wrapper component from scheme/public/RakutenItem.js
+function RakutenItemUI() {
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <header style={{ 
+        backgroundColor: "#f8f8f8", 
+        padding: "10px", 
+        borderBottom: "1px solid #ddd" 
+      }}>
+        <h1 style={{ margin: 0 }}>Rakuten Item Finder</h1>
+
+      </header>
+
+      <div>
+        <RakutenItemUIComponent />
+      </div>
+
+    </div>
+  );
+}
+
+export { RakutenItemUI };

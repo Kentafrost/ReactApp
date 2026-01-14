@@ -48,7 +48,7 @@ function TaskCreateComponent() {
             payload.command = command;
         }
 
-        const res = await fetch("http://localhost:5000/task-scheduler/create", {
+        const res = await fetch("http://localhost:5000/task/create", {
             method: "POST",
             body: JSON.stringify(payload),
             headers: {
@@ -123,3 +123,26 @@ function TaskCreateComponent() {
 }
 
 export default TaskCreateComponent;
+
+// Wrapper component from scheme/private/TaskCreate.js
+function TaskCreate() {
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <header>
+        <p>
+          Edit <code>src/js/TaskCreate.js</code> and save to reload.
+        </p>
+        <a href="https://reactjs.org" target="_blank" rel="noopener noreferrer">
+          Learn React
+        </a>
+      </header>
+
+      <div>
+        <h1> Task Scheduler Create New Task </h1>
+        <TaskCreateComponent />
+      </div>
+    </div>
+  );
+}
+
+export { TaskCreate };

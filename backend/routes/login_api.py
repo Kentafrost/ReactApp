@@ -17,6 +17,7 @@ class LoginRequest(BaseModel):
 # API endpoint for login
 @login_router.post("/login")
 async def db_login_endpoint(login_request: LoginRequest):
+    print("Initializing database...")
     initialize_db()
 
     print(f"Received login request for user: {login_request.username}")

@@ -8,7 +8,8 @@ from login_api import login_router
 from private.task_api import task_router
 from private.gmail_api import gmail_router
 from public.rakuten_api import rakuten_router
-from public.fold_management_api import fold_management_router
+from public.folder_management_api import folder_management_router
+from backend.routes.public.log_api import log_router
 
 app = FastAPI()
 
@@ -26,13 +27,9 @@ app.add_middleware(
 async def root():
     return {"message": "API is running"}
 
-# Add OPTIONS handler for preflight requests
-@app.options("/{path:path}")
-async def options_handler(path: str):
-    return {"message": "OK"}
-
-app.include_router(login_router)
-app.include_router(task_router)
-app.include_router(gmail_router)
-app.include_router(rakuten_router)
-app.include_router(fold_management_router)
+app.include_router(login_router, prefix="/auth")
+app.include_router(task_router, prefix="/task")
+app.include_router(gmail_router, prefix="/gmail")
+app.include_router(rakuten_router, prefix="/rakuten")
+app.include_router(folder_management_router, prefix="/management")
+app.include_router(log_router, prefix="/log")
