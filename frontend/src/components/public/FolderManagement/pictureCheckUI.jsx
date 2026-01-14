@@ -1,5 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { 
+    GetRelativePath, 
+    ChangeNameSeveral, 
+    CheckExistingJson, 
+    ListJsonData, 
+    ViewFiles 
+} from '../../../api/public/FolderManagementApi';
 
 function PictureViewerPage() {
     const navigate = useNavigate();
@@ -103,24 +110,19 @@ function PictureViewerPage() {
         setRelativePath(selectedFolder);
     };
     
-    // Auto-fetch folders when basePath changes
+    /* 
+    Auto-fetch folders to display relative paths in selective dropdown when basePath changes
+    */
     useEffect(() => {
         const fetchFolders = async () => {
             if (basePath) {
                 try {
                     console.log('Fetching folders for basePath:', basePath);
-                    const response = await fetch(`http://localhost:5000/management/folder/get/relativePath?basePath=${encodeURIComponent(basePath)}`);
+                    const data = await GetRelativePath(basePath);
                     
-                    if (response.ok) {
-                        const data = await response.json();
-                        console.log('Received folder data:', data);
-                        if (data.folders && Array.isArray(data.folders)) {
-                            setAllDirs(data.folders);
-                        } else {
-                            setAllDirs([]);
-                        }
+                    if (data.folders && Array.isArray(data.folders)) {
+                        setAllDirs(data.folders);
                     } else {
-                        console.error('Failed to fetch folders');
                         setAllDirs([]);
                     }
                 } catch (error) {
@@ -220,22 +222,8 @@ function PictureViewerPage() {
         };
 
         try {
-            const res_rename = await fetch("http://localhost:5000/management/file/changename/several", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(requestData),
-            });
-            
-            if (!res_rename.ok) {
-                const errorText = await res_rename.text();
-                console.error("Server error response:", errorText);
-                setError(`Server error (${res_rename.status}): ${errorText}`);
-                return;
-            }
-            
-            const renameResults = await res_rename.json();
+            // Call API to rename several files
+            const renameResults = await ChangeNameSeveral(requestData);
             console.log("Rename results:", renameResults);
             
             if (renameResults.status === "success") {
@@ -250,14 +238,9 @@ function PictureViewerPage() {
         }
     };
     
+    // read existing JSON file to check
     const checkExistingJsonFile = async (folderPath) => {
-        const res_check = await fetch(
-            `http://localhost:5000/management/folder/check/json?folderPath=${encodeURIComponent(folderPath)}`
-        );
-        if (!res_check.ok) {
-            console.error('Error checking existing JSON file:', res_check.status, res_check.statusText);
-        }
-        const data_check = await res_check.json();
+        const data_check = await CheckExistingJson(folderPath);
         console.log('Existing JSON file check result:', data_check);            
         return data_check; // { exists: bool, json_path: string|null, source: 'server'|'local'|null }
     };
@@ -394,28 +377,25 @@ function PictureViewerPage() {
                         console.log(`Existing JSON file found (${existingCheck.source}):`, existingCheck.json_path);
                         
                         try {
-                            // Load existing data - get all data instead of paginated
-                            const response = await fetch(`http://localhost:5000/management/json/list/files?jsonPath=${encodeURIComponent(existingCheck.json_path)}`);
-                            if (response.ok) {
-                                const data = await response.json();
-                                if (data.status === 'success' && data.files) {
-                                    setFileJsonPath(existingCheck.json_path);
-                                    setFolderData(data.files);
-                                    setError(null);
-                                    setIsLoading(false);
-                                    
-                                    // Update cache if data came from server
-                                    if (existingCheck.source === 'server') {
-                                        setJsonFileCache(prev => ({
-                                            ...prev,
-                                            [folderPath]: existingCheck.json_path
-                                        }));
-                                    }
-                                    tagsListup(); // Update tag list
-
-                                    console.log(`Loaded ${data.files.length} files from existing JSON (${existingCheck.source})`);
-                                    return; // Exit early, don't create new JSON
+                            // Load existing data in a JSON file - get all data without pagination
+                            const data = await ListJsonData(existingCheck);
+                            if (data.status === 'success' && data.files) {
+                                setFileJsonPath(existingCheck.json_path);
+                                setFolderData(data.files);
+                                setError(null);
+                                setIsLoading(false);
+                                
+                                // Update cache if data came from server
+                                if (existingCheck.source === 'server') {
+                                    setJsonFileCache(prev => ({
+                                        ...prev,
+                                        [folderPath]: existingCheck.json_path
+                                    }));
                                 }
+                                tagsListup(); // Update tag list
+
+                                console.log(`Loaded ${data.files.length} files from existing JSON (${existingCheck.source})`);
+                                return; // Exit early, don't create new JSON
                             }
                         } catch (error) {
                             console.warn('Failed to load existing data, will create new:', error);
@@ -432,9 +412,7 @@ function PictureViewerPage() {
 
                 // Fetch folder list data
                 console.log("Fetching folder list data...");
-                const res_folder_list = await fetch(
-                    `http://localhost:5000/management/folder/view/files?folderPath=${encodeURIComponent(folderPath)}`
-                );                
+                const res_folder_list = await ViewFiles(folderPath);
                 
                 console.log("Folder list response status:", res_folder_list.status);
                 console.log("Folder list response headers:", res_folder_list.headers);
