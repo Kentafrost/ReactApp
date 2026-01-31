@@ -53,9 +53,63 @@ function VideoCheckPage() {
         }
     });
 
+    // Restore thumbnails from cache on component mount
+    useEffect(() => {
+        const restoreThumbnailsFromCache = () => {
+            const cacheKeys = Object.keys(thumbnailCache);
+            if (cacheKeys.length > 0) {
+                console.log(`Restoring ${cacheKeys.length} thumbnails from cache`);
+                const restoredThumbnails = {};
+                
+                cacheKeys.forEach(fileId => {
+                    try {
+                        const base64Data = thumbnailCache[fileId];
+                        if (base64Data) {
+                            const byteCharacters = atob(base64Data);
+                            const byteNumbers = new Array(byteCharacters.length);
+                            for (let i = 0; i < byteCharacters.length; i++) {
+                                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                            }
+                            const byteArray = new Uint8Array(byteNumbers);
+                            const blob = new Blob([byteArray], { type: 'image/jpeg' });
+                            const blobUrl = URL.createObjectURL(blob);
+                            restoredThumbnails[fileId] = blobUrl;
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to restore cached thumbnail for ${fileId}:`, error);
+                        // Remove invalid cache entry
+                        setThumbnailCache(prev => {
+                            const updated = { ...prev };
+                            delete updated[fileId];
+                            return updated;
+                        });
+                    }
+                });
+                
+                if (Object.keys(restoredThumbnails).length > 0) {
+                    setThumbnailList(restoredThumbnails);
+                    console.log(`Successfully restored ${Object.keys(restoredThumbnails).length} thumbnails`);
+                }
+            }
+        };
+        
+        // Restore thumbnails on mount if cache exists
+        restoreThumbnailsFromCache();
+        
+        // Debug log current state
+        console.log('Component mounted - Current state:', {
+            thumbnailCacheKeys: Object.keys(thumbnailCache),
+            thumbnailListKeys: Object.keys(thumbnailList)
+        });
+    }, [thumbnailCache]); // Run when thumbnailCache is initialized
+
     const [useExistingData, setUseExistingData] = useState(true); // Control whether to use existing JSON files
     const [jsonFileCache, setJsonFileCache] = useState({}); // Cache for existing JSON file paths
     const [shouldLoadThumbnails, setShouldLoadThumbnails] = useState(false); // Control thumbnail loading independently
+
+    // Pagination states
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
     // Error state
     const [error, setError] = useState(null);
@@ -110,6 +164,15 @@ function VideoCheckPage() {
         }
     }, [fileJsonPath]);
 
+    // Debug useEffect to monitor thumbnailList changes
+    useEffect(() => {
+        console.log(`🔍 thumbnailList updated:`, {
+            count: Object.keys(thumbnailList).length,
+            keys: Object.keys(thumbnailList),
+            entries: Object.entries(thumbnailList).map(([key, value]) => ({ key, hasUrl: !!value }))
+        });
+    }, [thumbnailList]);
+
     // Save thumbnail cache to localStorage with size management
     useEffect(() => {
         try {
@@ -161,72 +224,65 @@ function VideoCheckPage() {
             return;
         }
 
-        console.log(`Loading thumbnails for ${files.length} files (Page ${page || 'unknown'}) using JSON: ${jsonPath}`);
+        console.log(`🖼️  Loading thumbnails for ${files?.length || 0} files (Page ${page || 'unknown'}) using JSON: ${jsonPath}`);
+        console.log(`Current thumbnailList has ${Object.keys(thumbnailList).length} entries`);
+        console.log(`Current thumbnailCache has ${Object.keys(thumbnailCache).length} entries`);
         
         const fileIds = files.map(file => file.id);
         
         const initialLoadingState = {};
+        const filesToLoad = [];
+        
         fileIds.forEach(fileId => {
-            // Check if we have cached Base64 data
-            if (thumbnailCache[fileId]) {
-                // Convert Base64 back to blob URL for display
-                try {
-                    const byteCharacters = atob(thumbnailCache[fileId]);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) {
-                        byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    }
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], { type: 'image/jpeg' });
-                    const blobUrl = URL.createObjectURL(blob);
-                    setThumbnailList(prev => ({ ...prev, [fileId]: blobUrl }));
-                    return;
-                } catch (error) {
-                    console.warn(`Failed to restore cached thumbnail for ${fileId}:`, error);
-                    // Remove invalid cache entry
-                    setThumbnailCache(prev => {
-                        const updated = { ...prev };
-                        delete updated[fileId];
-                        return updated;
-                    });
-                }
+            // Check if thumbnail is already loaded or cached
+            if (thumbnailList[fileId] || thumbnailCache[fileId]) {
+                // Already loaded or cached, no need to load
+                initialLoadingState[fileId] = false;
+                console.log(`📋 File ${fileId}: already available (${thumbnailList[fileId] ? 'loaded' : 'cached'})`);
+            } else {
+                // Need to load
+                initialLoadingState[fileId] = true;
+                filesToLoad.push(fileId);
+                console.log(`🔄 File ${fileId}: needs loading`);
             }
-            initialLoadingState[fileId] = true;
         });
+        
         setThumbnailLoadingState(initialLoadingState);
+        
+        console.log(`📊 Loading ${filesToLoad?.length || 0} new thumbnails, ${fileIds.length - filesToLoad.length} already available`);
 
-        const loadThumbnail = async (fileId) => {
-            // Check cached Base64 data first
-            if (thumbnailCache[fileId]) {
-                try {
-                    const byteCharacters = atob(thumbnailCache[fileId]);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) {
-                        byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    }
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], { type: 'image/jpeg' });
-                    const blobUrl = URL.createObjectURL(blob);
-                    setThumbnailList(prev => ({ ...prev, [fileId]: blobUrl }));
-                    setThumbnailLoadingState(prev => ({ ...prev, [fileId]: false }));
-                    return;
-                } catch (error) {
-                    console.warn(`Failed to use cached thumbnail for ${fileId}:`, error);
-                }
-            }
-
+        const loadThumbnail = async (fileId, retryCount = 0) => {
+            const maxRetries = 3;
+            const baseDelay = 1000; // 1 second base delay
+            
+            console.log(`🔍 Starting thumbnail load for file ${fileId} (attempt ${retryCount + 1}/${maxRetries + 1})`);
+            
             try {
-                const response = await fetch(
-                    `http://localhost:5000/management/file/create/thumbnail?id=${fileId}&jsonPath=${encodeURIComponent(jsonPath)}&relativePath=${relativePath}`,
-                    { cache: 'force-cache' }
-                );
+                const url = `http://localhost:5000/management/file/create/thumbnail?id=${fileId}&jsonPath=${encodeURIComponent(jsonPath)}&relativePath=${relativePath}`;
+                console.log(`📡 Fetching from: ${url}`);
+                
+                const response = await fetch(url, { 
+                    cache: 'no-cache',  // Changed to no-cache for retry attempts
+                    signal: AbortSignal.timeout(10000) // 10 second timeout
+                });
+                console.log(`📨 Response for file ${fileId}:`, { status: response.status, ok: response.ok });
                 
                 if (response.ok) {
                     const thumbnail_blob = await response.blob();
                     if (thumbnail_blob && thumbnail_blob.size > 0) {
                         const thumbnail_url = URL.createObjectURL(thumbnail_blob);
-                        setThumbnailList(prev => ({ ...prev, [fileId]: thumbnail_url }));
-                        
+                        setThumbnailList(prev => {
+                            const updated = { ...prev, [fileId]: thumbnail_url };
+                            console.log(`🎯 Updated thumbnailList for file ${fileId}:`, {
+                                fileId,
+                                url: thumbnail_url,
+                                totalThumbnails: Object.keys(updated).length,
+                                allKeys: Object.keys(updated),
+                                attempt: retryCount + 1
+                            });
+                            return updated;
+                        });
+                        console.log(`Fetched and cached thumbnail for file ${fileId}`);
                         // Convert blob to compressed Base64 for caching
                         const reader = new FileReader();
                         reader.onloadend = () => {
@@ -275,44 +331,127 @@ function VideoCheckPage() {
                         };
                         reader.readAsDataURL(thumbnail_blob);
                         
-                        console.log(`Thumbnail loaded and cached for file ${fileId}`);
+                        console.log(`✅ Thumbnail loaded and cached for file ${fileId} on attempt ${retryCount + 1}`);
+                        return; // Success, exit the function
+                    } else {
+                        console.warn(`⚠️  Empty thumbnail blob for file ${fileId} on attempt ${retryCount + 1}`);
+                        // Treat empty blob as retriable error
+                        throw new Error('Empty thumbnail blob');
                     }
-                } else if (response.status !== 404) {
-                    console.error(`Thumbnail error for ${fileId}:`, response.status);
+                } else if (response.status === 404) {
+                    console.warn(`❌ Thumbnail not found for file ${fileId} (404) - not retrying`);
+                    return; // Don't retry on 404
+                } else {
+                    console.error(`❌ Thumbnail error for file ${fileId}: HTTP ${response.status} on attempt ${retryCount + 1}`);
+                    // Treat HTTP errors as retriable
+                    throw new Error(`HTTP ${response.status}`);
                 }
             } catch (error) {
-                console.error(`Failed to load thumbnail for file ${fileId}:`, error);
+                const shouldRetry = retryCount < maxRetries && 
+                    (error.name === 'TimeoutError' || 
+                     error.name === 'TypeError' || 
+                     error.message.includes('HTTP') ||
+                     error.message.includes('Empty thumbnail blob') ||
+                     error.message.includes('fetch'));
+                
+                console.error(`💥 Failed to load thumbnail for file ${fileId} (attempt ${retryCount + 1}):`, error.message);
+                
+                if (shouldRetry) {
+                    const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
+                    console.log(`🔄 Retrying file ${fileId} in ${delay}ms (attempt ${retryCount + 2}/${maxRetries + 1})`);
+                    
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return loadThumbnail(fileId, retryCount + 1); // Recursive retry
+                } else {
+                    console.error(`🚫 Max retries reached for file ${fileId}, giving up`);
+                }
             } finally {
-                setThumbnailLoadingState(prev => ({ ...prev, [fileId]: false }));
+                // Only set loading to false on final attempt (success or max retries reached)
+                if (retryCount >= maxRetries || arguments[1] === undefined) {
+                    console.log(`🏁 Finished loading attempts for file ${fileId}`);
+                    setThumbnailLoadingState(prev => ({ ...prev, [fileId]: false }));
+                }
             }
         };
 
+        // Load thumbnails in batches with retry support
         const chunkSize = 3;
-        const filesToLoad = fileIds.filter(fileId => !thumbnailCache[fileId]);
         
-        console.log(`Loading ${filesToLoad.length} new thumbnails (${fileIds.length - filesToLoad.length} from cache)`);
+        console.log(`📦 Processing ${filesToLoad?.length || 0} thumbnails in batches, ${fileIds.length - filesToLoad.length} already available`);
         
-        for (let i = 0; i < filesToLoad.length; i += chunkSize) {
+        for (let i = 0; i < (filesToLoad?.length || 0); i += chunkSize) {
             const chunk = filesToLoad.slice(i, i + chunkSize);
+            console.log(`🚀 Loading batch ${Math.floor(i/chunkSize) + 1}: files ${chunk.join(', ')}`);
+            
             await Promise.allSettled(chunk.map(fileId => loadThumbnail(fileId)));
             
-            if (i + chunkSize < filesToLoad.length) {
-                await new Promise(resolve => setTimeout(resolve, 200));
+            if (i + chunkSize < (filesToLoad?.length || 0)) {
+                await new Promise(resolve => setTimeout(resolve, 300)); // Slightly longer pause between batches
             }
         }
         
-        console.log(`Thumbnail loading completed`);
+        console.log(`🎊 Thumbnail loading process completed for all files`);
     };
 
-    // useEffect for thumbnail loading
+    // useEffect for thumbnail loading and restoration
     useEffect(() => {
+        // Always try to load thumbnails when folderData changes
+        if (folderData && folderData.length > 0 && fileJsonPath) {
+            console.log(`Auto-triggering thumbnail loading for ${folderData.length} files on page ${page}`);
+            loadThumbnailsForFiles(folderData, fileJsonPath);
+        }
+        
+        // Also handle explicit shouldLoadThumbnails trigger
         if (shouldLoadThumbnails && folderData && fileJsonPath) {
-            console.log(`Triggering thumbnail loading for ${folderData.length} files on page ${page}`);
+            console.log(`Manual trigger: loading thumbnails for ${folderData?.length || 0} files on page ${page}`);
             loadThumbnailsForFiles(folderData, fileJsonPath);
             setShouldLoadThumbnails(false);
         }
+        
+        // Also restore cached thumbnails for current folderData
+        if (folderData && folderData.length > 0) {
+            const currentFileIds = folderData.map(file => file.id);
+            const restoredThumbnails = {};
+            let hasRestoredAny = false;
+            
+            currentFileIds.forEach(fileId => {
+                // Only restore if not already in thumbnailList and exists in cache
+                if (!thumbnailList[fileId] && thumbnailCache[fileId]) {
+                    try {
+                        const base64Data = thumbnailCache[fileId];
+                        if (base64Data) {
+                            const byteCharacters = atob(base64Data);
+                            const byteNumbers = new Array(byteCharacters.length);
+                            for (let i = 0; i < byteCharacters.length; i++) {
+                                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                            }
+                            const byteArray = new Uint8Array(byteNumbers);
+                            const blob = new Blob([byteArray], { type: 'image/jpeg' });
+                            const blobUrl = URL.createObjectURL(blob);
+                            restoredThumbnails[fileId] = blobUrl;
+                            hasRestoredAny = true;
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to restore cached thumbnail for ${fileId}:`, error);
+                    }
+                }
+            });
+            
+            if (hasRestoredAny) {
+                setThumbnailList(prev => {
+                    const updated = { ...prev, ...restoredThumbnails };
+                    console.log(`🎯 Restored thumbnails from cache:`, {
+                        restoredCount: Object.keys(restoredThumbnails).length,
+                        restoredIds: Object.keys(restoredThumbnails),
+                        totalThumbnails: Object.keys(updated).length
+                    });
+                    return updated;
+                });
+                console.log(`Restored ${Object.keys(restoredThumbnails).length} cached thumbnails for current page`);
+            }
+        }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [shouldLoadThumbnails, folderData, fileJsonPath]);
+    }, [folderData, fileJsonPath, page, shouldLoadThumbnails]);
 
 
 
@@ -323,7 +462,7 @@ function VideoCheckPage() {
 
     // Save allDirs to localStorage when it changes
     useEffect(() => {
-        if (allDirs && allDirs.length > 0) {
+        if (allDirs && (allDirs?.length || 0) > 0) {
             localStorage.setItem('folderManagement_allDirs', JSON.stringify(allDirs));
         }
     }, [allDirs]);
@@ -369,17 +508,16 @@ function VideoCheckPage() {
         } 
     }, [basePath, relativePath]);
 
-    // Pagination states
-    const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-
     // Rename check state
     const [checkedFiles, setCheckedFiles] = useState({});
 
     useEffect(() => {
         // Only process pagination if we have all files data
-        if (!allFilesData || !Array.isArray(allFilesData)) {
+        if (!allFilesData || !Array.isArray(allFilesData) || allFilesData.length === 0) {
             console.warn('No allFilesData available for pagination');
+            // Set empty folder data instead of returning early
+            setFolderData([]);
+            setTotalPages(1);
             return;
         }
 
@@ -490,9 +628,9 @@ function VideoCheckPage() {
         }
     };
     
-    const checkExistingJsonFile = async (folderPath) => {
+    const checkExistingJsonFile = async () => {
         const res_check = await fetch(
-            `http://localhost:5000/management/folder/check/json?folderPath=${encodeURIComponent(folderPath)}`
+            `http://localhost:5000/management/folder/check/json}`
         );
         if (!res_check.ok) {
             console.error('Error checking existing JSON file:', res_check.status, res_check.statusText);
@@ -548,7 +686,7 @@ function VideoCheckPage() {
 
     // Save tagsList to localStorage when it changes
     useEffect(() => {
-        if (tagsList && tagsList.length > 0) {
+        if (tagsList && (tagsList?.length || 0) > 0) {
             localStorage.setItem('folderManagement_tagsList', JSON.stringify(tagsList));
         }
     }, [tagsList]);
@@ -625,10 +763,10 @@ function VideoCheckPage() {
             return;
         }
         const filteredFiles = allFilesData.filter(file => file.tags && file.tags.includes(tag));
-        console.log(`Tag filter "${tag}": ${filteredFiles.length} files found`);
+        console.log(`Tag filter "${tag}": ${filteredFiles?.length || 0} files found`);
         setFolderData(filteredFiles.slice(0, 50)); // Show first 50 filtered results
         setPage(1); // Reset to first page
-        setTotalPages(Math.ceil(filteredFiles.length / 50));
+        setTotalPages(Math.ceil((filteredFiles?.length || 0) / 50));
         setShouldLoadThumbnails(true);
     };
 
@@ -648,13 +786,13 @@ function VideoCheckPage() {
                 }
             });
         }
-        console.log('Video tags found:', allTagsList.length, 'unique tags');
+        console.log('Video tags found:', allTagsList?.length || 0, 'unique tags');
         setTagsList(allTagsList);
     };
 
     // useEffect to update tags list when videoFiles change
     useEffect(() => {
-        if (allFilesData && allFilesData.length > 0) {
+        if (allFilesData && (allFilesData?.length || 0) > 0) {
             tagsListup();
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -679,19 +817,21 @@ function VideoCheckPage() {
                 // Always check for existing JSON file first (unless force refresh)
                 if (useExistingData) {
                     console.log("Checking for existing JSON file...");
-                    const existingCheck = await checkExistingJsonFile(folderPath);
+                    const existingCheck = await checkExistingJsonFile();
+                    const jsonFilePath = existingCheck.json_path;
+
                     console.log("Existing JSON file check:", existingCheck.json_path);
 
                     if (existingCheck.exists === true) {
-                        console.log(`Existing JSON file found (${existingCheck.source}):`, existingCheck.json_path);
+                        console.log(`Existing JSON file found (${jsonFilePath})`);
                         
                         try {
                             // Load existing data
-                            const response = await fetch(`http://localhost:5000/management/json/list/files?jsonPath=${encodeURIComponent(existingCheck.json_path)}`);
+                            const response = await fetch(`http://localhost:5000/management/json/list/files?jsonPath=${encodeURIComponent(jsonFilePath)}`);
                             if (response.ok) {
                                 const data = await response.json();
                                 if (data.status === 'success' && data.files) {
-                                    setFileJsonPath(existingCheck.json_path);
+                                    setFileJsonPath(jsonFilePath);
                                     setFolderData(data.files);
                                     setError(null);
                                     setIsLoading(false);
@@ -700,7 +840,7 @@ function VideoCheckPage() {
                                     if (existingCheck.source === 'server') {
                                         setJsonFileCache(prev => ({
                                             ...prev,
-                                            [folderPath]: existingCheck.json_path
+                                            [folderPath]: jsonFilePath
                                         }));
                                     }
                                     
@@ -778,7 +918,7 @@ function VideoCheckPage() {
                     videoExtensions.some(ext => file.path.toLowerCase().endsWith(ext))
                 );
                 
-                console.log(`Filtered ${videoOnlyFiles.length} video files from ${json_folder_list.files.length} total files`);
+                console.log(`Filtered ${videoOnlyFiles?.length || 0} video files from ${json_folder_list.files?.length || 0} total files`);
                 setAllFilesData(videoOnlyFiles);
 
                 // Calculate first page data (50 items)
@@ -786,10 +926,10 @@ function VideoCheckPage() {
                 setFolderData(firstPageData);
                 
                 // Calculate total pages based on video files
-                const totalPages = Math.ceil(videoOnlyFiles.length / 50);
+                const totalPages = Math.ceil((videoOnlyFiles?.length || 0) / 50);
                 setTotalPages(totalPages);
                 
-                console.log(`Loaded ${videoOnlyFiles.length} video files, showing first ${firstPageData.length} items, ${totalPages} total pages`);
+                console.log(`Loaded ${videoOnlyFiles?.length || 0} video files, showing first ${firstPageData?.length || 0} items, ${totalPages} total pages`);
                 createFolderGraph(); // Fetch folder graph data
                 tagsListup(); // Update tag list
 
@@ -818,7 +958,7 @@ function VideoCheckPage() {
         }
         
         console.log('Search requested - using existing data if available');
-        console.log('Current allDirs state:', allDirs.length, 'folders');
+        console.log('Current allDirs state:', allDirs?.length || 0, 'folders');
         setUseExistingData(true); // Try to use existing data
         setError(null);
         setPage(1); // Reset pagination
@@ -1058,7 +1198,7 @@ function VideoCheckPage() {
                                     <select 
                                         value={relativePath}
                                         onChange={(e) => handleFolderSelect(e.target.value)}
-                                        disabled={!basePath || allDirs.length === 0}
+                                        disabled={!basePath || (allDirs?.length || 0) === 0}
                                         style={{ 
                                             width: '100%', 
                                             padding: '12px',
@@ -1067,15 +1207,15 @@ function VideoCheckPage() {
                                             fontSize: '14px',
                                             transition: 'border-color 0.3s ease',
                                             outline: 'none',
-                                            backgroundColor: (!basePath || allDirs.length === 0) ? '#f8f9fa' : '#fff',
-                                            cursor: (!basePath || allDirs.length === 0) ? 'not-allowed' : 'pointer'
+                                            backgroundColor: (!basePath || (allDirs?.length || 0) === 0) ? '#f8f9fa' : '#fff',
+                                            cursor: (!basePath || (allDirs?.length || 0) === 0) ? 'not-allowed' : 'pointer'
                                         }}
                                         onFocus={(e) => e.target.style.borderColor = '#28a745'}
                                         onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
                                     >
                                         <option value="">
                                             {!basePath ? 'Please set base path first' : 
-                                             allDirs.length === 0 ? 'No folders available' : 
+                                             (allDirs?.length || 0) === 0 ? 'No folders available' : 
                                              'Select a folder...'}
                                         </option>
                                         {allDirs.map((folder, index) => (
@@ -1086,10 +1226,10 @@ function VideoCheckPage() {
                                     </select>
                                     <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
                                         📂 Choose from available folders in base directory
-                                        {allDirs.length > 0 && (
+                                        {(allDirs?.length || 0) > 0 && (
                                             <span style={{ color: '#28a745', fontWeight: 'bold' }}>
                                                 <p />
-                                                    {` (${allDirs.length} folders found)`}
+                                                    {` (${allDirs?.length || 0} folders found)`}
                                             </span>
                                         )}
                                     </small>
@@ -1170,7 +1310,7 @@ function VideoCheckPage() {
                                     fontSize: '14px',
                                     fontWeight: 'bold'
                                 }}>
-                                    ✅ Number of files in this folder: {allFilesData.length}
+                                    ✅ Number of files in this folder: {allFilesData?.length || 0}
                                 </span>
                             </div>
                         )}
@@ -1351,7 +1491,7 @@ function VideoCheckPage() {
                             </div>
                             
                             {/* Tag Filter */}
-                            {tagsList && tagsList.length > 0 && (
+                            {tagsList && (tagsList?.length || 0) > 0 && (
                                 <div>
                                     <label style={{ 
                                         display: 'block', 
@@ -1417,7 +1557,7 @@ function VideoCheckPage() {
                                 fontSize: '14px',
                                 color: '#0c5460'
                             }}>
-                                📋 フィルタ適用中: {filteredData ? filteredData.length : 0}件の結果が見つかりました
+                                📋 フィルタ適用中: {filteredData ? (filteredData?.length || 0) : 0}件の結果が見つかりました
                                 {extensionFilter !== 'all' && ` | 拡張子: ${extensionFilter}`}
                                 {sizeFilter !== 'all' && ` | サイズ: ${sizeFilter}`}
                                 {searchKeyword && ` | 検索: "${searchKeyword}"`}
@@ -1447,7 +1587,23 @@ function VideoCheckPage() {
                             gap: '1rem',
                             flexShrink: 0
                         }}>
-                            <span>{folderData.length} / {allFilesData ? allFilesData.length : folderData.length} video files</span>
+                            <span>
+                                {(() => {
+                                    const totalFiles = allFilesData ? allFilesData.length : 0;
+                                    const currentPageFiles = folderData?.length || 0;
+                                    
+                                    if (totalFiles === 0) {
+                                        return "0 video files";
+                                    }
+                                    
+                                    const perPage = 50;
+                                    const startIndex = (page - 1) * perPage + 1;
+                                    const endIndex = Math.min(startIndex + currentPageFiles - 1, totalFiles);
+
+                                    // Example: "51-100 / 250 video files"
+                                    return `${startIndex}-${endIndex} (Total: ${totalFiles})`;
+                                })()}
+                            </span>
                             
                             {/* Pagination Controls as spans */}
                             <span style={{
@@ -1593,9 +1749,15 @@ function VideoCheckPage() {
                                                 border: '1px solid #dee2e6',
                                                 cursor: 'pointer'
                                             }}
+                                            onLoad={(e) => {
+                                                console.log(`✅ Image loaded successfully for file ${file.id}`);
+                                            }}
+                                            onError={(e) => {
+                                                console.error(`❌ Image failed to load for file ${file.id}:`, e.target.src);
+                                            }}
                                             onClick={() => {
                                                 if (fileJsonPath) {
-                                                    navigate(`/file/details/${file.id}`, { state: { jsonPath: fileJsonPath, file: file } });
+                                                    navigate(`/file/video/view/${file.id}`, { state: { jsonPath: fileJsonPath, file: file } });
                                                 } else {
                                                     setError('JSON path is not available. Please reload the folder data.');
                                                 }
@@ -1735,7 +1897,7 @@ function VideoCheckPage() {
                                     <button
                                         onClick={() => {
                                             if (fileJsonPath) {
-                                                navigate(`/file/video/details/${file.id}`, { state: { jsonPath: fileJsonPath, file: file } });
+                                                navigate(`/file/video/view/${file.id}`, { state: { jsonPath: fileJsonPath, file: file } });
                                             } else {
                                                 setError('JSON path is not available. Please reload the folder data.');
                                             }

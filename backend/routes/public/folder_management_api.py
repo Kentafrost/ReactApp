@@ -26,7 +26,7 @@ from script.folder_management.folder_listup import folder_listup, folder_graph_c
 folder_management_router = APIRouter()
 
 @folder_management_router.get("/folder/check/json")
-async def check_existing_json_file(folderPath: str):
+async def check_existing_json_file():
     
     try:
         grand_parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -44,7 +44,7 @@ async def check_existing_json_file(folderPath: str):
                 "json_path": ""
             }
     except Exception as e:
-        insert_log(f"Error checking existing JSON file for {folderPath}: {e}")
+        insert_log(f"Error checking existing JSON file {json_file}: {e}")
         return {"status": "error", "message": str(e), "exists": False}
 
 """ 

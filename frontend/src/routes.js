@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
 // path imports
-import { LoginToPrivate } from './components/LoginUI';
+import LoginToPrivateComponent from './components/LoginUI';
 import { RakutenItemUI } from './components/public/RakutenItemUI';
 
 // private imports
@@ -56,11 +56,11 @@ export const routes = () => {
                 {/* File Viewer Routes */}
                 <Route path="/file/handling" element={<ViewerHandling />} />
                 <Route path="/file/video/list" element={<VideoCheckPage />} />
-                <Route path="/file/view/video/:fileId" element={<VideoDetailsPage />} />
+                <Route path="/file/video/view/:fileId" element={<VideoDetailsPage />} />
                 <Route path="/file/picture/list" element={<PictureViewerPage />} />
 
                 {/* Login to Private Pages */}
-                <Route path="/auth/login" element={<LoginToPrivate />} />
+                <Route path="/auth/login" element={<LoginToPrivateComponent />} />
 
                 {/* Private Routes */}
                 <Route path="/private/*" element={<PrivatePage />}>

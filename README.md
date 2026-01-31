@@ -3,6 +3,7 @@
 ## Command
 
 ```bash
+# start the frontend in react
 cd frontend
 npm start
 ```
@@ -11,6 +12,7 @@ npm start
 ## Command
 
 ```bash
-cd backend
-uvicorn api.main:app --reload
+# start the backend api in react
+cd backend/routes
+uvicorn main:app --reload --port 5000
 ```

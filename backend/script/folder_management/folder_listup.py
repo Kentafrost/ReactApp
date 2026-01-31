@@ -8,6 +8,11 @@ import subprocess
 import shutil
 import time
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(current_dir, 'secrets_data.json'), 'r', encoding='utf-8') as f:
+    path_data = json.load(f)
+
+
 # Function to find FFmpeg executable
 def find_ffmpeg():
     ffmpeg_cmd = shutil.which('ffmpeg')
@@ -160,9 +165,16 @@ def folder_listup(base_path: str):
 # Create a pie chart graph of folder file counts
 def folder_graph_create(folder_file_list: dict):
 
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    os.makedirs(os.path.join(current_dir, 'graph'), exist_ok=True)
-    graph_path = os.path.join(current_dir, 'graph', 'folder_graph.png')
+    graph_save_path = path_data.get('graph_save_path', '')
+
+    if not graph_save_path:
+        message = "Graph save path not specified in JSON."
+        print(message)
+        db_func.append_to_json(log_json_file_name, {"status": "error", "message": message})
+        return {"status": "error", "message": message}
+    
+    os.makedirs(graph_save_path, exist_ok=True)
+    graph_path = os.path.join(graph_save_path, 'folder_graph.png')
 
     font_path = r"C:\\Windows\\Fonts\\meiryo.ttc"
     matplotlib.rcParams['font.family'] = matplotlib.font_manager.FontProperties(fname=font_path).get_name()
@@ -209,28 +221,34 @@ def folder_graph_create(folder_file_list: dict):
 
 # Create thumbnail for a file based on its ID from the JSON file
 def file_thumbnail_create(id: int, jsonPath: str, relativePath: str = ""):
-    
+
+    # All data will be logged into this JSON file
     with open(jsonPath, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    thumbnail_json_file_name = os.path.join(current_dir, "thumbnail_log.json")
-    os.makedirs(os.path.dirname(thumbnail_json_file_name), exist_ok=True)
+    # JSON file to log thumbnail creation result
+    log_json_file_name = f"{os.path.splitext(os.path.basename(__file__))[0]}_file_thumbnail_create.json"
 
-    thumbnail_path = os.path.join(current_dir, 'thumbnails', relativePath)
-    os.makedirs(thumbnail_path, exist_ok=True)
+    # Get thumbnail local path from secrets_data.json
+    thumbnail_base_path = path_data.get('thumbnail_base_path', '')
+    if not thumbnail_base_path:
+        message = "Thumbnail local path not specified in JSON."
+        print(message)
+        db_func.append_to_json(log_json_file_name, {"status": "error", "message": message})
+        return {"status": "error", "message": message}
 
-    # Find the file info in the loaded json data
+    os.makedirs(thumbnail_base_path, exist_ok=True)
+
+    # Find the file info with the given ID from the JSON data
     for item in data:
         item_id = item.get('id')
         if item_id == id:
+            file_name = item.get('name')
             file_path = item.get('path')
             file_extension = item.get('extension').lower()
 
-            print(f"Creating thumbnail for file: {file_path} with extension: {file_extension}")
-
-            id_str = str(id)
-            thumbnail_path = os.path.join(thumbnail_path, f"thumbnail_{id_str}.png")
+            print(f"Creating thumbnail for file: {file_name}")
+            thumbnail_path = os.path.join(thumbnail_base_path, f"{file_name}")
             print(f"Thumbnail will be saved to: {thumbnail_path}")
             os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
 
@@ -239,7 +257,6 @@ def file_thumbnail_create(id: int, jsonPath: str, relativePath: str = ""):
                 try:
                     with Image.open(file_path) as img:
                         img.thumbnail((128, 128))
-                        thumbnail_path = os.path.join(thumbnail_path, f"thumbnail_{os.path.basename(file_path)}")
                         img.save(thumbnail_path)
 
                     db_func.append_to_json(log_json_file_name, {"status": "success", "message": "Thumbnail created successfully", "thumbnail_path": thumbnail_path})
@@ -251,7 +268,7 @@ def file_thumbnail_create(id: int, jsonPath: str, relativePath: str = ""):
                         "file_name": os.path.basename(file_path)
                     }
 
-                    with open(thumbnail_json_file_name, 'w', encoding='utf-8') as f:
+                    with open(log_json_file_name, 'w', encoding='utf-8') as f:
                         json.dump(message, f, ensure_ascii=False, indent=4)
 
                     return {
