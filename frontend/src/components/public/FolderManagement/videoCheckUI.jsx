@@ -764,6 +764,8 @@ function VideoCheckPage() {
         }
         const filteredFiles = allFilesData.filter(file => file.tags && file.tags.includes(tag));
         console.log(`Tag filter "${tag}": ${filteredFiles?.length || 0} files found`);
+        
+        setFilteredData(filteredFiles);
         setFolderData(filteredFiles.slice(0, 50)); // Show first 50 filtered results
         setPage(1); // Reset to first page
         setTotalPages(Math.ceil((filteredFiles?.length || 0) / 50));
@@ -1369,9 +1371,9 @@ function VideoCheckPage() {
                     flexDirection: 'column',
                     gap: '20px'
                 }}>
-                    {/* Folder data list */}
-                    {folderData && folderData.length > 0 && (
-                        <div style={{ flex: 1 }}>
+                    {/* Filtering Section */}
+                    <div style={{ flex: 1 }}>
+                    
                     {/* Filtering Options */}
                     <div style={{
                         backgroundColor: '#f8f9fa',
@@ -1557,11 +1559,11 @@ function VideoCheckPage() {
                                 fontSize: '14px',
                                 color: '#0c5460'
                             }}>
-                                📋 フィルタ適用中: {filteredData ? (filteredData?.length || 0) : 0}件の結果が見つかりました
-                                {extensionFilter !== 'all' && ` | 拡張子: ${extensionFilter}`}
-                                {sizeFilter !== 'all' && ` | サイズ: ${sizeFilter}`}
-                                {searchKeyword && ` | 検索: "${searchKeyword}"`}
-                                {selectedTag && ` | タグ: ${selectedTag}`}
+                                📋 Filtering: {filteredData ? (filteredData?.length || 0) : 0} results found
+                                {extensionFilter !== 'all' && ` | Extension: ${extensionFilter}`}
+                                {sizeFilter !== 'all' && ` | Size: ${sizeFilter}`}
+                                {searchKeyword && ` | Search: "${searchKeyword}"`}
+                                {selectedTag && ` | Tag: ${selectedTag}`}
                             </div>
                         )}
                     </div>
@@ -1601,7 +1603,11 @@ function VideoCheckPage() {
                                     const endIndex = Math.min(startIndex + currentPageFiles - 1, totalFiles);
 
                                     // Example: "51-100 / 250 video files"
-                                    return `${startIndex}-${endIndex} (Total: ${totalFiles})`;
+                                    if (filteredData) {
+                                        return `${startIndex}-${endIndex} (Total: ${filteredData.length} videos)`;
+                                    }
+
+                                    return `${startIndex}-${endIndex} (Total: ${totalFiles} videos)`;
                                 })()}
                             </span>
                             
@@ -2009,8 +2015,7 @@ function VideoCheckPage() {
                             </div>
                         </div>
                     )}
-                        </div>
-                    )}
+                    </div>
 
                     {renameCheck === true && (
                         <div style={{

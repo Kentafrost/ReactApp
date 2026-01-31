@@ -51,19 +51,20 @@ async def check_existing_json_file():
 API endpoint to list up all folders and their contents 
 """
 @folder_management_router.get("/folder/view/files")
-async def fold_list_endpoint(folderPath: str):
+async def folder_listup_endpoint(folderPath: str):
     print("Received folderPath:", folderPath)
     print("Type of folderPath:", type(folderPath))
 
     result = folder_listup(folderPath)
 
     """
-    "status": "success",
-    "json_path" : result.get("json_path")
+    @return {
+        "status": "success",
+        "json_path" : result.get("json_path")
+    }
 
     in json_file
     [
-    {
         "id": 1,
         "name": "XXXX.mp4",
         "path": "C:/XXXX.mp4",
@@ -71,7 +72,6 @@ async def fold_list_endpoint(folderPath: str):
         "extension": ".mp4",
         "created_time": "2023-10-01 12:00:00",
         "tags": []
-    }
     ]
 
 

@@ -1,0 +1,26 @@
+#!/bin/sh
+echo "Running pre-push checks..."
+
+# check React frontend starts without errors
+cd ../../frontend || exit 1
+npm start
+if [ $? -ne 0 ]; then
+  echo "React: Frontend start failed. Push aborted."
+  exit 1
+else
+  echo "React: Frontend start succeeded."
+fi
+
+# check FastAPI syntax
+cd ../../backend/routes || exit 1
+uvicorn main:app --reload --port 5000
+
+if [ $? -ne 0 ]; then
+  echo "React: FastAPI syntax error. Push aborted."
+  exit 1
+else 
+  echo "React: FastAPI syntax check passed."
+fi
+
+echo "All checks passed. Proceeding with push."
+exit 0
