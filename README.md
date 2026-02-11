@@ -4,20 +4,22 @@ A modern full-stack web application built with React frontend, Node.js backend, 
 
 ## 📖 Documentation Site
 
-**🌟 [View Live Documentation](./docs/index.html) 🌟**
+**🌟 [View Live Documentation](https://kentafrost.github.io/ReactApp/) 🌟**
 
 To quickly open the documentation site:
+
 ```bash
 # Open documentation in browser
 npm run docs
 
 # Or directly open the file
 # Windows: start docs/index.html
-# macOS: open docs/index.html  
+# macOS: open docs/index.html
 # Linux: xdg-open docs/index.html
 ```
 
 **Features:**
+
 - 🌐 **AI-powered translation** (10 languages supported)
 - 📱 **Responsive design** with dark mode
 - 🎨 **Interactive demos** and examples
@@ -30,7 +32,7 @@ npm run docs
 ```
 react-web-ui/
 ├── frontend/          # React application
-├── backend/           # Node.js API services  
+├── backend/           # Node.js API services
 │   ├── routes/        # FastAPI routes
 │   └── script/        # Python services & tools
 ├── docs/              # Documentation site with AI translation
@@ -59,6 +61,7 @@ react-web-ui/
 ## 📦 Installation
 
 ### Prerequisites
+
 - **Node.js** >=14.0.0
 - **Python** >=3.13.0
 - **npm** and **pip**
@@ -66,38 +69,44 @@ react-web-ui/
 ### 📋 Installation Commands
 
 **1: Install Root Dependencies**
+
 ```bash
 npm install
 ```
 
-**2: Install Frontend Dependencies** 
+**2: Install Frontend Dependencies**
+
 ```bash
 cd frontend && npm install
 cd ..
 ```
 
 **3: Install Backend Dependencies**
+
 ```bash
 cd backend && npm install
 cd ..
 ```
 
 **4: Create Python Virtual Environment**
+
 ```bash
 cd backend/script
 python -m venv venv
 ```
 
 **5: Activate Virtual Environment**
+
 ```bash
 # Windows:
 venv\Scripts\activate
 
-# macOS/Linux:  
+# macOS/Linux:
 source venv/bin/activate
 ```
 
 **6: Install Python Packages**
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -105,11 +114,13 @@ pip install -r requirements.txt
 ### 🎯 One-Line Installation
 
 **Windows:**
+
 ```cmd
 npm install && cd frontend && npm install && cd ../backend && npm install && cd script && python -m venv venv && venv\Scripts\activate && pip install -r requirements.txt
 ```
 
 **macOS/Linux:**
+
 ```bash
 npm install && cd frontend && npm install && cd ../backend && npm install && cd script && python -m venv venv && source venv/bin/activate && pip install -r requirements.txt
 ```
@@ -120,35 +131,35 @@ npm install && cd frontend && npm install && cd ../backend && npm install && cd 
 
 ### 🌐 Node.js Packages
 
-| Category | Package Name | Version | Description |
-|----------|--------------|---------|-------------|
-| **Root Project** | @emotion/react | ^11.14.0 | CSS-in-JS library |
-| | @emotion/styled | ^11.14.1 | Styled components |
-| | @mui/material | ^7.3.6 | Material-UI components |
-| **Frontend** | @chakra-ui/react | ^3.30.0 | UI component library |
-| | react | ^19.2.0 | React framework |
-| | react-dom | ^19.2.0 | React DOM renderer |
-| | react-router-dom | ^7.10.1 | React routing |
-| | react-scripts | ^5.0.1 | React build tools |
-| | framer-motion | ^12.23.25 | Animation library |
-| **Development** | eslint | ^8.45.0 | Code linting |
-| | prettier | ^3.0.0 | Code formatting |
-| | typescript | ^5.2.2 | TypeScript support |
-| | vite | ^4.4.9 | Build tool |
+| Category         | Package Name     | Version   | Description            |
+| ---------------- | ---------------- | --------- | ---------------------- |
+| **Root Project** | @emotion/react   | ^11.14.0  | CSS-in-JS library      |
+|                  | @emotion/styled  | ^11.14.1  | Styled components      |
+|                  | @mui/material    | ^7.3.6    | Material-UI components |
+| **Frontend**     | @chakra-ui/react | ^3.30.0   | UI component library   |
+|                  | react            | ^19.2.0   | React framework        |
+|                  | react-dom        | ^19.2.0   | React DOM renderer     |
+|                  | react-router-dom | ^7.10.1   | React routing          |
+|                  | react-scripts    | ^5.0.1    | React build tools      |
+|                  | framer-motion    | ^12.23.25 | Animation library      |
+| **Development**  | eslint           | ^8.45.0   | Code linting           |
+|                  | prettier         | ^3.0.0    | Code formatting        |
+|                  | typescript       | ^5.2.2    | TypeScript support     |
+|                  | vite             | ^4.4.9    | Build tool             |
 
 ### 🐍 Python Packages
 
-| Category | Key Packages | Purpose |
-|----------|--------------|---------|
-| **AWS & Cloud** | awscli, boto3, botocore | AWS services integration |
-| **Data Processing** | pandas, numpy | Data manipulation and analysis |
-| **Web & APIs** | requests, beautifulsoup4 | HTTP requests and web scraping |
-| **Computer Vision** | opencv-python, pillow | Image processing |
-| **Video Processing** | moviepy, imageio-ffmpeg | Video editing and conversion |
-| **GUI Automation** | PyAutoGUI, pytesseract | Desktop automation and OCR |
-| **Google Services** | google-api-python-client | Google APIs integration |
+| Category             | Key Packages             | Purpose                        |
+| -------------------- | ------------------------ | ------------------------------ |
+| **AWS & Cloud**      | awscli, boto3, botocore  | AWS services integration       |
+| **Data Processing**  | pandas, numpy            | Data manipulation and analysis |
+| **Web & APIs**       | requests, beautifulsoup4 | HTTP requests and web scraping |
+| **Computer Vision**  | opencv-python, pillow    | Image processing               |
+| **Video Processing** | moviepy, imageio-ffmpeg  | Video editing and conversion   |
+| **GUI Automation**   | PyAutoGUI, pytesseract   | Desktop automation and OCR     |
+| **Google Services**  | google-api-python-client | Google APIs integration        |
 
-*Complete list (77 packages total): See `backend/script/requirements.txt`*
+_Complete list (77 packages total): See `backend/script/requirements.txt`_
 
 ---
 
@@ -157,16 +168,19 @@ npm install && cd frontend && npm install && cd ../backend && npm install && cd 
 ### Node.js Verification
 
 **1: Check Installed Packages**
+
 ```bash
 npm list --depth=0
 ```
 
 **2: Test Frontend Build**
+
 ```bash
 cd frontend && npm start
 ```
 
 **3: Build Production Version**
+
 ```bash
 npm run build
 ```
@@ -174,6 +188,7 @@ npm run build
 ### Python Verification
 
 **1: Activate Virtual Environment**
+
 ```bash
 # macOS/Linux
 source backend/script/venv/bin/activate
@@ -183,11 +198,13 @@ backend\script\venv\Scripts\activate
 ```
 
 **2: Check Installed Packages**
+
 ```bash
 pip list
 ```
 
 **3: Test Python Imports**
+
 ```bash
 python -c "import pandas, numpy, requests; print('Success!')"
 ```
@@ -197,6 +214,7 @@ python -c "import pandas, numpy, requests; print('Success!')"
 ## 🚀 Running the Application
 
 **1: Start Frontend Development Server**
+
 ```bash
 cd frontend
 npm start
@@ -204,6 +222,7 @@ npm start
 ```
 
 **2: Start Backend API (FastAPI)**
+
 ```bash
 cd backend/routes
 uvicorn main:app --reload --port 5000
@@ -211,6 +230,7 @@ uvicorn main:app --reload --port 5000
 ```
 
 **3: Start Backend Python Services**
+
 ```bash
 cd backend/script
 # Activate virtual environment first
@@ -219,6 +239,7 @@ python main.py
 ```
 
 **4: View Documentation Site**
+
 ```bash
 # Open in browser
 open docs/index.html  # macOS
@@ -231,6 +252,7 @@ start docs/index.html # Windows
 ## 🔧 Package Management
 
 ### List Currently Installed Libraries
+
 ```bash
 # List all installed packages (current directory)
 npm list --depth=0
@@ -251,6 +273,7 @@ npm info <package-name>
 ```
 
 ### Development Commands
+
 ```bash
 # Package Management
 npm list --depth=0        # List installed packages
@@ -272,6 +295,7 @@ pip freeze > requirements.txt  # Export Python packages to file
 ```
 
 ### Troubleshooting Missing Dependencies
+
 ```bash
 # Fix missing dependencies in frontend
 cd frontend
@@ -291,7 +315,7 @@ npm audit fix                          # Automatic fixes
 ## 💡 Development Tips
 
 - **Virtual Environment**: Always activate the Python virtual environment before running Python scripts
-- **Node Versions**: Ensure Node.js >=14.0.0 for compatibility  
+- **Node Versions**: Ensure Node.js >=14.0.0 for compatibility
 - **Package Updates**: Run `npm update` and `pip install --upgrade -r requirements.txt` periodically
 - **Environment Variables**: Configure `.env` files as needed
 - **Hot Reload**: Both frontend and backend support hot reload during development
