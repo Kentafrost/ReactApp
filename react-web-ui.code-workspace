@@ -1,0 +1,64 @@
+{
+    "folders": [
+        {
+            "name": "react-web-ui",
+            "path": "."
+        }
+    ],
+    "settings": {
+        "workbench.startupEditor": "newUntitledFile",
+        "files.associations": {
+            "*.md": "markdown"
+        }
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-python.python",
+            "bradlc.vscode-tailwindcss",
+            "esbenp.prettier-vscode",
+            "ms-vscode.vscode-typescript-next"
+        ]
+    },
+    "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "📖 Open Documentation Site",
+                "type": "shell",
+                "command": "${workspaceFolder}/docs/index.html",
+                "windows": {
+                    "command": "start",
+                    "args": ["${workspaceFolder}/docs/index.html"]
+                },
+                "osx": {
+                    "command": "open",
+                    "args": ["${workspaceFolder}/docs/index.html"]
+                },
+                "linux": {
+                    "command": "xdg-open", 
+                    "args": ["${workspaceFolder}/docs/index.html"]
+                },
+                "group": "build",
+                "presentation": {
+                    "echo": false,
+                    "reveal": "never",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": false,
+                    "clear": false
+                },
+                "runOptions": {
+                    "runOn": "folderOpen"
+                },
+                "problemMatcher": []
+            },
+            {
+                "label": "🚀 Start Development Environment",
+                "dependsOrder": "parallel", 
+                "dependsOn": [
+                    "📖 Open Documentation Site"
+                ]
+            }
+        ]
+    }
+}

@@ -2,6 +2,29 @@
 
 A modern full-stack web application built with React frontend, Node.js backend, and Python services.
 
+## 📖 Documentation Site
+
+**🌟 [View Live Documentation](./docs/index.html) 🌟**
+
+To quickly open the documentation site:
+```bash
+# Open documentation in browser
+npm run docs
+
+# Or directly open the file
+# Windows: start docs/index.html
+# macOS: open docs/index.html  
+# Linux: xdg-open docs/index.html
+```
+
+**Features:**
+- 🌐 **AI-powered translation** (10 languages supported)
+- 📱 **Responsive design** with dark mode
+- 🎨 **Interactive demos** and examples
+- 📋 **Comprehensive API reference**
+
+---
+
 ## 🏗️ Project Structure
 
 ```
