@@ -1,0 +1,45 @@
+<header>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Documentation</title>
+
+    <div class="header-container">
+        
+        <!-- ═══════════════════════════════════════════════╗
+        ║  🎨 CSS Architecture - Modular Design         ║
+        ╚═══════════════════════════════════════════════ -->
+        <link rel="stylesheet" href="assets/css/common.css">
+        <link rel="stylesheet" href="assets/css/ai-translator.css">  
+        <link rel="stylesheet" href="assets/css/styles.css">
+        
+        <h1>React Web UI Project</h1>
+
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="getting_started.html">Getting Started</a></li>
+                <li><a href="api_reference.html">API Reference</a></li>
+                <li><a href="next_features.html">Next Features</a></li>
+            </ul>
+        </nav>
+
+        <h3> Please select a language to display: </h3>
+        <br />
+        
+        <div class="ai-language-selector">
+            <select id="aiLanguageSelect">
+                <option value="en">🇺🇸 English</option>
+                <option value="ja">🇯🇵 日本語</option>
+                <option value="de">🇩🇪 Deutsch</option>
+                <option value="it">🇮🇹 Italiano</option>
+                <option value="es">🇪🇸 Español</option>
+                <option value="pt">🇵🇹 Português</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="zh">🇨🇳 中文</option>
+                <option value="ko">🇰🇷 한국어</option>
+                <option value="ru">🇷🇺 Русский</option>
+            </select>
+            <div id="translationLoading" class="translation-loading hidden">🔄 Translating...</div>
+        </div>
+    </div>
+</header>

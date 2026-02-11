@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Documentation</title>
+    
+    <!-- ═══════════════════════════════════════════════╗
+    ║  🎨 CSS Architecture - Modular Design         ║
+    ╚═══════════════════════════════════════════════ -->
+    <link rel="stylesheet" href="assets/css/common.css">
+    <link rel="stylesheet" href="assets/css/ai-translator.css">  
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+
+<body>
+    <!-- Header will be loaded dynamically by JavaScript -->
+    
+    <main>
+        <section>
+            <h2>Next Features</h2>
+            <p>Development roadmap based on current project requirements and planned enhancements.</p>
+        </section>
+
+        <!-- Completed Features -->
+        <section>
+            <h3>✅ Recently Completed</h3>
+            <div class="roadmap-timeline">
+                <div class="timeline-item">
+                    <span>🔍</span>
+                    <div>
+                        <strong>Multi-Manufacturer Filtering:</strong> Click-based manufacturer selection
+                        <br><small>Array return values implementation completed</small>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <span>🎛️</span>
+                    <div>
+                        <strong>Advanced Search Filters:</strong> Product count, price range, seller filtering
+                        <br><small>Mouse-based range selection and seller filtering completed</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- High Priority Features -->
+        <section>
+            <h3>🚀 High Priority Development</h3>
+            <div class="roadmap-timeline">
+                <div class="timeline-item priority">
+                    <span>📊</span>
+                    <div>
+                        <strong>Database-driven API & Graphs:</strong> Keyword-based API endpoints
+                        <br><small><code>/rakuten/graph/display/{keyword}</code> - Generate charts from DB data</small>
+                        <br><small>Date-based search trend visualization using MongoDB</small>
+                    </div>
+                </div>
+                <div class="timeline-item priority">
+                    <span>🎬</span>
+                    <div>
+                        <strong>Video Editing Platform:</strong> Multi-format video processing
+                        <br><small>1. Multiple video file concatenation</small>
+                        <br><small>2. Single video looping functionality</small>
+                        <br><small>3. Selective audio reduction for specific videos</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Documentation & Deployment -->
+        <section>
+            <h3>📖 Documentation & Public Release</h3>
+            <div class="demo-card priority-high">
+                <h4>🎯 GitHub Pages Publication</h4>
+                <ol>
+                    <li><strong>Screenshot & GIF Creation:</strong> Capture all UI transitions and workflows</li>
+                    <li><strong>HTML Documentation:</strong> Comprehensive project documentation</li>
+                    <li><strong>GitHub Pages Deployment:</strong> Public project showcase</li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- System Architecture -->
+        <section>
+            <h3>🏗️ Next System Architecture (React + Java + FastAPI)</h3>
+            
+            <div class="demo-grid">
+                <div class="demo-card">
+                    <h4>☕ Java (Spring Boot)</h4>
+                    <ul>
+                        <li><strong>ZIP Extraction:</strong> Automated file decompression</li>
+                        <li><strong>Folder Management:</strong> Directory name extraction</li>
+                        <li><strong>CSV Generation:</strong> ID, folder name, URL compilation</li>
+                        <li><small>Process DMM downloads ⟹ Generate structured CSV data</small></li>
+                    </ul>
+                </div>
+                
+                <div class="demo-card">
+                    <h4>⚡ FastAPI</h4>
+                    <ul>
+                        <li><strong>CSV Processing:</strong> Data import and parsing</li>
+                        <li><strong>ID-based Search:</strong> React ID ⟹ folder path retrieval</li>
+                        <li><strong>File Listing:</strong> Directory contents as array</li>
+                        <li><strong>AI Tagging:</strong> JSON-based file categorization</li>
+                    </ul>
+                </div>
+                
+                <div class="demo-card">
+                    <h4>⚛️ React Frontend</h4>
+                    <ul>
+                        <li><strong>ID-based Pages:</strong> Dynamic file list display</li>
+                        <li><strong>Tag Filtering:</strong> AI-powered content categorization</li>
+                        <li><strong>File Explorer:</strong> Interactive browsing interface</li>
+                        <li><small>JSON format: filename + tag filtering system</small></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Authentication System -->
+        <section>
+            <h3>🔐 Authentication Migration</h3>
+            <div class="timeline-item">
+                <span>🔑</span>
+                <div>
+                    <strong>Spring Security Integration:</strong> Login system migration to Spring Boot
+                    <br><small>Individual user ID/password management</small>
+                    <br><small>Post-login dashboard with Rakuten API integration</small>
+                    <br><small>Search history tracking and predictive word suggestions</small>
+                </div>
+            </div>
+        </section>
+
+        <!-- API Integration -->
+        <section>
+            <h3>🔗 FastAPI Integration Roadmap</h3>
+            <div class="demo-card">
+                <h4>🟢 Rakuten API Search Portal</h4>
+                <p><strong>React UI</strong> ⟹ Search Keywords ⟹ <strong>FastAPI</strong></p>
+                <div class="api-flow">
+                    <ol>
+                        <li><strong>FastAPI</strong> ⟹ Rakuten API calls</li>
+                        <li><strong>MongoDB</strong> ⟹ Search history + retrieved data storage</li>
+                        <li><strong>FastAPI</strong> ⟹ Lightweight AI/NLP for related word generation</li>
+                        <li><strong>React</strong> ⟹ "Suggested search terms" display</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 frosty guys project. All rights reserved.</p>
+    </footer>
+
+    <script src="assets/js/main_page.js"></script>
+
+</body>
+</html>
