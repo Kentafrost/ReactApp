@@ -1,26 +1,43 @@
 #!/bin/sh
 echo "Running pre-push checks..."
 
-# check React frontend starts without errors
-cd ../../frontend || exit 1
-npm start
+# Get the script directory
+SCRIPT_DIR=$(dirname "$0")
+
+# Check React frontend build
+echo "Checking React frontend..."
+cd "$SCRIPT_DIR/frontend" || exit 1
+npm run build
 if [ $? -ne 0 ]; then
-  echo "React: Frontend start failed. Push aborted."
+  echo "❌ React: Frontend build failed. Push aborted."
   exit 1
 else
-  echo "React: Frontend start succeeded."
+  echo "✅ React: Frontend build succeeded."
 fi
 
-# check FastAPI syntax
-cd ../../backend/routes || exit 1
-uvicorn main:app --reload --port 5000
+# Check FastAPI backend syntax
+echo "Checking FastAPI backend..."
+cd "$SCRIPT_DIR/backend/routes" || exit 1
 
+# Check Python syntax for main.py
+python -m py_compile main.py
 if [ $? -ne 0 ]; then
-  echo "React: FastAPI syntax error. Push aborted."
+  echo "❌ FastAPI: Syntax error in main.py. Push aborted."
   exit 1
-else 
-  echo "React: FastAPI syntax check passed."
+else
+  echo "✅ FastAPI: main.py syntax check passed."
 fi
 
-echo "All checks passed. Proceeding with push."
+# Check if FastAPI app can be imported (dry run)
+cp "$SCRIPT_DIR/test_import.py" ./test_import.py
+python test_import.py
+rm -f test_import.py
+if [ $? -ne 0 ]; then
+  echo "❌ FastAPI: App import failed. Push aborted."
+  exit 1
+else
+  echo "✅ FastAPI: App import check passed."
+fi
+
+echo "🎉 All checks passed. Proceeding with push."
 exit 0

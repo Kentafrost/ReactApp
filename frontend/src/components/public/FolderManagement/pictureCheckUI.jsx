@@ -320,7 +320,7 @@ function PictureViewerPage() {
         if (!allFilesData || !Array.isArray(allFilesData)) { 
             console.warn('No allFilesData available for tag filtering');
             return;
-        };
+        }
         const filteredFiles = allFilesData.filter(file => file.tags && file.tags.includes(tag));
         setFolderData(filteredFiles); // Display all filtered files
     };
@@ -329,7 +329,7 @@ function PictureViewerPage() {
         if (!allFilesData || !Array.isArray(allFilesData)) {
             console.warn('No allFilesData available for clearing tag filter');
             return;
-        };
+        }
         setFolderData(allFilesData); // Display all data
     };
 
