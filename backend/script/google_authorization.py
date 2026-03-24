@@ -30,10 +30,7 @@ def patched_request(self, *args, **kwargs):
     return original_request(self, *args, **kwargs)
 requests.Session.request = patched_request
 
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-
-with open(os.path.join(current_dir, "google_auth_credential.json"), "r") as f:
+with open("google_auth_credential.json", "r") as f:
     secret_path = json.load(f)
 
 base_path = secret_path[0]["gdrive_credentials"]
@@ -103,18 +100,8 @@ def authorize_gmail():
         # If there are no (valid) credentials available, let the user log in
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
-                try:
-                    logging.info("Refreshing expired credentials.")
-                    creds.refresh(Request())
-                except Exception as refresh_error:
-                    logging.warning(f"Token refresh failed: {refresh_error}")
-                    logging.info("Starting new authentication flow due to refresh failure.")
-                    # Remove invalid token file
-                    if os.path.exists(token_file):
-                        os.remove(token_file)
-                    flow = InstalledAppFlow.from_client_secrets_file(gmail_cred, scope)
-                    creds = flow.run_local_server(port=0)
-                    logging.info("New credentials obtained successfully after refresh failure.")
+                logging.info("Refreshing expired credentials.")
+                creds.refresh(Request())
             else:
                 logging.info("No existing token found, starting new authentication flow.")
                 flow = InstalledAppFlow.from_client_secrets_file(gmail_cred, scope)

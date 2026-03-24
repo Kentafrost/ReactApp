@@ -7,8 +7,7 @@ import { RakutenItemUI } from './components/public/RakutenItemUI';
 
 // private imports
 import PrivatePage from './components/Private';
-import { TaskCreate } from './components/private/TaskCreateUI';
-import { TaskSwitch } from './components/private/TaskSwitchUI';
+import { TaskSchedulerApp } from './components/private/TaskManagementUI';
 import { GmailSummary } from './components/private/GmailSummaryUI';
 
 // folder management imports
@@ -64,8 +63,7 @@ export const routes = () => {
 
                 {/* Private Routes */}
                 <Route path="/private/*" element={<PrivatePage />}>
-                    <Route path="task/switch" element={<TaskSwitch />} />
-                    <Route path="task/create" element={<TaskCreate />} />
+                    <Route path="task/scheduler" element={<TaskSchedulerApp />} />
                     <Route path="gmail/summary" element={<GmailSummary />} />
                 </Route>
             </Routes>

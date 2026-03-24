@@ -1,6 +1,7 @@
 # 🚀 React Web UI Project
 
 A modern full-stack web application built with React frontend, Node.js backend, and Python services.
+For personal use only
 
 ## 📖 Documentation Site
 

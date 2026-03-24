@@ -1,4 +1,9 @@
 import { useState, useRef } from "react";
+import { 
+    listupGmail, 
+    downloadCsv, 
+    showGraph 
+} from '../../api/private/GmailApi';
 
 // Default export component
 function GmailSummaryComponent() {
@@ -40,12 +45,7 @@ function GmailSummaryComponent() {
 
         try {
             // Fetch api to get gmail summary
-            const res = await fetch(`http://localhost:5000/gmail/listup/${selectedScript}?number_of_mails=${InputSearchMailNumber.current.value}&send_email_flg=${sendEmailFlg}`, {
-                method: "GET",
-                headers: {"Content-Type": "application/json"}
-            });
-
-            const data = await res.json();
+            const data = await listupGmail(selectedScript, InputSearchMailNumber, sendEmailFlg);
             console.log("Response:", data);
             setResult(data);
 
@@ -57,13 +57,12 @@ function GmailSummaryComponent() {
                 return;
             }
 
-            // Fetch api to download csv
-            const res_download = await fetch(`http://localhost:5000/gmail/listup/${selectedScript}/csv/download`);
+            // Fetch api to download a csv to know how many mails have been searched
+            const res_download = await downloadCsv(selectedScript, setDownloadLink);
             console.log("Download Response:", res_download);
-            setDownloadLink(res_download.url);
 
-            // Fetch api to show graph
-            const res_graph = await fetch(`http://localhost:5000/gmail/listup/${selectedScript}/graph/show`);
+            // Fetch api to show a gmail data graph
+            const res_graph = await showGraph(selectedScript);
             console.log("Graph Response:", res_graph);
 
             const graphBlob = await res_graph.blob();

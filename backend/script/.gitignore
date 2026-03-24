@@ -3,18 +3,8 @@ log/
 __pycache__/
 
 # Exclude all JSON files in every folder
-**/*.json
-
-# Ignore sensitive credential and authentication files
-*credentials.json
+*.json
 *token.pickle
-*OAuth_credentials.json
-**/*credentials.json
-**/*token.pickle
-**/*OAuth_credentials.json
-**/credentials.json
-**/token.pickle
-**/OAuth_credentials.json
 
 # AWS credentials
 .aws/
@@ -24,11 +14,6 @@ __pycache__/
 *aws_credentials*
 *aws_secret*
 *aws_access*
-
-# Google credentials
-*service_account*.json
-*client_secret*.json
-*google_credentials*.json
 
 # API keys and tokens
 *api_key*
